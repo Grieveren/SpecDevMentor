@@ -1,0 +1,340 @@
+// This is your Prisma schema file,
+// learn more about it in the docs: https://pris.ly/d/prisma-schema
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+// User and authentication models
+model User {
+  id          String   @id @default(cuid())
+  email       String   @unique
+  name        String
+  avatar      String?
+  role        UserRole @default(DEVELOPER)
+  password    String
+  isVerified  Boolean  @default(false)
+  verificationToken String?
+  resetToken  String?
+  resetTokenExpiry DateTime?
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  // Relationships
+  refreshTokens     RefreshToken[]
+  ownedProjects     SpecificationProject[] @relation("ProjectOwner")
+  teamMemberships   TeamMember[]
+  comments          Comment[]
+  auditLogs         AuditLog[]
+  userProgress      UserProgress[]
+  aiUsage           AIUsage[]
+  reactions         Reaction[]
+
+  @@map("users")
+}
+
+model RefreshToken {
+  id        String   @id @default(cuid())
+  token     String   @unique
+  userId    String
+  expiresAt DateTime
+  createdAt DateTime @default(now())
+  isRevoked Boolean  @default(false)
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@map("refresh_tokens")
+}
+
+model SpecificationProject {
+  id            String              @id @default(cuid())
+  name          String
+  description   String?
+  currentPhase  SpecificationPhase  @default(REQUIREMENTS)
+  status        ProjectStatus       @default(ACTIVE)
+  settings      Json                @default("{}")
+  createdAt     DateTime            @default(now())
+  updatedAt     DateTime            @updatedAt
+
+  // Relationships
+  owner         User                @relation("ProjectOwner", fields: [ownerId], references: [id])
+  ownerId       String
+  team          TeamMember[]
+  documents     SpecificationDocument[]
+  analytics     ProjectAnalytics[]
+
+  @@map("specification_projects")
+}
+
+model TeamMember {
+  id        String           @id @default(cuid())
+  role      TeamMemberRole   @default(MEMBER)
+  status    TeamMemberStatus @default(ACTIVE)
+  joinedAt  DateTime         @default(now())
+
+  // Relationships
+  user      User                 @relation(fields: [userId], references: [id])
+  userId    String
+  project   SpecificationProject @relation(fields: [projectId], references: [id], onDelete: Cascade)
+  projectId String
+
+  @@unique([userId, projectId])
+  @@map("team_members")
+}
+
+model SpecificationDocument {
+  id            String              @id @default(cuid())
+  phase         SpecificationPhase
+  content       String              @db.Text
+  version       Int                 @default(1)
+  status        DocumentStatus      @default(DRAFT)
+  metadata      Json                @default("{}")
+  createdAt     DateTime            @default(now())
+  updatedAt     DateTime            @updatedAt
+
+  // Relationships
+  project       SpecificationProject @relation(fields: [projectId], references: [id], onDelete: Cascade)
+  projectId     String
+  comments      CommentThread[]
+  reviews       AIReview[]
+  versions      DocumentVersion[]
+
+  @@unique([projectId, phase])
+  @@map("specification_documents")
+}
+
+model DocumentVersion {
+  id          String   @id @default(cuid())
+  version     Int
+  content     String   @db.Text
+  changes     Json     @default("{}")
+  createdAt   DateTime @default(now())
+  createdBy   String
+
+  // Relationships
+  document    SpecificationDocument @relation(fields: [documentId], references: [id], onDelete: Cascade)
+  documentId  String
+
+  @@unique([documentId, version])
+  @@map("document_versions")
+}
+
+model CommentThread {
+  id          String        @id @default(cuid())
+  position    Json          // { line: number, character: number }
+  status      CommentStatus @default(OPEN)
+  createdAt   DateTime      @default(now())
+  resolvedAt  DateTime?
+  resolvedBy  String?
+
+  // Relationships
+  document    SpecificationDocument @relation(fields: [documentId], references: [id], onDelete: Cascade)
+  documentId  String
+  comments    Comment[]
+
+  @@map("comment_threads")
+}
+
+model Comment {
+  id          String    @id @default(cuid())
+  content     String    @db.Text
+  createdAt   DateTime  @default(now())
+  editedAt    DateTime?
+
+  // Relationships
+  thread      CommentThread @relation(fields: [threadId], references: [id], onDelete: Cascade)
+  threadId    String
+  author      User      @relation(fields: [authorId], references: [id])
+  authorId    String
+  reactions   Reaction[]
+
+  @@map("comments")
+}
+
+model Reaction {
+  id        String      @id @default(cuid())
+  type      ReactionType
+  createdAt DateTime    @default(now())
+
+  // Relationships
+  comment   Comment     @relation(fields: [commentId], references: [id], onDelete: Cascade)
+  commentId String
+  user      User        @relation(fields: [userId], references: [id])
+  userId    String
+
+  @@unique([commentId, userId, type])
+  @@map("reactions")
+}
+
+model AIReview {
+  id              String    @id @default(cuid())
+  overallScore    Float
+  suggestions     Json      // AISuggestion[]
+  completeness    Json      // CompletenessResult
+  qualityMetrics  Json      // QualityMetrics
+  createdAt       DateTime  @default(now())
+
+  // Relationships
+  document        SpecificationDocument @relation(fields: [documentId], references: [id], onDelete: Cascade)
+  documentId      String
+  appliedSuggestions String[] // Array of suggestion IDs
+
+  @@map("ai_reviews")
+}
+
+model AIUsage {
+  id          String    @id @default(cuid())
+  action      String    // 'review', 'suggestion', 'validation'
+  tokensUsed  Int
+  cost        Float
+  createdAt   DateTime  @default(now())
+
+  // Relationships
+  user        User      @relation(fields: [userId], references: [id])
+  userId      String
+
+  @@map("ai_usage")
+}
+
+model LearningModule {
+  id              String          @id @default(cuid())
+  title           String
+  description     String          @db.Text
+  phase           SpecificationPhase?
+  difficulty      DifficultyLevel
+  prerequisites   String[]        // Array of module IDs
+  content         Json            // LessonContent[]
+  exercises       Json            // Exercise[]
+  estimatedDuration Int           // in minutes
+  isPublished     Boolean         @default(false)
+  createdAt       DateTime        @default(now())
+  updatedAt       DateTime        @updatedAt
+
+  // Relationships
+  userProgress    UserProgress[]
+
+  @@map("learning_modules")
+}
+
+model UserProgress {
+  id                String              @id @default(cuid())
+  status            ProgressStatus      @default(NOT_STARTED)
+  completedLessons  String[]            // Array of lesson IDs
+  exerciseResults   Json                @default("[]") // ExerciseResult[]
+  skillAssessments  Json                @default("[]") // SkillAssessment[]
+  lastAccessed      DateTime?
+  completedAt       DateTime?
+
+  // Relationships
+  user              User                @relation(fields: [userId], references: [id])
+  userId            String
+  module            LearningModule      @relation(fields: [moduleId], references: [id])
+  moduleId          String
+
+  @@unique([userId, moduleId])
+  @@map("user_progress")
+}
+
+model ProjectAnalytics {
+  id              String   @id @default(cuid())
+  period          String   // 'daily', 'weekly', 'monthly'
+  metrics         Json     // Analytics data
+  createdAt       DateTime @default(now())
+
+  // Relationships
+  project         SpecificationProject @relation(fields: [projectId], references: [id], onDelete: Cascade)
+  projectId       String
+
+  @@map("project_analytics")
+}
+
+model AuditLog {
+  id          String   @id @default(cuid())
+  action      String
+  resource    String
+  resourceId  String
+  details     Json     @default("{}")
+  ipAddress   String?
+  userAgent   String?
+  success     Boolean  @default(true)
+  errorMessage String?
+  createdAt   DateTime @default(now())
+
+  // Relationships
+  user        User     @relation(fields: [userId], references: [id])
+  userId      String
+
+  @@map("audit_logs")
+}
+
+// Enums
+enum UserRole {
+  STUDENT
+  DEVELOPER
+  TEAM_LEAD
+  ADMIN
+}
+
+enum TeamMemberRole {
+  MEMBER
+  LEAD
+  ADMIN
+}
+
+enum TeamMemberStatus {
+  ACTIVE
+  INACTIVE
+  PENDING
+}
+
+enum SpecificationPhase {
+  REQUIREMENTS
+  DESIGN
+  TASKS
+  IMPLEMENTATION
+}
+
+enum DocumentStatus {
+  DRAFT
+  REVIEW
+  APPROVED
+  ARCHIVED
+}
+
+enum ProjectStatus {
+  ACTIVE
+  COMPLETED
+  ARCHIVED
+  SUSPENDED
+}
+
+enum CommentStatus {
+  OPEN
+  RESOLVED
+}
+
+enum ReactionType {
+  LIKE
+  DISLIKE
+  HELPFUL
+  CONFUSED
+}
+
+enum DifficultyLevel {
+  BEGINNER
+  INTERMEDIATE
+  ADVANCED
+  EXPERT
+}
+
+enum ProgressStatus {
+  NOT_STARTED
+  IN_PROGRESS
+  COMPLETED
+  SKIPPED
+}
