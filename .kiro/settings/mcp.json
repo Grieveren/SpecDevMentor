@@ -1,0 +1,33 @@
+{
+  "mcpServers": {
+    "github": {
+      "command": "uvx",
+      "args": ["mcp-github"],
+      "env": { "GITHUB_TOKEN": "${env:GITHUB_PERSONAL_ACCESS_TOKEN}" }
+    },
+    "postgres": {
+      "command": "uvx",
+      "args": [
+        "postgres-mcp-server",
+        "postgresql://brettgray@localhost:5432/specdevmentor"
+      ]
+    },
+    "filesystem": {
+      "command": "uvx",
+      "args": [
+        "filesystem-operations-mcp",
+        "--root-dir",
+        "/Users/brettgray/Coding/SpecDevMentor"
+      ]
+    },
+    "websearch": {
+      "command": "uvx",
+      "args": ["mcp-brave-search"],
+      "env": { "BRAVE_API_KEY": "${env:BRAVE_API_KEY}" }
+    },
+    "browser": {
+      "command": "uvx",
+      "args": ["browser-mcp"]
+    }
+  }
+}
