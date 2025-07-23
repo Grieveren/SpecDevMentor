@@ -16,11 +16,11 @@ graph TB
         WEB[React Web App]
         PWA[Progressive Web App]
     end
-    
+
     subgraph "API Gateway"
         GATEWAY[API Gateway/Load Balancer]
     end
-    
+
     subgraph "Application Services"
         AUTH[Authentication Service]
         SPEC[Specification Service]
@@ -29,18 +29,18 @@ graph TB
         EXEC[Code Execution Service]
         LEARN[Learning Service]
     end
-    
+
     subgraph "Data Layer"
         POSTGRES[(PostgreSQL)]
         REDIS[(Redis Cache)]
         S3[(File Storage)]
     end
-    
+
     subgraph "External Services"
         OPENAI[OpenAI API]
         DOCKER[Docker Runtime]
     end
-    
+
     WEB --> GATEWAY
     PWA --> GATEWAY
     GATEWAY --> AUTH
@@ -49,7 +49,7 @@ graph TB
     GATEWAY --> AI
     GATEWAY --> EXEC
     GATEWAY --> LEARN
-    
+
     AUTH --> POSTGRES
     AUTH --> REDIS
     SPEC --> POSTGRES
@@ -63,6 +63,7 @@ graph TB
 ### Technology Stack
 
 **Frontend:**
+
 - React 18 with TypeScript
 - Vite for build tooling
 - Tailwind CSS for styling
@@ -72,6 +73,7 @@ graph TB
 - Socket.IO client for real-time features
 
 **Backend:**
+
 - Node.js with TypeScript
 - Express.js framework
 - Socket.IO for WebSocket connections
@@ -80,12 +82,14 @@ graph TB
 - Docker for containerization
 
 **Database & Storage:**
+
 - PostgreSQL for primary data
 - Redis for caching and sessions
 - AWS S3 for file storage
 - Full-text search capabilities
 
 **Infrastructure:**
+
 - Docker Compose for development
 - Kubernetes for production deployment
 - NGINX for reverse proxy
@@ -316,7 +320,7 @@ enum SpecificationErrorCode {
   DOCUMENT_CONFLICT = 'DOCUMENT_CONFLICT',
   AI_SERVICE_UNAVAILABLE = 'AI_SERVICE_UNAVAILABLE',
   CODE_EXECUTION_TIMEOUT = 'CODE_EXECUTION_TIMEOUT',
-  COLLABORATION_SYNC_FAILED = 'COLLABORATION_SYNC_FAILED'
+  COLLABORATION_SYNC_FAILED = 'COLLABORATION_SYNC_FAILED',
 }
 ```
 
@@ -344,18 +348,21 @@ interface ErrorRecoveryStrategy {
 ### Frontend Testing
 
 **Unit Testing:**
+
 - Component testing with React Testing Library
 - Hook testing with @testing-library/react-hooks
 - Utility function testing with Jest
 - State management testing with Zustand test utilities
 
 **Integration Testing:**
+
 - API integration testing with MSW (Mock Service Worker)
 - Real-time collaboration testing with Socket.IO mock
 - Form submission and validation testing
 - Navigation and routing testing
 
 **End-to-End Testing:**
+
 - Specification workflow testing with Playwright
 - Multi-user collaboration scenarios
 - AI review integration testing
@@ -364,18 +371,21 @@ interface ErrorRecoveryStrategy {
 ### Backend Testing
 
 **Unit Testing:**
+
 - Service layer testing with Jest
 - Database operation testing with test database
 - Authentication and authorization testing
 - AI service integration testing with mocked responses
 
 **Integration Testing:**
+
 - API endpoint testing with Supertest
 - Database integration testing with test containers
 - WebSocket connection testing
 - External service integration testing
 
 **Performance Testing:**
+
 - Load testing for concurrent collaboration
 - Code execution service performance testing
 - Database query optimization testing

@@ -1,0 +1,19 @@
+{
+  "extends": ["../.eslintrc.json"],
+  "env": {
+    "browser": true,
+    "es2020": true
+  },
+  "plugins": ["react-hooks", "react-refresh"],
+  "extends": ["../.eslintrc.json", "plugin:react-hooks/recommended"],
+  "rules": {
+    "react-refresh/only-export-components": ["warn", { "allowConstantExport": true }],
+    "react-hooks/rules-of-hooks": "error",
+    "react-hooks/exhaustive-deps": "warn"
+  },
+  "settings": {
+    "react": {
+      "version": "18.2"
+    }
+  }
+}

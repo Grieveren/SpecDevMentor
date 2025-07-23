@@ -18,29 +18,29 @@ interface OpenAIConfig {
 class OpenAIService {
   private client: OpenAI;
   private rateLimiter: RateLimiter;
-  
+
   constructor(config: OpenAIConfig) {
     this.client = new OpenAI({
       apiKey: config.apiKey,
-      timeout: config.timeout
+      timeout: config.timeout,
     });
     this.rateLimiter = new RateLimiter({
       tokensPerMinute: 90000,
-      requestsPerMinute: 3500
+      requestsPerMinute: 3500,
     });
   }
-  
+
   async generateCompletion(prompt: string, options?: CompletionOptions): Promise<string> {
     await this.rateLimiter.waitForToken();
-    
+
     try {
       const response = await this.client.chat.completions.create({
         model: this.config.model,
         messages: [{ role: 'user', content: prompt }],
         max_tokens: options?.maxTokens || this.config.maxTokens,
-        temperature: options?.temperature || this.config.temperature
+        temperature: options?.temperature || this.config.temperature,
       });
-      
+
       return response.choices[0]?.message?.content || '';
     } catch (error) {
       throw new AIServiceError('OpenAI API request failed', error);
@@ -69,7 +69,7 @@ Document:
 
 Provide specific, actionable feedback with line references where possible.
 `,
-    
+
     validate: `
 Validate this requirements document against specification best practices:
 - Are all requirements testable and measurable?
@@ -81,9 +81,9 @@ Document:
 {content}
 
 Return a JSON response with validation results.
-`
+`,
   },
-  
+
   design: {
     review: `
 Review this technical design document for completeness and quality:
@@ -99,7 +99,7 @@ Document:
 
 Provide detailed feedback on improvements and missing elements.
 `,
-    
+
     compliance: `
 Check if this design document addresses all requirements:
 
@@ -110,8 +110,8 @@ Design:
 {design}
 
 Identify any requirements not addressed in the design and suggest additions.
-`
-  }
+`,
+  },
 };
 ```
 
@@ -144,23 +144,23 @@ interface AISuggestion {
 const useAISuggestions = (document: SpecificationDocument) => {
   const [suggestions, setSuggestions] = useState<AISuggestion[]>([]);
   const [appliedSuggestions, setAppliedSuggestions] = useState<string[]>([]);
-  
+
   const applySuggestion = async (suggestion: AISuggestion) => {
     if (suggestion.suggestedText && suggestion.originalText) {
       const updatedContent = document.content.replace(
         suggestion.originalText,
         suggestion.suggestedText
       );
-      
+
       await updateDocument(document.id, updatedContent);
       setAppliedSuggestions(prev => [...prev, suggestion.id]);
     }
   };
-  
+
   const revertSuggestion = async (suggestion: AISuggestion) => {
     // Implementation for reverting applied suggestions
   };
-  
+
   return { suggestions, applySuggestion, revertSuggestion, appliedSuggestions };
 };
 ```
@@ -188,33 +188,33 @@ enum AIErrorCode {
   CONTENT_FILTERED = 'CONTENT_FILTERED',
   TOKEN_LIMIT_EXCEEDED = 'TOKEN_LIMIT_EXCEEDED',
   SERVICE_UNAVAILABLE = 'SERVICE_UNAVAILABLE',
-  TIMEOUT = 'TIMEOUT'
+  TIMEOUT = 'TIMEOUT',
 }
 
 // Retry logic for AI service calls
-const withRetry = async <T>(
+const withRetry = async <T,>(
   operation: () => Promise<T>,
   maxRetries: number = 3,
   backoffMs: number = 1000
 ): Promise<T> => {
   let lastError: Error;
-  
+
   for (let attempt = 0; attempt <= maxRetries; attempt++) {
     try {
       return await operation();
     } catch (error) {
       lastError = error as Error;
-      
+
       if (error instanceof AIServiceError && !error.retryable) {
         throw error;
       }
-      
+
       if (attempt < maxRetries) {
         await new Promise(resolve => setTimeout(resolve, backoffMs * Math.pow(2, attempt)));
       }
     }
   }
-  
+
   throw lastError!;
 };
 ```
@@ -233,12 +233,12 @@ interface AICache {
 
 class RedisAICache implements AICache {
   constructor(private redis: Redis) {}
-  
+
   async get(key: string): Promise<AIReviewResult | null> {
     const cached = await this.redis.get(`ai:${key}`);
     return cached ? JSON.parse(cached) : null;
   }
-  
+
   async set(key: string, result: AIReviewResult, ttl: number = 3600): Promise<void> {
     await this.redis.setex(`ai:${key}`, ttl, JSON.stringify(result));
   }
@@ -273,7 +273,7 @@ const AIReviewPanel: React.FC<{
           </div>
         </div>
       </div>
-      
+
       <div className="p-4 space-y-4">
         {review.suggestions.map(suggestion => (
           <SuggestionCard
@@ -293,11 +293,11 @@ const useAIReview = (documentId: string) => {
   const [isLoading, setIsLoading] = useState(false);
   const [review, setReview] = useState<AIReviewResult | null>(null);
   const [error, setError] = useState<string | null>(null);
-  
+
   const requestReview = async () => {
     setIsLoading(true);
     setError(null);
-    
+
     try {
       const result = await aiService.reviewDocument(documentId);
       setReview(result);
@@ -307,7 +307,7 @@ const useAIReview = (documentId: string) => {
       setIsLoading(false);
     }
   };
-  
+
   return { review, isLoading, error, requestReview };
 };
 ```

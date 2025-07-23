@@ -14,14 +14,14 @@ model User {
   role        UserRole @default(DEVELOPER)
   createdAt   DateTime @default(now())
   updatedAt   DateTime @updatedAt
-  
+
   // Relationships
   ownedProjects     SpecificationProject[] @relation("ProjectOwner")
   teamMemberships   TeamMember[]
   comments          Comment[]
   auditLogs         AuditLog[]
   userProgress      UserProgress[]
-  
+
   @@map("users")
 }
 
@@ -34,14 +34,14 @@ model SpecificationProject {
   settings      Json                @default("{}")
   createdAt     DateTime            @default(now())
   updatedAt     DateTime            @updatedAt
-  
+
   // Relationships
   owner         User                @relation("ProjectOwner", fields: [ownerId], references: [id])
   ownerId       String
   team          TeamMember[]
   documents     SpecificationDocument[]
   analytics     ProjectAnalytics[]
-  
+
   @@map("specification_projects")
 }
 
@@ -54,14 +54,14 @@ model SpecificationDocument {
   metadata      Json                @default("{}")
   createdAt     DateTime            @default(now())
   updatedAt     DateTime            @updatedAt
-  
+
   // Relationships
   project       SpecificationProject @relation(fields: [projectId], references: [id], onDelete: Cascade)
   projectId     String
   comments      CommentThread[]
   reviews       AIReview[]
   versions      DocumentVersion[]
-  
+
   @@unique([projectId, phase])
   @@map("specification_documents")
 }
@@ -106,12 +106,12 @@ model CommentThread {
   createdAt   DateTime  @default(now())
   resolvedAt  DateTime?
   resolvedBy  String?
-  
+
   // Relationships
   document    SpecificationDocument @relation(fields: [documentId], references: [id], onDelete: Cascade)
   documentId  String
   comments    Comment[]
-  
+
   @@map("comment_threads")
 }
 
@@ -120,14 +120,14 @@ model Comment {
   content     String    @db.Text
   createdAt   DateTime  @default(now())
   editedAt    DateTime?
-  
+
   // Relationships
   thread      CommentThread @relation(fields: [threadId], references: [id], onDelete: Cascade)
   threadId    String
   author      User      @relation(fields: [authorId], references: [id])
   authorId    String
   reactions   Reaction[]
-  
+
   @@map("comments")
 }
 
@@ -135,13 +135,13 @@ model Reaction {
   id        String      @id @default(cuid())
   type      ReactionType
   createdAt DateTime    @default(now())
-  
+
   // Relationships
   comment   Comment     @relation(fields: [commentId], references: [id], onDelete: Cascade)
   commentId String
   user      User        @relation(fields: [userId], references: [id])
   userId    String
-  
+
   @@unique([commentId, userId, type])
   @@map("reactions")
 }
@@ -169,12 +169,12 @@ model AIReview {
   completeness    Json      // CompletenessResult
   qualityMetrics  Json      // QualityMetrics
   createdAt       DateTime  @default(now())
-  
+
   // Relationships
   document        SpecificationDocument @relation(fields: [documentId], references: [id], onDelete: Cascade)
   documentId      String
   appliedSuggestions String[] // Array of suggestion IDs
-  
+
   @@map("ai_reviews")
 }
 
@@ -185,10 +185,10 @@ model AIUsage {
   tokensUsed  Int
   cost        Float
   createdAt   DateTime  @default(now())
-  
+
   // Relationships
   user        User      @relation(fields: [userId], references: [id])
-  
+
   @@map("ai_usage")
 }
 ```
@@ -209,10 +209,10 @@ model LearningModule {
   isPublished     Boolean         @default(false)
   createdAt       DateTime        @default(now())
   updatedAt       DateTime        @updatedAt
-  
+
   // Relationships
   userProgress    UserProgress[]
-  
+
   @@map("learning_modules")
 }
 
@@ -224,13 +224,13 @@ model UserProgress {
   skillAssessments  Json                @default("[]") // SkillAssessment[]
   lastAccessed      DateTime?
   completedAt       DateTime?
-  
+
   // Relationships
   user              User                @relation(fields: [userId], references: [id])
   userId            String
   module            LearningModule      @relation(fields: [moduleId], references: [id])
   moduleId          String
-  
+
   @@unique([userId, moduleId])
   @@map("user_progress")
 }
@@ -258,28 +258,28 @@ enum ProgressStatus {
 // Repository pattern for data access
 class SpecificationRepository {
   constructor(private prisma: PrismaClient) {}
-  
+
   // Optimized project fetching with related data
-  async getProjectWithDocuments(projectId: string, userId: string): Promise<ProjectWithDocuments | null> {
+  async getProjectWithDocuments(
+    projectId: string,
+    userId: string
+  ): Promise<ProjectWithDocuments | null> {
     return await this.prisma.specificationProject.findFirst({
       where: {
         id: projectId,
-        OR: [
-          { ownerId: userId },
-          { team: { some: { userId, status: 'ACTIVE' } } }
-        ]
+        OR: [{ ownerId: userId }, { team: { some: { userId, status: 'ACTIVE' } } }],
       },
       include: {
         owner: {
-          select: { id: true, name: true, email: true, avatar: true }
+          select: { id: true, name: true, email: true, avatar: true },
         },
         team: {
           where: { status: 'ACTIVE' },
           include: {
             user: {
-              select: { id: true, name: true, email: true, avatar: true }
-            }
-          }
+              select: { id: true, name: true, email: true, avatar: true },
+            },
+          },
         },
         documents: {
           orderBy: { phase: 'asc' },
@@ -292,22 +292,22 @@ class SpecificationRepository {
                   orderBy: { createdAt: 'desc' },
                   include: {
                     author: {
-                      select: { id: true, name: true, avatar: true }
-                    }
-                  }
-                }
-              }
+                      select: { id: true, name: true, avatar: true },
+                    },
+                  },
+                },
+              },
             },
             reviews: {
               take: 1,
-              orderBy: { createdAt: 'desc' }
-            }
-          }
-        }
-      }
+              orderBy: { createdAt: 'desc' },
+            },
+          },
+        },
+      },
     });
   }
-  
+
   // Paginated project listing with search
   async getProjectsForUser(
     userId: string,
@@ -320,21 +320,18 @@ class SpecificationRepository {
   ): Promise<PaginatedProjects> {
     const { search, status, page, limit } = options;
     const skip = (page - 1) * limit;
-    
+
     const where: Prisma.SpecificationProjectWhereInput = {
-      OR: [
-        { ownerId: userId },
-        { team: { some: { userId, status: 'ACTIVE' } } }
-      ],
+      OR: [{ ownerId: userId }, { team: { some: { userId, status: 'ACTIVE' } } }],
       ...(status && { status }),
       ...(search && {
         OR: [
           { name: { contains: search, mode: 'insensitive' } },
-          { description: { contains: search, mode: 'insensitive' } }
-        ]
-      })
+          { description: { contains: search, mode: 'insensitive' } },
+        ],
+      }),
     };
-    
+
     const [projects, total] = await Promise.all([
       this.prisma.specificationProject.findMany({
         where,
@@ -343,38 +340,38 @@ class SpecificationRepository {
         orderBy: { updatedAt: 'desc' },
         include: {
           owner: {
-            select: { id: true, name: true, avatar: true }
+            select: { id: true, name: true, avatar: true },
           },
           team: {
             where: { status: 'ACTIVE' },
             select: {
               user: {
-                select: { id: true, name: true, avatar: true }
-              }
-            }
+                select: { id: true, name: true, avatar: true },
+              },
+            },
           },
           _count: {
             select: {
               documents: true,
-              comments: true
-            }
-          }
-        }
+              comments: true,
+            },
+          },
+        },
       }),
-      this.prisma.specificationProject.count({ where })
+      this.prisma.specificationProject.count({ where }),
     ]);
-    
+
     return {
       projects,
       pagination: {
         page,
         limit,
         total,
-        pages: Math.ceil(total / limit)
-      }
+        pages: Math.ceil(total / limit),
+      },
     };
   }
-  
+
   // Bulk operations for analytics
   async getProjectAnalytics(projectIds: string[]): Promise<ProjectAnalytics[]> {
     return await this.prisma.$queryRaw`
@@ -406,22 +403,22 @@ class SpecificationRepository {
 // Transaction patterns for complex operations
 class SpecificationService {
   constructor(private prisma: PrismaClient) {}
-  
+
   async createProjectWithInitialDocuments(
     data: CreateProjectRequest,
     userId: string
   ): Promise<SpecificationProject> {
-    return await this.prisma.$transaction(async (tx) => {
+    return await this.prisma.$transaction(async tx => {
       // Create project
       const project = await tx.specificationProject.create({
         data: {
           name: data.name,
           description: data.description,
           ownerId: userId,
-          currentPhase: 'REQUIREMENTS'
-        }
+          currentPhase: 'REQUIREMENTS',
+        },
       });
-      
+
       // Create initial documents for each phase
       const phases: SpecificationPhase[] = ['REQUIREMENTS', 'DESIGN', 'TASKS'];
       const documents = await Promise.all(
@@ -431,12 +428,12 @@ class SpecificationService {
               projectId: project.id,
               phase,
               content: this.getInitialContent(phase),
-              status: phase === 'REQUIREMENTS' ? 'DRAFT' : 'DRAFT'
-            }
+              status: phase === 'REQUIREMENTS' ? 'DRAFT' : 'DRAFT',
+            },
           })
         )
       );
-      
+
       // Add team members if specified
       if (data.teamMemberIds?.length) {
         await tx.teamMember.createMany({
@@ -444,11 +441,11 @@ class SpecificationService {
             projectId: project.id,
             userId: memberId,
             role: 'MEMBER',
-            status: 'ACTIVE'
-          }))
+            status: 'ACTIVE',
+          })),
         });
       }
-      
+
       // Log project creation
       await tx.auditLog.create({
         data: {
@@ -456,57 +453,55 @@ class SpecificationService {
           action: 'project_created',
           resource: 'project',
           resourceId: project.id,
-          details: { projectName: project.name }
-        }
+          details: { projectName: project.name },
+        },
       });
-      
+
       return project;
     });
   }
-  
+
   async transitionPhase(
     projectId: string,
     targetPhase: SpecificationPhase,
     userId: string
   ): Promise<void> {
-    await this.prisma.$transaction(async (tx) => {
+    await this.prisma.$transaction(async tx => {
       // Validate current phase completion
       const project = await tx.specificationProject.findUnique({
         where: { id: projectId },
-        include: { documents: true }
+        include: { documents: true },
       });
-      
+
       if (!project) {
         throw new Error('Project not found');
       }
-      
+
       // Check if user has permission
-      const hasPermission = await this.checkPhaseTransitionPermission(
-        tx, projectId, userId
-      );
-      
+      const hasPermission = await this.checkPhaseTransitionPermission(tx, projectId, userId);
+
       if (!hasPermission) {
         throw new Error('Insufficient permissions for phase transition');
       }
-      
+
       // Update project phase
       await tx.specificationProject.update({
         where: { id: projectId },
-        data: { 
+        data: {
           currentPhase: targetPhase,
-          updatedAt: new Date()
-        }
+          updatedAt: new Date(),
+        },
       });
-      
+
       // Update document statuses
       await tx.specificationDocument.updateMany({
         where: {
           projectId,
-          phase: targetPhase
+          phase: targetPhase,
         },
-        data: { status: 'DRAFT' }
+        data: { status: 'DRAFT' },
       });
-      
+
       // Log phase transition
       await tx.auditLog.create({
         data: {
@@ -516,9 +511,9 @@ class SpecificationService {
           resourceId: projectId,
           details: {
             fromPhase: project.currentPhase,
-            toPhase: targetPhase
-          }
-        }
+            toPhase: targetPhase,
+          },
+        },
       });
     });
   }
@@ -538,10 +533,10 @@ CREATE INDEX CONCURRENTLY idx_comments_thread_created ON comments(thread_id, cre
 CREATE INDEX CONCURRENTLY idx_team_members_user_status ON team_members(user_id, status);
 
 -- Full-text search indexes
-CREATE INDEX CONCURRENTLY idx_projects_search ON specification_projects 
+CREATE INDEX CONCURRENTLY idx_projects_search ON specification_projects
 USING gin(to_tsvector('english', name || ' ' || COALESCE(description, '')));
 
-CREATE INDEX CONCURRENTLY idx_documents_content_search ON specification_documents 
+CREATE INDEX CONCURRENTLY idx_documents_content_search ON specification_documents
 USING gin(to_tsvector('english', content));
 
 -- Composite indexes for common queries
@@ -556,10 +551,10 @@ CREATE INDEX CONCURRENTLY idx_ai_reviews_document_created ON ai_reviews(document
 const prisma = new PrismaClient({
   datasources: {
     db: {
-      url: process.env.DATABASE_URL
-    }
+      url: process.env.DATABASE_URL,
+    },
   },
-  log: process.env.NODE_ENV === 'development' ? ['query', 'info', 'warn'] : ['warn', 'error']
+  log: process.env.NODE_ENV === 'development' ? ['query', 'info', 'warn'] : ['warn', 'error'],
 });
 
 // Redis caching layer
@@ -571,31 +566,34 @@ class CachedSpecificationRepository extends SpecificationRepository {
   ) {
     super(prisma);
   }
-  
-  async getProjectWithDocuments(projectId: string, userId: string): Promise<ProjectWithDocuments | null> {
+
+  async getProjectWithDocuments(
+    projectId: string,
+    userId: string
+  ): Promise<ProjectWithDocuments | null> {
     const cacheKey = `project:${projectId}:user:${userId}`;
-    
+
     // Try cache first
     const cached = await this.redis.get(cacheKey);
     if (cached) {
       return JSON.parse(cached);
     }
-    
+
     // Fetch from database
     const project = await super.getProjectWithDocuments(projectId, userId);
-    
+
     // Cache result
     if (project) {
       await this.redis.setex(cacheKey, this.cacheTTL, JSON.stringify(project));
     }
-    
+
     return project;
   }
-  
+
   async invalidateProjectCache(projectId: string): Promise<void> {
     const pattern = `project:${projectId}:*`;
     const keys = await this.redis.keys(pattern);
-    
+
     if (keys.length > 0) {
       await this.redis.del(...keys);
     }
@@ -609,7 +607,7 @@ class CachedSpecificationRepository extends SpecificationRepository {
 // Database seeding for development
 async function seedDatabase() {
   console.log('🌱 Seeding database...');
-  
+
   // Create admin user
   const adminUser = await prisma.user.upsert({
     where: { email: 'admin@codementor-ai.com' },
@@ -617,10 +615,10 @@ async function seedDatabase() {
     create: {
       email: 'admin@codementor-ai.com',
       name: 'Admin User',
-      role: 'ADMIN'
-    }
+      role: 'ADMIN',
+    },
   });
-  
+
   // Create sample learning modules
   const modules = await Promise.all([
     prisma.learningModule.upsert({
@@ -636,12 +634,12 @@ async function seedDatabase() {
         content: sampleLearningContent.requirements,
         exercises: sampleExercises.requirements,
         estimatedDuration: 45,
-        isPublished: true
-      }
+        isPublished: true,
+      },
     }),
     // Add more modules...
   ]);
-  
+
   // Create sample projects
   const sampleProject = await prisma.specificationProject.create({
     data: {
@@ -654,23 +652,23 @@ async function seedDatabase() {
           {
             phase: 'REQUIREMENTS',
             content: sampleContent.requirements,
-            status: 'APPROVED'
+            status: 'APPROVED',
           },
           {
             phase: 'DESIGN',
             content: sampleContent.design,
-            status: 'DRAFT'
+            status: 'DRAFT',
           },
           {
             phase: 'TASKS',
             content: sampleContent.tasks,
-            status: 'DRAFT'
-          }
-        ]
-      }
-    }
+            status: 'DRAFT',
+          },
+        ],
+      },
+    },
   });
-  
+
   console.log('✅ Database seeded successfully');
 }
 ```

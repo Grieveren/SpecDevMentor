@@ -3,31 +3,38 @@
     "github": {
       "command": "uvx",
       "args": ["mcp-github"],
-      "env": { "GITHUB_TOKEN": "${env:GITHUB_PERSONAL_ACCESS_TOKEN}" }
+      "env": {
+        "GITHUB_TOKEN": "${env:GITHUB_PERSONAL_ACCESS_TOKEN}"
+      },
+      "disabled": false,
+      "autoApprove": []
     },
     "postgres": {
       "command": "uvx",
-      "args": [
-        "postgres-mcp-server",
-        "postgresql://brettgray@localhost:5432/specdevmentor"
-      ]
+      "args": ["postgres-mcp-server", "postgresql://brettgray@localhost:5432/specdevmentor"],
+      "disabled": false,
+      "autoApprove": []
     },
     "filesystem": {
       "command": "uvx",
-      "args": [
-        "filesystem-operations-mcp",
-        "--root-dir",
-        "/Users/brettgray/Coding/SpecDevMentor"
-      ]
+      "args": ["filesystem-operations-mcp", "--root-dir", "/Users/brettgray/Coding/SpecDevMentor"],
+      "disabled": false,
+      "autoApprove": ["create_directory"]
     },
     "websearch": {
       "command": "uvx",
       "args": ["mcp-brave-search"],
-      "env": { "BRAVE_API_KEY": "${env:BRAVE_API_KEY}" }
+      "env": {
+        "BRAVE_API_KEY": "${env:BRAVE_API_KEY}"
+      },
+      "disabled": false,
+      "autoApprove": []
     },
     "browser": {
       "command": "uvx",
-      "args": ["browser-mcp"]
+      "args": ["browser-mcp"],
+      "disabled": false,
+      "autoApprove": []
     }
   }
 }

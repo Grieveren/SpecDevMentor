@@ -1,6 +1,201 @@
-# CodeMentor-AI
+# CodeMentor AI Platform
 
-A comprehensive specification-based development learning platform that teaches developers the complete workflow of spec-driven development methodology. The platform combines AI-powered guidance, interactive lessons, collaborative tools, and hands-on exercises to provide practical experience with specification-based development from requirements gathering through implementation.
+A comprehensive AI-powered specification-based development learning platform that teaches developers the complete workflow of spec-driven development methodology through interactive lessons, collaborative tools, and hands-on exercises.
+
+## Features
+
+- **Specification Workflow Management**: Structured workflow (Requirements → Design → Tasks → Implementation)
+- **AI-Powered Review**: Intelligent analysis and feedback on specification documents
+- **Real-time Collaboration**: Multi-user editing with conflict resolution
+- **Interactive Learning**: Structured curriculum with hands-on exercises
+- **Code Execution & Validation**: Secure sandbox for testing implementations
+- **Template Library**: Best practice templates and examples
+- **Progress Tracking**: Analytics and skill development monitoring
+
+## Workspace Structure
+
+This project uses pnpm workspaces for monorepo management:
+
+- **client/**: React frontend application with TypeScript
+- **server/**: Node.js backend API with TypeScript  
+- **packages/**: Shared utilities and components (future expansion)
+
+The root package.json defines workspace scripts that operate across all packages, enabling efficient development and build processes.
+
+## Tech Stack
+
+- **Frontend**: React 18 + TypeScript + Vite + Tailwind CSS
+- **Backend**: Node.js + Express + TypeScript
+- **Database**: PostgreSQL + Prisma ORM
+- **Cache**: Redis
+- **Real-time**: Socket.IO
+- **AI**: OpenAI API integration
+- **Testing**: Vitest + React Testing Library
+- **Monorepo**: pnpm workspaces
+- **Code Quality**: ESLint + Prettier + Husky pre-commit hooks
+
+## Quick Start
+
+### Prerequisites
+
+- Node.js 18+
+- pnpm 8+ (required for workspace management)
+- Docker & Docker Compose
+
+### Installation
+
+1. **Clone the repository**
+
+   ```bash
+   git clone <repository-url>
+   cd codementor-ai-platform
+   ```
+
+2. **Install dependencies**
+
+   ```bash
+   pnpm install
+   ```
+
+   This will install dependencies for all workspaces (client, server, and shared packages) using pnpm's workspace feature.
+
+3. **Set up environment variables**
+
+   ```bash
+   cp .env.example .env
+   # Edit .env with your configuration
+   ```
+
+4. **Start development services**
+
+   ```bash
+   # Start PostgreSQL and Redis
+   pnpm docker:up
+
+   # Run database migrations (after setting up Prisma)
+   pnpm db:migrate
+
+   # Start development servers
+   pnpm dev
+   ```
+
+5. **Access the application**
+   - Frontend: http://localhost:3000
+   - Backend API: http://localhost:3001
+   - Health Check: http://localhost:3001/health
+
+## Development Scripts
+
+### Root Level Commands
+
+```bash
+# Development
+pnpm dev              # Start both client and server in development mode
+pnpm build            # Build both client and server for production
+pnpm test             # Run tests in all workspaces
+pnpm test:watch       # Run tests in watch mode across workspaces
+pnpm lint             # Lint all workspaces
+pnpm lint:fix         # Auto-fix linting issues across workspaces
+pnpm format           # Format code with Prettier
+pnpm format:check     # Check code formatting without changes
+pnpm type-check       # Run TypeScript type checking across workspaces
+pnpm clean            # Clean build artifacts in all workspaces
+
+# Docker
+pnpm docker:up        # Start PostgreSQL and Redis containers
+pnpm docker:down      # Stop containers
+pnpm docker:logs      # View container logs
+
+# Database
+pnpm db:migrate       # Run database migrations
+pnpm db:seed          # Seed database with sample data
+pnpm db:reset         # Reset database
+
+# Setup
+pnpm prepare          # Install Husky git hooks
+```
+
+### Client Commands
+
+```bash
+cd client
+pnpm dev              # Start Vite development server
+pnpm build            # Build for production
+pnpm test             # Run Vitest tests
+pnpm test:ui          # Run tests with UI
+pnpm lint             # ESLint check
+```
+
+### Server Commands
+
+```bash
+cd server
+pnpm dev              # Start development server with tsx watch
+pnpm build            # Build TypeScript to JavaScript
+pnpm start            # Start production server
+pnpm test             # Run Vitest tests
+pnpm db:studio        # Open Prisma Studio
+```
+
+## Project Structure
+
+```
+├── client/                 # React frontend application
+│   ├── src/
+│   │   ├── components/     # Reusable UI components
+│   │   ├── pages/          # Page components
+│   │   ├── services/       # API clients
+│   │   ├── stores/         # Zustand state management
+│   │   ├── types/          # TypeScript definitions
+│   │   └── utils/          # Utility functions
+│   ├── public/             # Static assets
+│   └── package.json
+├── server/                 # Node.js backend application
+│   ├── src/
+│   │   ├── controllers/    # Route handlers
+│   │   ├── middleware/     # Express middleware
+│   │   ├── models/         # Database models
+│   │   ├── services/       # Business logic
+│   │   ├── routes/         # API routes
+│   │   └── utils/          # Utility functions
+│   ├── prisma/             # Database schema and migrations
+│   └── package.json
+├── packages/               # Shared packages and utilities
+├── docker/                 # Docker configuration
+├── .kiro/                  # Kiro IDE configuration
+└── package.json            # Root package.json with workspace configuration
+```
+
+## Environment Variables
+
+Copy `.env.example` to `.env` and configure:
+
+- **Database**: PostgreSQL connection string
+- **Redis**: Redis connection string
+- **JWT**: Secret keys for authentication
+- **OpenAI**: API key for AI features
+- **SMTP**: Email configuration for notifications
+
+## Docker Services
+
+The development environment includes:
+
+- **PostgreSQL**: Main database (port 5432)
+- **Redis**: Caching and sessions (port 6379)
+- **PostgreSQL Test**: Test database (port 5433)
+- **Redis Test**: Test cache (port 6380)
+
+## Contributing
+
+1. Fork the repository
+2. Create a feature branch
+3. Make your changes
+4. Run tests and linting
+5. Submit a pull request
+
+## License
+
+This project is licensed under the MIT License.
 
 ## Architecture
 
@@ -35,24 +230,28 @@ CodeMentor-AI/
 ## Features
 
 ### Specification-Based Development Learning
+
 - **Requirements Engineering**: Interactive lessons on creating EARS-format requirements and user stories
 - **Design Documentation**: Guided creation of architecture documents, component specifications, and data models
 - **Task Breakdown**: Structured approach to breaking down designs into implementable tasks
 - **Implementation Tracking**: Code-to-specification traceability and validation
 
 ### AI-Powered Assistance
+
 - **Specification Review**: AI analysis of requirements, design, and task documents for quality and completeness
 - **Methodology Coaching**: Interactive AI tutor specialized in specification-based development practices
 - **Code Validation**: Automated checking of implementation against original specifications
 - **Best Practice Guidance**: Real-time suggestions for improving specification quality
 
 ### Collaborative Development
+
 - **Real-time Collaboration**: Multi-user editing of specification documents with conflict resolution
 - **Review Workflows**: Structured approval processes for specification documents
 - **Team Progress Tracking**: Analytics on specification methodology adoption and team effectiveness
 - **Template Library**: Comprehensive collection of specification templates and examples
 
 ### Learning and Progress
+
 - **Methodology Curriculum**: Step-by-step lessons on specification-based development principles
 - **Hands-on Workshops**: Practical exercises simulating real-world specification scenarios
 - **Skill Assessment**: Progress tracking for specification creation and methodology mastery
@@ -103,10 +302,10 @@ CodeMentor-AI implements enterprise-grade security features:
    ```bash
    # Client environment
    cp client/.env.example client/.env.local
-   
+
    # Server environment
    cp server/.env.example server/.env
-   
+
    # Code runner environment
    cp code-runner/.env.example code-runner/.env
    ```
@@ -124,16 +323,17 @@ CodeMentor-AI implements enterprise-grade security features:
    ```
 
 5. Start the development environment:
+
    ```bash
    # Start all services with Docker
    docker-compose up -d
-   
+
    # Run database migrations
    pnpm run db:migrate
-   
+
    # Seed the database with sample data
    pnpm run db:seed
-   
+
    # Start development servers
    pnpm run dev
    ```
@@ -167,6 +367,17 @@ This project uses comprehensive code quality tools:
 - **Security Tests**: Automated security scanning and penetration testing
 - **Performance Tests**: Load testing for concurrent collaboration scenarios
 
+### Code Quality
+
+This project uses comprehensive code quality tools:
+
+- **ESLint** for JavaScript/TypeScript linting with strict rules
+- **Prettier** for consistent code formatting
+- **Jest** with React Testing Library for comprehensive testing
+- **Husky** for git hooks and pre-commit validation
+- **TypeScript** in strict mode for type safety
+- **Prisma** for type-safe database operations
+
 ### Contributing
 
 1. Fork the repository
@@ -182,18 +393,21 @@ This project uses comprehensive code quality tools:
 ## Scripts
 
 ### Development
+
 - `pnpm run dev` - Start all development servers (client, server, code-runner)
 - `pnpm run dev:client` - Start client development server only
 - `pnpm run dev:server` - Start server development server only
 - `pnpm run dev:code-runner` - Start code execution service only
 
 ### Building
+
 - `pnpm run build` - Build all applications for production
 - `pnpm run build:client` - Build client application
 - `pnpm run build:server` - Build server application
 - `pnpm run build:code-runner` - Build code execution service
 
 ### Testing
+
 - `pnpm run test` - Run all tests
 - `pnpm run test:client` - Run client tests
 - `pnpm run test:server` - Run server tests
@@ -201,12 +415,14 @@ This project uses comprehensive code quality tools:
 - `pnpm run test:coverage` - Run tests with coverage report
 
 ### Code Quality
+
 - `pnpm run lint` - Run linter across all packages
 - `pnpm run lint:fix` - Fix linting issues automatically
 - `pnpm run format` - Format code with Prettier
 - `pnpm run type-check` - Run TypeScript type checking
 
 ### Database
+
 - `pnpm run db:migrate` - Run database migrations
 - `pnpm run db:seed` - Seed database with sample data
 - `pnpm run db:reset` - Reset database and reseed
@@ -214,6 +430,7 @@ This project uses comprehensive code quality tools:
 - `pnpm run db:generate` - Generate Prisma client
 
 ### Docker
+
 - `pnpm run docker:build` - Build all Docker images
 - `pnpm run docker:up` - Start all services with Docker Compose
 - `pnpm run docker:down` - Stop all Docker services
@@ -222,6 +439,7 @@ This project uses comprehensive code quality tools:
 ## API Documentation
 
 The API documentation is available at:
+
 - Development: `http://localhost:3000/api/docs`
 - Swagger/OpenAPI specification included in `/docs/api`
 
@@ -238,6 +456,7 @@ The API documentation is available at:
 ### Environment Variables
 
 #### Required Variables
+
 ```bash
 # Database
 DATABASE_URL=postgresql://user:pass@host:5432/db
@@ -261,6 +480,7 @@ API_URL=https://api.your-domain.com
 ```
 
 #### Optional Variables
+
 ```bash
 # Rate Limiting
 RATE_LIMIT_WINDOW_MS=60000
@@ -291,6 +511,7 @@ This project is licensed under the MIT License - see the [LICENSE](LICENSE) file
 ## Support
 
 For support and questions:
+
 - **Issues**: Open an issue on GitHub
 - **Documentation**: Check the `/docs` directory
 - **API Reference**: Available at `/api/docs`
