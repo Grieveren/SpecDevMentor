@@ -5,6 +5,8 @@ import compression from 'compression';
 import morgan from 'morgan';
 import dotenv from 'dotenv';
 import { createAuthRoutes } from './routes/auth.routes.js';
+import projectRoutes from './routes/project.routes.js';
+import workflowRoutes from './routes/specification-workflow.routes.js';
 import RedisClient from './utils/redis.js';
 
 // Load environment variables
@@ -52,6 +54,12 @@ async function setupRoutes() {
     
     // Authentication routes
     app.use('/api/auth', createAuthRoutes(redis));
+    
+    // Project routes
+    app.use('/api/projects', projectRoutes);
+    
+    // Specification workflow routes
+    app.use('/api', workflowRoutes);
     
     console.log('✅ Routes initialized successfully');
   } catch (error) {

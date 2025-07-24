@@ -35,6 +35,35 @@ describe('ComponentName', () => {
 - Mock external dependencies and API calls
 - Test error states and edge cases
 - Use descriptive test names that explain the scenario
+- Use robust text content matching for dynamic content
+
+### Text Content Matching Patterns
+
+When testing for text content that might be part of larger elements or dynamically generated, use custom text matching functions instead of exact string matches:
+
+```typescript
+// Robust text content matching for partial text
+expect(screen.getByText((content, element) => {
+  return element?.textContent?.includes('Proceed to Design') || false;
+})).toBeInTheDocument();
+
+// Alternative pattern for complex text matching
+expect(screen.getByText((content, element) => {
+  const hasText = element?.textContent?.includes('Expected Text');
+  return hasText || false;
+})).toBeInTheDocument();
+
+// For negative assertions
+expect(screen.queryByText((content, element) => {
+  return element?.textContent?.includes('Should Not Exist') || false;
+})).not.toBeInTheDocument();
+```
+
+This approach is more resilient to:
+- Text content wrapped in multiple elements
+- Dynamic content generation
+- Whitespace variations
+- Partial text matching within larger content blocks
 
 ### API Testing with MSW
 

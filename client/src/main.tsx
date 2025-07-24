@@ -4,6 +4,7 @@ import { AuthProvider } from './components/auth/AuthProvider';
 import { LoginForm } from './components/auth/LoginForm';
 import { RegisterForm } from './components/auth/RegisterForm';
 import { PasswordResetForm } from './components/auth/PasswordResetForm';
+import { ProjectDashboard } from './components/projects/ProjectDashboard';
 import { useAuth, useAuthActions } from './stores/auth.store';
 import './index.css';
 
@@ -40,30 +41,7 @@ function AuthenticatedApp() {
       
       <main className="max-w-7xl mx-auto py-6 sm:px-6 lg:px-8">
         <div className="px-4 py-6 sm:px-0">
-          <div className="text-center">
-            <h2 className="text-3xl font-bold text-gray-900 mb-4">
-              Welcome to CodeMentor AI Platform
-            </h2>
-            <p className="text-lg text-gray-600 mb-8">
-              Specification-Based Development Learning Platform
-            </p>
-            <div className="bg-white rounded-lg shadow-md p-6 max-w-2xl mx-auto">
-              <h3 className="text-xl font-semibold text-gray-800 mb-4">
-                Authentication System Ready
-              </h3>
-              <p className="text-gray-600 mb-4">
-                The authentication system has been successfully implemented with:
-              </p>
-              <ul className="text-left text-gray-600 space-y-2">
-                <li>• JWT-based authentication with refresh tokens</li>
-                <li>• Secure password hashing and validation</li>
-                <li>• User registration and login</li>
-                <li>• Password reset functionality</li>
-                <li>• Protected routes and role-based access</li>
-                <li>• Persistent authentication state</li>
-              </ul>
-            </div>
-          </div>
+          <ProjectDashboard />
         </div>
       </main>
     </div>

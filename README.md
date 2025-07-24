@@ -361,11 +361,28 @@ This project uses comprehensive code quality tools:
 
 ### Testing Strategy
 
-- **Unit Tests**: Jest with React Testing Library (80%+ coverage target)
+- **Unit Tests**: Vitest with React Testing Library (80%+ coverage target)
 - **Integration Tests**: API testing with MSW for mocking
 - **End-to-End Tests**: Playwright for complete user workflows
 - **Security Tests**: Automated security scanning and penetration testing
 - **Performance Tests**: Load testing for concurrent collaboration scenarios
+
+#### Testing Best Practices
+
+The project follows robust testing patterns including:
+
+- **Semantic Queries**: Use `getByRole`, `getByLabelText` for accessibility-focused testing
+- **Robust Text Matching**: Custom text content matching for dynamic content
+- **MSW Integration**: Mock Service Worker for realistic API testing
+- **Comprehensive Coverage**: Focus on behavior testing over implementation details
+
+Example of robust text content matching:
+```typescript
+// Resilient to dynamic content and element structure
+expect(screen.getByText((content, element) => {
+  return element?.textContent?.includes('Expected Text') || false;
+})).toBeInTheDocument();
+```
 
 ### Code Quality
 
@@ -373,7 +390,7 @@ This project uses comprehensive code quality tools:
 
 - **ESLint** for JavaScript/TypeScript linting with strict rules
 - **Prettier** for consistent code formatting
-- **Jest** with React Testing Library for comprehensive testing
+- **Vitest** with React Testing Library for comprehensive testing
 - **Husky** for git hooks and pre-commit validation
 - **TypeScript** in strict mode for type safety
 - **Prisma** for type-safe database operations
