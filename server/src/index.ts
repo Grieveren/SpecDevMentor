@@ -7,6 +7,7 @@ import dotenv from 'dotenv';
 import { createAuthRoutes } from './routes/auth.routes.js';
 import projectRoutes from './routes/project.routes.js';
 import workflowRoutes from './routes/specification-workflow.routes.js';
+import aiReviewRoutes from './routes/ai-review.routes.js';
 import RedisClient from './utils/redis.js';
 
 // Load environment variables
@@ -60,6 +61,9 @@ async function setupRoutes() {
     
     // Specification workflow routes
     app.use('/api', workflowRoutes);
+    
+    // AI review routes
+    app.use('/api/ai-review', aiReviewRoutes);
     
     console.log('✅ Routes initialized successfully');
   } catch (error) {

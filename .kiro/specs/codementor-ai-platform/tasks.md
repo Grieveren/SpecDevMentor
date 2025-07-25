@@ -44,7 +44,7 @@
     - Write component tests for project management flows
     - _Requirements: 1.1, 8.3, 8.5_
 
-- [-] 4. Implement specification workflow system
+- [x] 4. Implement specification workflow system
   - [x] 4.1 Create specification phase management backend
     - Implement phase validation logic for Requirements → Design → Tasks → Implementation
     - Create API endpoints for phase transitions and document updates
@@ -66,27 +66,34 @@
     - Write integration tests for complete workflow progression
     - _Requirements: 1.1, 1.2, 1.4, 1.5_
 
-- [ ] 5. Develop AI-powered specification review system
-  - [ ] 5.1 Implement AI service integration
+- [x] 5. Develop AI-powered specification review system
+  - [x] 5.1 Implement AI service integration
     - Create OpenAI API client with proper error handling and rate limiting
     - Implement specification analysis prompts for requirements, design, and tasks
     - Add EARS format validation and user story structure checking
     - Write unit tests with mocked AI responses
     - _Requirements: 2.1, 2.2, 2.4, 2.5_
 
-  - [ ] 5.2 Build AI review backend service
+  - [x] 5.2 Build AI review backend service
     - Create API endpoints for requesting and retrieving AI reviews
     - Implement review result storage and caching
     - Add suggestion application and rollback functionality
     - Write integration tests for AI review workflows
     - _Requirements: 2.1, 2.2, 2.3, 2.4_
 
-  - [ ] 5.3 Create AI review frontend interface
+  - [x] 5.3 Create AI review frontend interface
     - Build AI review panel with suggestions and feedback display
     - Implement suggestion application with diff visualization
     - Add review history and rollback functionality
     - Write component tests for AI review interactions
     - _Requirements: 2.1, 2.2, 2.3_
+
+- [ ] 5.4 Integrate AI review with workflow system
+  - Connect AI review functionality with specification workflow phases
+  - Add automatic review triggers on phase transitions
+  - Implement AI-powered validation for phase completion
+  - Write integration tests for workflow-AI review integration
+  - _Requirements: 2.1, 2.4, 1.2_
 
 - [ ] 6. Implement real-time collaboration system
   - [ ] 6.1 Create WebSocket collaboration backend
@@ -133,14 +140,14 @@
     - _Requirements: 5.1, 5.2, 5.5_
 
 - [ ] 8. Develop template library and best practices system
-  - [ ] 8.1 Create template management backend
+  - [ ] 8.1 Create template management backend service
     - Implement template storage with categorization and search
     - Create API endpoints for template CRUD operations
     - Add template customization and team sharing functionality
     - Write unit tests for template management
     - _Requirements: 6.1, 6.2, 6.4_
 
-  - [ ] 8.2 Build template library frontend
+  - [ ] 8.2 Build template library frontend interface
     - Create template browser with filtering and preview functionality
     - Implement template application to new documents
     - Add custom template creation and sharing interface
@@ -155,10 +162,10 @@
     - _Requirements: 6.5_
 
 - [ ] 9. Create learning curriculum and progress tracking
-  - [ ] 9.1 Implement learning content management
-    - Create database schema for learning modules, lessons, and exercises
-    - Implement content delivery API with progress tracking
-    - Add skill assessment and competency mapping
+  - [ ] 9.1 Implement learning content management backend
+    - Create learning module service with content delivery API
+    - Implement progress tracking and skill assessment logic
+    - Add competency mapping and prerequisite validation
     - Write unit tests for learning content logic
     - _Requirements: 3.1, 3.2, 3.4_
 
@@ -176,9 +183,9 @@
     - Write integration tests for assessment workflows
     - _Requirements: 3.4, 3.5_
 
-- [ ] 10. Implement analytics and reporting system
-  - [ ] 10.1 Create analytics data collection backend
-    - Implement event tracking for user actions and workflow progression
+- [ ] 10. Enhance analytics and reporting system
+  - [ ] 10.1 Expand analytics data collection backend
+    - Enhance existing analytics with event tracking for user actions and workflow progression
     - Create data aggregation and metrics calculation services
     - Add team performance analytics and reporting APIs
     - Write unit tests for analytics calculations
@@ -213,17 +220,40 @@
     - Write compliance tests for data privacy and security
     - _Requirements: 8.4_
 
-- [ ] 12. Finalize deployment and production setup
-  - [ ] 12.1 Create production deployment configuration
+- [ ] 12. Add missing core services and integrations
+  - [ ] 12.1 Implement notification system
+    - Create email notification service for workflow events
+    - Add in-app notification system for real-time updates
+    - Implement notification preferences and settings
+    - Write tests for notification delivery
+    - _Requirements: 4.5, 7.4_
+
+  - [ ] 12.2 Add file upload and attachment system
+    - Implement secure file upload for specification documents
+    - Add support for images, diagrams, and attachments
+    - Create file versioning and storage management
+    - Write security tests for file handling
+    - _Requirements: 1.3, 8.3_
+
+  - [ ] 12.3 Enhance search and filtering capabilities
+    - Implement full-text search across specifications
+    - Add advanced filtering for projects and documents
+    - Create search indexing and optimization
+    - Write performance tests for search functionality
+    - _Requirements: 1.1, 6.2_
+
+- [ ] 13. Finalize deployment and production setup
+  - [ ] 13.1 Create production deployment configuration
     - Set up Kubernetes deployment manifests
     - Configure production environment variables and secrets
     - Implement database migration and backup strategies
     - Write deployment automation scripts
     - _Requirements: System deployment_
 
-  - [ ] 12.2 Add monitoring and observability
+  - [ ] 13.2 Add monitoring and observability
     - Implement application logging and error tracking
     - Add performance monitoring and alerting
     - Create health checks and service monitoring
     - Write operational runbooks and documentation
     - _Requirements: System operations_
+
