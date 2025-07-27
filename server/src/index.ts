@@ -10,6 +10,7 @@ import { createAuthRoutes } from './routes/auth.routes.js';
 import projectRoutes from './routes/project.routes.js';
 import workflowRoutes from './routes/specification-workflow.routes.js';
 import aiReviewRoutes from './routes/ai-review.routes.js';
+import codeExecutionRoutes from './routes/code-execution.routes.js';
 import RedisClient from './utils/redis.js';
 import { CollaborationService } from './services/collaboration.service.js';
 
@@ -74,6 +75,9 @@ async function setupServices() {
     
     // AI review routes
     app.use('/api/ai-review', aiReviewRoutes);
+    
+    // Code execution routes
+    app.use('/api/code-execution', codeExecutionRoutes);
     
     // Collaboration stats endpoint
     app.get('/api/collaboration/stats', (_req, res) => {
