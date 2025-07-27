@@ -4,17 +4,24 @@ import helmet from 'helmet';
 import compression from 'compression';
 import morgan from 'morgan';
 import dotenv from 'dotenv';
+import { createServer } from 'http';
+import { PrismaClient } from '@prisma/client';
 import { createAuthRoutes } from './routes/auth.routes.js';
 import projectRoutes from './routes/project.routes.js';
 import workflowRoutes from './routes/specification-workflow.routes.js';
 import aiReviewRoutes from './routes/ai-review.routes.js';
 import RedisClient from './utils/redis.js';
+import { CollaborationService } from './services/collaboration.service.js';
 
 // Load environment variables
 dotenv.config();
 
 const app = express();
+const server = createServer(app);
 const PORT = process.env.PORT || 3001;
+
+// Initialize Prisma client
+const prisma = new PrismaClient();
 
 // Middleware
 app.use(helmet());
@@ -48,10 +55,13 @@ app.get('/api', (_req, res) => {
   res.json({ message: 'CodeMentor AI API Server' });
 });
 
-// Initialize Redis and setup routes
-async function setupRoutes() {
+// Initialize Redis, collaboration service, and setup routes
+async function setupServices() {
   try {
     const redis = await RedisClient.getInstance();
+    
+    // Initialize collaboration service
+    const collaborationService = new CollaborationService(server, redis, prisma);
     
     // Authentication routes
     app.use('/api/auth', createAuthRoutes(redis));
@@ -65,9 +75,16 @@ async function setupRoutes() {
     // AI review routes
     app.use('/api/ai-review', aiReviewRoutes);
     
-    console.log('✅ Routes initialized successfully');
+    // Collaboration stats endpoint
+    app.get('/api/collaboration/stats', (_req, res) => {
+      const stats = collaborationService.getCollaborationStats();
+      res.json(stats);
+    });
+    
+    console.log('✅ Services and routes initialized successfully');
+    return { redis, collaborationService };
   } catch (error) {
-    console.error('❌ Failed to initialize routes:', error);
+    console.error('❌ Failed to initialize services:', error);
     process.exit(1);
   }
 }
@@ -89,13 +106,33 @@ app.use('*', (_req, res) => {
 // Start server
 async function startServer() {
   try {
-    await setupRoutes();
+    const { redis, collaborationService } = await setupServices();
     
-    app.listen(PORT, () => {
+    server.listen(PORT, () => {
       console.log(`🚀 Server running on port ${PORT}`);
       console.log(`📊 Health check: http://localhost:${PORT}/health`);
       console.log(`🌍 Environment: ${process.env.NODE_ENV || 'development'}`);
       console.log(`🔐 Auth endpoints: http://localhost:${PORT}/api/auth`);
+      console.log(`🤝 WebSocket collaboration enabled`);
+    });
+
+    // Graceful shutdown
+    process.on('SIGTERM', async () => {
+      console.log('🛑 SIGTERM received, shutting down gracefully');
+      server.close(() => {
+        redis.disconnect();
+        prisma.$disconnect();
+        process.exit(0);
+      });
+    });
+
+    process.on('SIGINT', async () => {
+      console.log('🛑 SIGINT received, shutting down gracefully');
+      server.close(() => {
+        redis.disconnect();
+        prisma.$disconnect();
+        process.exit(0);
+      });
     });
   } catch (error) {
     console.error('❌ Failed to start server:', error);
