@@ -7,6 +7,62 @@ export interface PhaseValidationResult {
   completionPercentage: number;
   canTransition: boolean;
   nextPhase?: SpecificationPhase;
+  aiReview?: AIReviewResult;
+  aiValidationScore?: number;
+}
+
+export interface AIReviewResult {
+  id: string;
+  overallScore: number;
+  suggestions: AISuggestion[];
+  completenessCheck: CompletenessResult;
+  qualityMetrics: QualityMetrics;
+  complianceIssues: ComplianceIssue[];
+  generatedAt: Date;
+}
+
+export interface AISuggestion {
+  id: string;
+  type: 'improvement' | 'error' | 'warning' | 'enhancement';
+  severity: 'low' | 'medium' | 'high' | 'critical';
+  title: string;
+  description: string;
+  lineNumber?: number;
+  originalText?: string;
+  suggestedText?: string;
+  reasoning: string;
+  category: string;
+}
+
+export interface CompletenessResult {
+  score: number;
+  missingElements: string[];
+  recommendations: string[];
+}
+
+export interface QualityMetrics {
+  clarity: number;
+  completeness: number;
+  consistency: number;
+  testability: number;
+  traceability: number;
+}
+
+export interface ComplianceIssue {
+  id: string;
+  type: string;
+  severity: 'low' | 'medium' | 'high';
+  description: string;
+  lineNumber?: number;
+  suggestion: string;
+}
+
+export interface AIValidationResult {
+  available: boolean;
+  isValid?: boolean;
+  score?: number;
+  issues?: string[];
+  message?: string;
 }
 
 export interface ApprovalRequest {
@@ -246,6 +302,105 @@ export class WorkflowService {
     }
     
     return false;
+  }
+
+  async getAIValidation(
+    projectId: string,
+    phase: SpecificationPhase
+  ): Promise<AIValidationResult> {
+    try {
+      const response = await fetch(`/api/projects/${projectId}/workflow/ai-validation/${phase}`, {
+        method: 'GET',
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${this.getAuthToken()}`,
+        },
+      });
+
+      if (!response.ok) {
+        throw new Error(`AI validation failed: ${response.statusText}`);
+      }
+
+      return await response.json();
+    } catch (error) {
+      console.error('AI validation failed:', error);
+      return {
+        available: false,
+        message: 'AI validation service unavailable',
+      };
+    }
+  }
+
+  async triggerAIReview(
+    projectId: string,
+    phase: SpecificationPhase
+  ): Promise<{ success: boolean; review?: AIReviewResult; error?: string }> {
+    try {
+      const response = await fetch(`/api/projects/${projectId}/workflow/ai-review/${phase}`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${this.getAuthToken()}`,
+        },
+      });
+
+      if (!response.ok) {
+        const errorData = await response.json().catch(() => ({}));
+        return {
+          success: false,
+          error: errorData.error || `AI review failed: ${response.statusText}`,
+        };
+      }
+
+      const result = await response.json();
+      return {
+        success: true,
+        review: result.review,
+      };
+    } catch (error) {
+      console.error('AI review trigger failed:', error);
+      return {
+        success: false,
+        error: error instanceof Error ? error.message : 'AI review failed',
+      };
+    }
+  }
+
+  async getAIServiceStatus(): Promise<{
+    available: boolean;
+    features: {
+      phaseValidation: boolean;
+      autoReview: boolean;
+      complianceCheck: boolean;
+    };
+    message: string;
+  }> {
+    try {
+      const response = await fetch('/api/workflow/ai-status', {
+        method: 'GET',
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${this.getAuthToken()}`,
+        },
+      });
+
+      if (!response.ok) {
+        throw new Error(`Status check failed: ${response.statusText}`);
+      }
+
+      return await response.json();
+    } catch (error) {
+      console.error('AI status check failed:', error);
+      return {
+        available: false,
+        features: {
+          phaseValidation: false,
+          autoReview: false,
+          complianceCheck: false,
+        },
+        message: 'AI service status unavailable',
+      };
+    }
   }
 
   private getAuthToken(): string {

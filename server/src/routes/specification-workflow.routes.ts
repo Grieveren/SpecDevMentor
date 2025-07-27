@@ -3,11 +3,23 @@ import { PrismaClient } from '@prisma/client';
 import Redis from 'ioredis';
 import { authenticateToken } from '../middleware/auth.middleware';
 import { SpecificationWorkflowService } from '../services/specification-workflow.service';
+import { createAIService } from '../services/ai.service';
 
 const router = Router();
 const prisma = new PrismaClient();
 const redis = new Redis(process.env.REDIS_URL || 'redis://localhost:6379');
-const workflowService = new SpecificationWorkflowService(prisma, redis);
+
+// Initialize AI service if API key is available
+let aiService;
+try {
+  if (process.env.OPENAI_API_KEY) {
+    aiService = createAIService(redis);
+  }
+} catch (error) {
+  console.warn('AI service initialization failed:', error);
+}
+
+const workflowService = new SpecificationWorkflowService(prisma, redis, aiService);
 
 // Validate phase completion
 router.get('/projects/:projectId/workflow/validate/:phase', authenticateToken, async (req, res) => {
@@ -322,6 +334,119 @@ router.get('/projects/:projectId/workflow/can-transition/:targetPhase', authenti
   } catch (error) {
     console.error('Can transition check error:', error);
     res.status(500).json({ error: 'Failed to check transition permission' });
+  }
+});
+
+// Get AI validation for a specific phase
+router.get('/projects/:projectId/workflow/ai-validation/:phase', authenticateToken, async (req, res) => {
+  try {
+    const { projectId, phase } = req.params;
+    const userId = req.user.id;
+
+    // Check if user has access to project
+    const project = await prisma.specificationProject.findFirst({
+      where: {
+        id: projectId,
+        OR: [
+          { ownerId: userId },
+          { team: { some: { userId, status: 'ACTIVE' } } },
+        ],
+      },
+    });
+
+    if (!project) {
+      return res.status(404).json({ error: 'Project not found or access denied' });
+    }
+
+    if (!aiService) {
+      return res.json({
+        available: false,
+        message: 'AI validation service is not available',
+      });
+    }
+
+    const aiValidation = await workflowService.getPhaseAIValidation(
+      projectId,
+      phase as any
+    );
+
+    res.json({
+      available: true,
+      ...aiValidation,
+    });
+  } catch (error) {
+    console.error('AI validation error:', error);
+    res.status(500).json({ error: 'Failed to get AI validation' });
+  }
+});
+
+// Trigger manual AI review for a phase
+router.post('/projects/:projectId/workflow/ai-review/:phase', authenticateToken, async (req, res) => {
+  try {
+    const { projectId, phase } = req.params;
+    const userId = req.user.id;
+
+    // Check if user has access to project
+    const project = await prisma.specificationProject.findFirst({
+      where: {
+        id: projectId,
+        OR: [
+          { ownerId: userId },
+          { team: { some: { userId, status: 'ACTIVE' } } },
+        ],
+      },
+    });
+
+    if (!project) {
+      return res.status(404).json({ error: 'Project not found or access denied' });
+    }
+
+    if (!aiService) {
+      return res.status(503).json({
+        error: 'AI review service is not available',
+      });
+    }
+
+    const aiReview = await workflowService.triggerAutoAIReview(
+      projectId,
+      phase as any,
+      userId
+    );
+
+    if (!aiReview) {
+      return res.status(404).json({
+        error: 'Document not found for the specified phase',
+      });
+    }
+
+    res.json({
+      success: true,
+      message: 'AI review completed successfully',
+      review: aiReview,
+    });
+  } catch (error) {
+    console.error('Manual AI review error:', error);
+    res.status(500).json({ error: 'Failed to trigger AI review' });
+  }
+});
+
+// Get AI service status
+router.get('/workflow/ai-status', authenticateToken, async (req, res) => {
+  try {
+    res.json({
+      available: !!aiService,
+      features: {
+        phaseValidation: !!aiService,
+        autoReview: !!aiService,
+        complianceCheck: !!aiService,
+      },
+      message: aiService 
+        ? 'AI service is available and operational'
+        : 'AI service is not configured or unavailable',
+    });
+  } catch (error) {
+    console.error('AI status check error:', error);
+    res.status(500).json({ error: 'Failed to check AI service status' });
   }
 });
 

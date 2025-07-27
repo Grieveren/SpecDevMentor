@@ -1,5 +1,6 @@
 import { PrismaClient, SpecificationPhase, DocumentStatus, SpecificationProject, SpecificationDocument, User } from '@prisma/client';
 import Redis from 'ioredis';
+import { AIService, AIReviewResult } from './ai.service.js';
 
 export interface PhaseTransitionRequest {
   targetPhase: SpecificationPhase;
@@ -16,6 +17,8 @@ export interface ValidationResult {
   errors: string[];
   warnings: string[];
   completionPercentage: number;
+  aiReview?: AIReviewResult;
+  aiValidationScore?: number;
 }
 
 export interface PhaseValidationRule {
@@ -103,7 +106,8 @@ export class SpecificationWorkflowService {
 
   constructor(
     private prisma: PrismaClient,
-    private redis?: Redis
+    private redis?: Redis,
+    private aiService?: AIService
   ) {}
 
   async validatePhaseCompletion(
@@ -132,6 +136,8 @@ export class SpecificationWorkflowService {
     const errors: string[] = [];
     const warnings: string[] = [];
     let completionPercentage = 0;
+    let aiReview: AIReviewResult | undefined;
+    let aiValidationScore: number | undefined;
 
     // Check required sections
     const sectionChecks = rule.requiredSections.map(section => {
@@ -157,6 +163,50 @@ export class SpecificationWorkflowService {
       }
     }
 
+    // Run AI-powered validation if AI service is available
+    if (this.aiService) {
+      try {
+        aiReview = await this.aiService.reviewSpecification(
+          document.content,
+          this.mapPhaseToAIPhase(phase),
+          projectId
+        );
+
+        aiValidationScore = aiReview.overallScore;
+
+        // Add AI suggestions as warnings/errors based on severity
+        for (const suggestion of aiReview.suggestions) {
+          const message = `AI: ${suggestion.title} - ${suggestion.description}`;
+          
+          if (suggestion.severity === 'critical' || suggestion.severity === 'high') {
+            errors.push(message);
+          } else {
+            warnings.push(message);
+          }
+        }
+
+        // Add compliance issues as errors
+        for (const issue of aiReview.complianceIssues) {
+          const message = `AI Compliance: ${issue.description} - ${issue.suggestion}`;
+          
+          if (issue.severity === 'high') {
+            errors.push(message);
+          } else {
+            warnings.push(message);
+          }
+        }
+
+        // Add completeness recommendations as warnings
+        for (const recommendation of aiReview.completenessCheck.recommendations) {
+          warnings.push(`AI Recommendation: ${recommendation}`);
+        }
+
+      } catch (aiError) {
+        console.warn('AI validation failed:', aiError);
+        warnings.push('AI validation temporarily unavailable');
+      }
+    }
+
     // Calculate completion percentage
     const sectionsComplete = sectionChecks.filter(Boolean).length;
     const wordCountComplete = wordCount >= rule.minimumWordCount ? 1 : 0;
@@ -172,9 +222,16 @@ export class SpecificationWorkflowService {
       }
     }
 
-    const totalChecks = rule.requiredSections.length + 1 + (rule.customValidators ? 1 : 0);
+    // Include AI validation in completion calculation if available
+    let aiValidationComplete = 1;
+    if (aiValidationScore !== undefined) {
+      // Consider AI validation complete if score is above 70
+      aiValidationComplete = aiValidationScore >= 70 ? 1 : 0;
+    }
+
+    const totalChecks = rule.requiredSections.length + 1 + (rule.customValidators ? 1 : 0) + (aiValidationScore !== undefined ? 1 : 0);
     completionPercentage = Math.round(
-      ((sectionsComplete + wordCountComplete + customValidationComplete) / totalChecks) * 100
+      ((sectionsComplete + wordCountComplete + customValidationComplete + aiValidationComplete) / totalChecks) * 100
     );
 
     return {
@@ -182,6 +239,8 @@ export class SpecificationWorkflowService {
       errors,
       warnings,
       completionPercentage,
+      aiReview,
+      aiValidationScore,
     };
   }
 
@@ -315,6 +374,16 @@ export class SpecificationWorkflowService {
         },
       });
     });
+
+    // Trigger automatic AI review for the new phase (outside transaction to avoid blocking)
+    if (this.aiService) {
+      try {
+        await this.triggerAutoAIReview(projectId, request.targetPhase, userId);
+      } catch (error) {
+        console.warn('Auto AI review failed during phase transition:', error);
+        // Don't fail the transition if AI review fails
+      }
+    }
 
     // Invalidate cache
     await this.invalidateWorkflowCache(projectId);
@@ -750,6 +819,153 @@ export class SpecificationWorkflowService {
 
     if (keys.length > 0) {
       await this.redis.del(...keys);
+    }
+  }
+
+  private mapPhaseToAIPhase(phase: SpecificationPhase): 'requirements' | 'design' | 'tasks' {
+    switch (phase) {
+      case SpecificationPhase.REQUIREMENTS:
+        return 'requirements';
+      case SpecificationPhase.DESIGN:
+        return 'design';
+      case SpecificationPhase.TASKS:
+        return 'tasks';
+      case SpecificationPhase.IMPLEMENTATION:
+        return 'tasks'; // Implementation uses task-like validation
+      default:
+        return 'requirements';
+    }
+  }
+
+  /**
+   * Trigger automatic AI review on phase transition
+   */
+  async triggerAutoAIReview(
+    projectId: string,
+    phase: SpecificationPhase,
+    userId: string
+  ): Promise<AIReviewResult | null> {
+    if (!this.aiService) {
+      return null;
+    }
+
+    try {
+      const document = await this.prisma.specificationDocument.findUnique({
+        where: {
+          projectId_phase: {
+            projectId,
+            phase,
+          },
+        },
+      });
+
+      if (!document) {
+        return null;
+      }
+
+      // Get AI review
+      const aiReview = await this.aiService.reviewSpecification(
+        document.content,
+        this.mapPhaseToAIPhase(phase),
+        projectId
+      );
+
+      // Store the AI review in the database
+      await this.prisma.aIReview.create({
+        data: {
+          id: aiReview.id,
+          documentId: document.id,
+          overallScore: aiReview.overallScore,
+          suggestions: aiReview.suggestions as any,
+          completeness: aiReview.completenessCheck as any,
+          qualityMetrics: aiReview.qualityMetrics as any,
+          appliedSuggestions: [],
+        },
+      });
+
+      // Create audit log for automatic AI review
+      await this.prisma.auditLog.create({
+        data: {
+          userId,
+          action: 'auto_ai_review',
+          resource: 'document',
+          resourceId: document.id,
+          details: {
+            phase,
+            projectId,
+            overallScore: aiReview.overallScore,
+            suggestionsCount: aiReview.suggestions.length,
+            trigger: 'phase_transition',
+          },
+          success: true,
+        },
+      });
+
+      return aiReview;
+    } catch (error) {
+      console.error('Auto AI review failed:', error);
+      
+      // Log the failure
+      await this.prisma.auditLog.create({
+        data: {
+          userId,
+          action: 'auto_ai_review',
+          resource: 'document',
+          resourceId: projectId,
+          details: {
+            phase,
+            projectId,
+            error: error instanceof Error ? error.message : 'Unknown error',
+            trigger: 'phase_transition',
+          },
+          success: false,
+        },
+      });
+
+      return null;
+    }
+  }
+
+  /**
+   * Get AI review for phase validation
+   */
+  async getPhaseAIValidation(
+    projectId: string,
+    phase: SpecificationPhase
+  ): Promise<{ isValid: boolean; score: number; issues: string[] }> {
+    if (!this.aiService) {
+      return { isValid: true, score: 100, issues: [] };
+    }
+
+    try {
+      const validation = await this.validatePhaseCompletion(projectId, phase);
+      
+      if (!validation.aiReview) {
+        return { isValid: true, score: 100, issues: [] };
+      }
+
+      const issues: string[] = [];
+      
+      // Collect critical and high severity issues
+      for (const suggestion of validation.aiReview.suggestions) {
+        if (suggestion.severity === 'critical' || suggestion.severity === 'high') {
+          issues.push(`${suggestion.title}: ${suggestion.description}`);
+        }
+      }
+
+      for (const issue of validation.aiReview.complianceIssues) {
+        if (issue.severity === 'high') {
+          issues.push(`${issue.type}: ${issue.description}`);
+        }
+      }
+
+      const score = validation.aiValidationScore || 0;
+      const isValid = score >= 70 && issues.length === 0;
+
+      return { isValid, score, issues };
+    } catch (error) {
+      console.error('AI validation check failed:', error);
+      return { isValid: true, score: 100, issues: [] };
     }
   }
 }

@@ -9,9 +9,11 @@ import {
   PencilSquareIcon,
   ListBulletIcon,
   CodeBracketIcon,
+  SparklesIcon,
+  CpuChipIcon,
 } from '@heroicons/react/24/outline';
 import { SpecificationPhase, DocumentStatus } from '../../types/project';
-import { workflowService, PhaseValidationResult, WorkflowNavigationState } from '../../services/workflow.service';
+import { workflowService, PhaseValidationResult, WorkflowNavigationState, AIValidationResult } from '../../services/workflow.service';
 import { WorkflowProgress, PhaseProgress } from './WorkflowProgress';
 import { WorkflowStateDisplay, WorkflowState } from './WorkflowStateDisplay';
 import { cn } from '../../utils/cn';
@@ -44,6 +46,8 @@ export const WorkflowIntegration: React.FC<WorkflowIntegrationProps> = ({
   const [workflowState, setWorkflowState] = useState<WorkflowState | null>(null);
   const [phaseProgress, setPhaseProgress] = useState<PhaseProgress[]>([]);
   const [navigationState, setNavigationState] = useState<WorkflowNavigationState | null>(null);
+  const [aiServiceStatus, setAiServiceStatus] = useState<any>(null);
+  const [aiValidations, setAiValidations] = useState<Record<SpecificationPhase, AIValidationResult>>({} as any);
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
 
@@ -83,6 +87,10 @@ export const WorkflowIntegration: React.FC<WorkflowIntegrationProps> = ({
       setIsLoading(true);
       setError(null);
 
+      // Load AI service status
+      const aiStatus = await workflowService.getAIServiceStatus();
+      setAiServiceStatus(aiStatus);
+
       // Load workflow state
       const state = await workflowService.getWorkflowState(projectId);
       setWorkflowState(state);
@@ -90,11 +98,19 @@ export const WorkflowIntegration: React.FC<WorkflowIntegrationProps> = ({
       // Validate all phases and build progress data
       const phaseValidations: Record<SpecificationPhase, PhaseValidationResult> = {} as any;
       const progressData: PhaseProgress[] = [];
+      const aiValidationResults: Record<SpecificationPhase, AIValidationResult> = {} as any;
 
       for (const phase of Object.values(SpecificationPhase)) {
         try {
+          // Get standard validation
           const validation = await workflowService.validatePhaseCompletion(projectId, phase);
           phaseValidations[phase] = validation;
+
+          // Get AI validation if available
+          if (aiStatus.available) {
+            const aiValidation = await workflowService.getAIValidation(projectId, phase);
+            aiValidationResults[phase] = aiValidation;
+          }
 
           // Build phase progress data
           const phaseApprovals = state.approvals[phase] || [];
@@ -140,6 +156,7 @@ export const WorkflowIntegration: React.FC<WorkflowIntegrationProps> = ({
       }
 
       setPhaseProgress(progressData);
+      setAiValidations(aiValidationResults);
 
       // Build navigation state
       const navState = workflowService.getNavigationState(
@@ -212,6 +229,23 @@ export const WorkflowIntegration: React.FC<WorkflowIntegrationProps> = ({
     } catch (err) {
       console.error('Failed to transition phase:', err);
       setError(err instanceof Error ? err.message : 'Failed to transition phase');
+    }
+  };
+
+  const handleTriggerAIReview = async (phase: SpecificationPhase) => {
+    try {
+      setError(null);
+      const result = await workflowService.triggerAIReview(projectId, phase);
+      
+      if (result.success) {
+        // Reload workflow data to reflect new AI review
+        await loadWorkflowData();
+      } else {
+        setError(result.error || 'Failed to trigger AI review');
+      }
+    } catch (err) {
+      console.error('Failed to trigger AI review:', err);
+      setError(err instanceof Error ? err.message : 'Failed to trigger AI review');
     }
   };
 
@@ -340,8 +374,54 @@ export const WorkflowIntegration: React.FC<WorkflowIntegrationProps> = ({
                 </div>
               )}
 
+              {/* AI Validation Status */}
+              {aiServiceStatus?.available && aiValidations[currentPhase] && (
+                <div className="mb-3 p-2 bg-purple-50 border border-purple-200 rounded">
+                  <div className="flex items-center justify-between mb-1">
+                    <div className="flex items-center space-x-1">
+                      <SparklesIcon className="h-3 w-3 text-purple-600" />
+                      <span className="text-xs font-medium text-purple-800">AI Validation</span>
+                    </div>
+                    {aiValidations[currentPhase].isValid !== undefined && (
+                      <span className={cn(
+                        'text-xs px-2 py-0.5 rounded-full',
+                        aiValidations[currentPhase].isValid 
+                          ? 'bg-green-100 text-green-800' 
+                          : 'bg-red-100 text-red-800'
+                      )}>
+                        {aiValidations[currentPhase].score}% Score
+                      </span>
+                    )}
+                  </div>
+                  
+                  {aiValidations[currentPhase].issues && aiValidations[currentPhase].issues!.length > 0 && (
+                    <div className="text-xs text-purple-700">
+                      <p className="font-medium mb-1">AI-detected issues:</p>
+                      <ul className="space-y-0.5">
+                        {aiValidations[currentPhase].issues!.slice(0, 2).map((issue, idx) => (
+                          <li key={idx}>• {issue}</li>
+                        ))}
+                        {aiValidations[currentPhase].issues!.length > 2 && (
+                          <li>• And {aiValidations[currentPhase].issues!.length - 2} more...</li>
+                        )}
+                      </ul>
+                    </div>
+                  )}
+                </div>
+              )}
+
               {/* Actions */}
               <div className="flex items-center space-x-2">
+                {aiServiceStatus?.available && (
+                  <button
+                    onClick={() => handleTriggerAIReview(currentPhase)}
+                    className="inline-flex items-center px-3 py-1 border border-transparent text-xs font-medium rounded text-purple-700 bg-purple-100 hover:bg-purple-200"
+                  >
+                    <CpuChipIcon className="h-3 w-3 mr-1" />
+                    AI Review
+                  </button>
+                )}
+
                 {navigationState.phaseValidations[currentPhase].completionPercentage === 100 && 
                  documentStatuses[currentPhase] === DocumentStatus.DRAFT && (
                   <button
