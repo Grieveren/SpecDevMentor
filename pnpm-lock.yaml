@@ -215,7 +215,7 @@ importers:
         version: 6.9.4
       openai:
         specifier: ^5.10.2
-        version: 5.10.2
+        version: 5.10.2(zod@3.21.4)
       rate-limiter-flexible:
         specifier: ^2.4.2
         version: 2.4.2
@@ -228,6 +228,9 @@ importers:
       winston:
         specifier: ^3.10.0
         version: 3.10.0
+      zod:
+        specifier: ^3.21.4
+        version: 3.21.4
     devDependencies:
       '@types/bcryptjs':
         specifier: ^2.4.2
@@ -5198,7 +5201,7 @@ packages:
       mimic-fn: 4.0.0
     dev: true
 
-  /openai@5.10.2:
+  /openai@5.10.2(zod@3.21.4):
     resolution: {integrity: sha512-n+vi74LzHtvlKcDPn9aApgELGiu5CwhaLG40zxLTlFQdoSJCLACORIPC2uVQ3JEYAbqapM+XyRKFy2Thej7bIw==}
     hasBin: true
     peerDependencies:
@@ -5209,6 +5212,8 @@ packages:
         optional: true
       zod:
         optional: true
+    dependencies:
+      zod: 3.21.4
     dev: false
 
   /optionator@0.9.4:

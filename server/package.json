@@ -43,7 +43,8 @@
     "rate-limiter-flexible": "^2.4.2",
     "redis": "^4.6.7",
     "socket.io": "^4.7.2",
-    "winston": "^3.10.0"
+    "winston": "^3.10.0",
+    "zod": "^3.21.4"
   },
   "devDependencies": {
     "@types/bcryptjs": "^2.4.2",
