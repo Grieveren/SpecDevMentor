@@ -13,6 +13,7 @@ import aiReviewRoutes from './routes/ai-review.routes.js';
 import codeExecutionRoutes from './routes/code-execution.routes.js';
 import templateRoutes from './routes/template.routes.js';
 import bestPracticesRoutes from './routes/best-practices.routes.js';
+import learningRoutes from './routes/learning.routes.js';
 import RedisClient from './utils/redis.js';
 import { CollaborationService } from './services/collaboration.service.js';
 
@@ -86,6 +87,9 @@ async function setupServices() {
     
     // Best practices routes
     app.use('/api/best-practices', bestPracticesRoutes);
+    
+    // Learning routes
+    app.use('/api/learning', learningRoutes);
     
     // Collaboration stats endpoint
     app.get('/api/collaboration/stats', (_req, res) => {

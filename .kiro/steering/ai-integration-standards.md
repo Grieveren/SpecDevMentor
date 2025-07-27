@@ -1,340 +1,112 @@
+---
+inclusion: always
+---
+
 # AI Integration Standards
 
-## OpenAI API Integration Patterns
+## Core AI Service Patterns
 
-### Service Configuration
+### Required Service Structure
 
-```typescript
-// Centralized OpenAI client configuration
-interface OpenAIConfig {
-  apiKey: string;
-  model: string;
-  maxTokens: number;
-  temperature: number;
-  timeout: number;
-  retryAttempts: number;
-}
+- All AI services MUST extend base `AIService` class with rate limiting
+- Use centralized `OpenAIService` in `server/src/services/ai.service.ts`
+- Implement proper error handling with `AIServiceError` types
+- Cache responses using Redis with content-based keys
+- Always sanitize content before sending to AI APIs
 
-class OpenAIService {
-  private client: OpenAI;
-  private rateLimiter: RateLimiter;
+## Specification Review Standards
 
-  constructor(config: OpenAIConfig) {
-    this.client = new OpenAI({
-      apiKey: config.apiKey,
-      timeout: config.timeout,
-    });
-    this.rateLimiter = new RateLimiter({
-      tokensPerMinute: 90000,
-      requestsPerMinute: 3500,
-    });
-  }
+### Phase-Specific Review Criteria
 
-  async generateCompletion(prompt: string, options?: CompletionOptions): Promise<string> {
-    await this.rateLimiter.waitForToken();
+**Requirements Phase:**
+- EARS format compliance (WHEN/IF/THEN structure)
+- User story completeness (As a/I want/So that)
+- Acceptance criteria clarity and testability
+- Edge cases and error conditions coverage
 
-    try {
-      const response = await this.client.chat.completions.create({
-        model: this.config.model,
-        messages: [{ role: 'user', content: prompt }],
-        max_tokens: options?.maxTokens || this.config.maxTokens,
-        temperature: options?.temperature || this.config.temperature,
-      });
+**Design Phase:**
+- Architecture clarity and scalability
+- Component interface definitions
+- Data model completeness
+- Security considerations
 
-      return response.choices[0]?.message?.content || '';
-    } catch (error) {
-      throw new AIServiceError('OpenAI API request failed', error);
-    }
-  }
-}
-```
+**Tasks Phase:**
+- Implementation task breakdown
+- Dependency identification
+- Effort estimation accuracy
 
-### Specification Review Prompts
+### AI Review Response Format
 
-```typescript
-// Standardized prompts for specification analysis
-const SPECIFICATION_PROMPTS = {
-  requirements: {
-    review: `
-Analyze the following requirements document for a specification-based development project.
-Evaluate:
-1. EARS format compliance (WHEN/IF/THEN structure)
-2. User story completeness (As a/I want/So that)
-3. Acceptance criteria clarity and testability
-4. Missing edge cases or error conditions
-5. Requirement traceability and numbering
+All AI reviews MUST return structured `AIReviewResult` with:
+- `overallScore`: 0-100 numeric score
+- `suggestions`: Array of actionable suggestions with line numbers
+- `completenessCheck`: Missing elements analysis
+- `qualityMetrics`: Measurable quality indicators
 
-Document:
-{content}
+### Suggestion Types and Severity
+- **Types**: `improvement`, `error`, `warning`, `enhancement`
+- **Severity**: `low`, `medium`, `high`, `critical`
+- Always include `reasoning` for suggestions
+- Provide `originalText` and `suggestedText` when applicable
 
-Provide specific, actionable feedback with line references where possible.
-`,
+## Error Handling Requirements
 
-    validate: `
-Validate this requirements document against specification best practices:
-- Are all requirements testable and measurable?
-- Do user stories follow proper format?
-- Are acceptance criteria in EARS format?
-- Are there any ambiguous or conflicting requirements?
+### Mandatory Error Types
+- `RATE_LIMIT_EXCEEDED`: Implement exponential backoff
+- `TOKEN_LIMIT_EXCEEDED`: Split content or reduce context
+- `CONTENT_FILTERED`: Log and provide user-friendly message
+- `SERVICE_UNAVAILABLE`: Retry with circuit breaker pattern
 
-Document:
-{content}
+### Retry Strategy
+- Max 3 retries with exponential backoff
+- Only retry on retryable errors
+- Log all AI service failures for monitoring
 
-Return a JSON response with validation results.
-`,
-  },
+## Performance and Caching
 
-  design: {
-    review: `
-Review this technical design document for completeness and quality:
-1. Architecture clarity and scalability
-2. Component interface definitions
-3. Data model completeness
-4. Error handling strategy
-5. Testing approach coverage
-6. Security considerations
+### Caching Strategy
+- Cache all AI responses using content SHA-256 hash as key
+- Default TTL: 1 hour for reviews, 24 hours for static analysis
+- Invalidate cache on document updates
+- Use Redis with `ai:` prefix for all AI-related cache keys
 
-Document:
-{content}
+### Rate Limiting
+- OpenAI: 90,000 tokens/minute, 3,500 requests/minute
+- Implement token bucket algorithm
+- Queue requests during rate limit periods
 
-Provide detailed feedback on improvements and missing elements.
-`,
+## Frontend Integration
 
-    compliance: `
-Check if this design document addresses all requirements:
+### Required UI Components
+- `AIReviewPanel`: Main review interface with score indicator
+- `SuggestionCard`: Individual suggestion with apply/dismiss actions
+- `ScoreIndicator`: Visual score representation (0-100)
+- `QualityMetrics`: Detailed metrics display
 
-Requirements:
-{requirements}
-
-Design:
-{design}
-
-Identify any requirements not addressed in the design and suggest additions.
-`,
-  },
-};
-```
-
-### AI Review Result Processing
-
-```typescript
-// Structured AI review response handling
-interface AIReviewResult {
-  overallScore: number; // 0-100
-  suggestions: AISuggestion[];
-  completenessCheck: CompletenessResult;
-  qualityMetrics: QualityMetrics;
-  complianceIssues: ComplianceIssue[];
-}
-
-interface AISuggestion {
-  id: string;
-  type: 'improvement' | 'error' | 'warning' | 'enhancement';
-  severity: 'low' | 'medium' | 'high' | 'critical';
-  title: string;
-  description: string;
-  lineNumber?: number;
-  originalText?: string;
-  suggestedText?: string;
-  reasoning: string;
-  category: SuggestionCategory;
-}
-
-// AI suggestion application pattern
-const useAISuggestions = (document: SpecificationDocument) => {
-  const [suggestions, setSuggestions] = useState<AISuggestion[]>([]);
-  const [appliedSuggestions, setAppliedSuggestions] = useState<string[]>([]);
-
-  const applySuggestion = async (suggestion: AISuggestion) => {
-    if (suggestion.suggestedText && suggestion.originalText) {
-      const updatedContent = document.content.replace(
-        suggestion.originalText,
-        suggestion.suggestedText
-      );
-
-      await updateDocument(document.id, updatedContent);
-      setAppliedSuggestions(prev => [...prev, suggestion.id]);
-    }
-  };
-
-  const revertSuggestion = async (suggestion: AISuggestion) => {
-    // Implementation for reverting applied suggestions
-  };
-
-  return { suggestions, applySuggestion, revertSuggestion, appliedSuggestions };
-};
-```
-
-## Error Handling for AI Services
-
-### AI Service Error Types
-
-```typescript
-class AIServiceError extends Error {
-  constructor(
-    message: string,
-    public originalError?: any,
-    public errorCode?: AIErrorCode,
-    public retryable: boolean = false
-  ) {
-    super(message);
-    this.name = 'AIServiceError';
-  }
-}
-
-enum AIErrorCode {
-  RATE_LIMIT_EXCEEDED = 'RATE_LIMIT_EXCEEDED',
-  API_KEY_INVALID = 'API_KEY_INVALID',
-  CONTENT_FILTERED = 'CONTENT_FILTERED',
-  TOKEN_LIMIT_EXCEEDED = 'TOKEN_LIMIT_EXCEEDED',
-  SERVICE_UNAVAILABLE = 'SERVICE_UNAVAILABLE',
-  TIMEOUT = 'TIMEOUT',
-}
-
-// Retry logic for AI service calls
-const withRetry = async <T,>(
-  operation: () => Promise<T>,
-  maxRetries: number = 3,
-  backoffMs: number = 1000
-): Promise<T> => {
-  let lastError: Error;
-
-  for (let attempt = 0; attempt <= maxRetries; attempt++) {
-    try {
-      return await operation();
-    } catch (error) {
-      lastError = error as Error;
-
-      if (error instanceof AIServiceError && !error.retryable) {
-        throw error;
-      }
-
-      if (attempt < maxRetries) {
-        await new Promise(resolve => setTimeout(resolve, backoffMs * Math.pow(2, attempt)));
-      }
-    }
-  }
-
-  throw lastError!;
-};
-```
-
-## Caching and Performance
-
-### AI Response Caching
-
-```typescript
-// Cache AI responses to reduce API calls and costs
-interface AICache {
-  get(key: string): Promise<AIReviewResult | null>;
-  set(key: string, result: AIReviewResult, ttl?: number): Promise<void>;
-  invalidate(pattern: string): Promise<void>;
-}
-
-class RedisAICache implements AICache {
-  constructor(private redis: Redis) {}
-
-  async get(key: string): Promise<AIReviewResult | null> {
-    const cached = await this.redis.get(`ai:${key}`);
-    return cached ? JSON.parse(cached) : null;
-  }
-
-  async set(key: string, result: AIReviewResult, ttl: number = 3600): Promise<void> {
-    await this.redis.setex(`ai:${key}`, ttl, JSON.stringify(result));
-  }
-}
-
-// Generate cache keys based on content hash
-const generateCacheKey = (content: string, reviewType: string): string => {
-  const hash = crypto.createHash('sha256').update(content).digest('hex');
-  return `${reviewType}:${hash}`;
-};
-```
-
-## Frontend AI Integration Patterns
-
-### AI Review UI Components
-
-```typescript
-// Consistent AI review interface
-const AIReviewPanel: React.FC<{
-  review: AIReviewResult;
-  onApplySuggestion: (suggestion: AISuggestion) => void;
-  onDismiss: (suggestionId: string) => void;
-}> = ({ review, onApplySuggestion, onDismiss }) => {
-  return (
-    <div className="bg-white border rounded-lg shadow-sm">
-      <div className="p-4 border-b">
-        <div className="flex items-center justify-between">
-          <h3 className="text-lg font-medium">AI Review</h3>
-          <div className="flex items-center space-x-2">
-            <span className="text-sm text-gray-500">Overall Score:</span>
-            <ScoreIndicator score={review.overallScore} />
-          </div>
-        </div>
-      </div>
-
-      <div className="p-4 space-y-4">
-        {review.suggestions.map(suggestion => (
-          <SuggestionCard
-            key={suggestion.id}
-            suggestion={suggestion}
-            onApply={() => onApplySuggestion(suggestion)}
-            onDismiss={() => onDismiss(suggestion.id)}
-          />
-        ))}
-      </div>
-    </div>
-  );
-};
-
-// Loading states for AI operations
-const useAIReview = (documentId: string) => {
-  const [isLoading, setIsLoading] = useState(false);
-  const [review, setReview] = useState<AIReviewResult | null>(null);
-  const [error, setError] = useState<string | null>(null);
-
-  const requestReview = async () => {
-    setIsLoading(true);
-    setError(null);
-
-    try {
-      const result = await aiService.reviewDocument(documentId);
-      setReview(result);
-    } catch (err) {
-      setError(err instanceof Error ? err.message : 'AI review failed');
-    } finally {
-      setIsLoading(false);
-    }
-  };
-
-  return { review, isLoading, error, requestReview };
-};
-```
+### State Management
+- Use `useAIReview` hook for review operations
+- Implement loading states for all AI operations
+- Handle errors gracefully with user-friendly messages
+- Track applied suggestions to prevent re-application
 
 ## Security and Privacy
 
-### Content Sanitization
+### Content Sanitization (MANDATORY)
+Before sending any content to AI services:
+- Mask emails: `[EMAIL]`
+- Mask SSNs: `[SSN]`
+- Mask credit cards: `[CARD]`
+- Mask IP addresses: `[IP]`
+- Remove API keys and secrets
 
-```typescript
-// Sanitize content before sending to AI services
-const sanitizeForAI = (content: string): string => {
-  // Remove or mask sensitive information
-  return content
-    .replace(/\b[A-Za-z0-9._%+-]+@[A-Za-z0-9.-]+\.[A-Z|a-z]{2,}\b/g, '[EMAIL]')
-    .replace(/\b\d{3}-\d{2}-\d{4}\b/g, '[SSN]')
-    .replace(/\b\d{4}[\s-]?\d{4}[\s-]?\d{4}[\s-]?\d{4}\b/g, '[CARD]')
-    .replace(/\b(?:\d{1,3}\.){3}\d{1,3}\b/g, '[IP]');
-};
+### Audit Requirements
+Log all AI interactions with:
+- User ID and document ID
+- Action performed
+- Tokens used and estimated cost
+- Response time and success status
 
-// Audit logging for AI interactions
-const logAIInteraction = async (interaction: {
-  userId: string;
-  documentId: string;
-  action: string;
-  tokensUsed: number;
-  cost: number;
-}) => {
-  await auditLogger.log('ai_interaction', interaction);
-};
-```
+### Data Retention
+- AI responses cached for max 24 hours
+- Audit logs retained for 90 days
+- No persistent storage of user content in AI services
