@@ -1,11 +1,10 @@
 {
-  "extends": ["../.eslintrc.json"],
+  "extends": ["../.eslintrc.json", "plugin:react-hooks/recommended"],
   "env": {
     "browser": true,
     "es2020": true
   },
   "plugins": ["react-hooks", "react-refresh"],
-  "extends": ["../.eslintrc.json", "plugin:react-hooks/recommended"],
   "rules": {
     "react-refresh/only-export-components": ["warn", { "allowConstantExport": true }],
     "react-hooks/rules-of-hooks": "error",
