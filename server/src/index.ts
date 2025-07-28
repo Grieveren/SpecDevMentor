@@ -14,6 +14,8 @@ import codeExecutionRoutes from './routes/code-execution.routes.js';
 import templateRoutes from './routes/template.routes.js';
 import bestPracticesRoutes from './routes/best-practices.routes.js';
 import learningRoutes from './routes/learning.routes.js';
+import analyticsRoutes from './routes/analytics.routes.js';
+import performanceRoutes, { requestMetricsMiddleware } from './routes/performance.routes.js';
 import RedisClient from './utils/redis.js';
 import { CollaborationService } from './services/collaboration.service.js';
 
@@ -39,6 +41,9 @@ app.use(compression());
 app.use(morgan('combined'));
 app.use(express.json({ limit: '10mb' }));
 app.use(express.urlencoded({ extended: true }));
+
+// Performance monitoring middleware
+app.use(requestMetricsMiddleware);
 
 // Health check endpoint
 app.get('/health', async (_req, res) => {
@@ -90,6 +95,12 @@ async function setupServices() {
     
     // Learning routes
     app.use('/api/learning', learningRoutes);
+    
+    // Analytics routes
+    app.use('/api/analytics', analyticsRoutes);
+    
+    // Performance monitoring routes
+    app.use('/api/performance', performanceRoutes);
     
     // Collaboration stats endpoint
     app.get('/api/collaboration/stats', (_req, res) => {
