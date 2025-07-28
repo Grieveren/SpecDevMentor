@@ -1,0 +1,123 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: codementor-server
+  namespace: codementor-ai
+  labels:
+    app: codementor-server
+spec:
+  replicas: 3
+  selector:
+    matchLabels:
+      app: codementor-server
+  template:
+    metadata:
+      labels:
+        app: codementor-server
+    spec:
+      initContainers:
+      - name: db-migrate
+        image: codementor-ai/server:latest
+        command: ['npm', 'run', 'db:migrate:prod']
+        envFrom:
+        - configMapRef:
+            name: codementor-ai-config
+        - secretRef:
+            name: codementor-ai-secrets
+        env:
+        - name: DATABASE_URL
+          valueFrom:
+            secretKeyRef:
+              name: codementor-ai-secrets
+              key: DATABASE_URL
+      containers:
+      - name: server
+        image: codementor-ai/server:latest
+        ports:
+        - containerPort: 3001
+        envFrom:
+        - configMapRef:
+            name: codementor-ai-config
+        - secretRef:
+            name: codementor-ai-secrets
+        env:
+        - name: DATABASE_URL
+          valueFrom:
+            secretKeyRef:
+              name: codementor-ai-secrets
+              key: DATABASE_URL
+        - name: REDIS_URL
+          valueFrom:
+            secretKeyRef:
+              name: codementor-ai-secrets
+              key: REDIS_URL
+        volumeMounts:
+        - name: uploads
+          mountPath: /app/uploads
+        - name: logs
+          mountPath: /app/logs
+        livenessProbe:
+          httpGet:
+            path: /health
+            port: 3001
+          initialDelaySeconds: 30
+          periodSeconds: 10
+        readinessProbe:
+          httpGet:
+            path: /health/ready
+            port: 3001
+          initialDelaySeconds: 5
+          periodSeconds: 5
+        resources:
+          requests:
+            memory: "512Mi"
+            cpu: "250m"
+          limits:
+            memory: "1Gi"
+            cpu: "500m"
+      volumes:
+      - name: uploads
+        persistentVolumeClaim:
+          claimName: uploads-pvc
+      - name: logs
+        persistentVolumeClaim:
+          claimName: logs-pvc
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: codementor-server-service
+  namespace: codementor-ai
+spec:
+  selector:
+    app: codementor-server
+  ports:
+  - port: 3001
+    targetPort: 3001
+  type: ClusterIP
+---
+apiVersion: v1
+kind: PersistentVolumeClaim
+metadata:
+  name: uploads-pvc
+  namespace: codementor-ai
+spec:
+  accessModes:
+    - ReadWriteMany
+  resources:
+    requests:
+      storage: 20Gi
+  storageClassName: standard
+---
+apiVersion: v1
+kind: PersistentVolumeClaim
+metadata:
+  name: logs-pvc
+  namespace: codementor-ai
+spec:
+  accessModes:
+    - ReadWriteMany
+  resources:
+    requests:
+      storage: 5Gi
+  storageClassName: standard

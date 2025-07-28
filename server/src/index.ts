@@ -19,9 +19,12 @@ import performanceRoutes, { requestMetricsMiddleware } from './routes/performanc
 import notificationRoutes, { initializeNotificationRoutes } from './routes/notification.routes.js';
 import fileUploadRoutes from './routes/file-upload.routes.js';
 import searchRoutes from './routes/search.routes.js';
+import monitoringRoutes from './routes/monitoring.routes.js';
 import RedisClient from './utils/redis.js';
 import { CollaborationService } from './services/collaboration.service.js';
 import { EmailProcessorService } from './services/email-processor.service.js';
+import { requestLoggingMiddleware, errorLoggingMiddleware } from './services/logger.service.js';
+import { errorTrackingMiddleware } from './services/error-tracking.service.js';
 
 // Load environment variables
 dotenv.config();
@@ -48,6 +51,9 @@ app.use(express.urlencoded({ extended: true }));
 
 // Performance monitoring middleware
 app.use(requestMetricsMiddleware);
+
+// Logging middleware
+app.use(requestLoggingMiddleware);
 
 // Health check endpoint
 app.get('/health', async (_req, res) => {
@@ -119,6 +125,9 @@ async function setupServices() {
     // Search routes
     app.use('/api/search', searchRoutes);
     
+    // Monitoring routes
+    app.use('/monitoring', monitoringRoutes);
+    
     // Collaboration stats endpoint
     app.get('/api/collaboration/stats', (_req, res) => {
       const stats = collaborationService.getCollaborationStats();
@@ -134,6 +143,8 @@ async function setupServices() {
 }
 
 // Error handling middleware
+app.use(errorLoggingMiddleware);
+app.use(errorTrackingMiddleware);
 app.use((err: Error, _req: express.Request, res: express.Response, _next: express.NextFunction) => {
   console.error(err.stack);
   res.status(500).json({

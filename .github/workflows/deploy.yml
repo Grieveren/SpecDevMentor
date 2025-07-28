@@ -1,0 +1,195 @@
+name: Deploy to Production
+
+on:
+  push:
+    branches: [main]
+  workflow_dispatch:
+    inputs:
+      environment:
+        description: 'Environment to deploy to'
+        required: true
+        default: 'production'
+        type: choice
+        options:
+        - production
+        - staging
+
+env:
+  DOCKER_REGISTRY: ghcr.io/codementor-ai
+  NAMESPACE: codementor-ai
+
+jobs:
+  test:
+    runs-on: ubuntu-latest
+    steps:
+    - name: Checkout code
+      uses: actions/checkout@v4
+
+    - name: Setup Node.js
+      uses: actions/setup-node@v4
+      with:
+        node-version: '18'
+        cache: 'npm'
+
+    - name: Install pnpm
+      run: npm install -g pnpm
+
+    - name: Install dependencies
+      run: pnpm install --frozen-lockfile
+
+    - name: Run type checking
+      run: pnpm type-check
+
+    - name: Run linting
+      run: pnpm lint
+
+    - name: Run unit tests
+      run: pnpm test
+
+    - name: Run E2E tests
+      run: pnpm test:e2e
+
+  build:
+    needs: test
+    runs-on: ubuntu-latest
+    outputs:
+      version: ${{ steps.version.outputs.version }}
+    steps:
+    - name: Checkout code
+      uses: actions/checkout@v4
+
+    - name: Generate version
+      id: version
+      run: |
+        VERSION=$(date +%Y%m%d)-${GITHUB_SHA::8}
+        echo "version=$VERSION" >> $GITHUB_OUTPUT
+
+    - name: Set up Docker Buildx
+      uses: docker/setup-buildx-action@v3
+
+    - name: Login to Container Registry
+      uses: docker/login-action@v3
+      with:
+        registry: ghcr.io
+        username: ${{ github.actor }}
+        password: ${{ secrets.GITHUB_TOKEN }}
+
+    - name: Build and push server image
+      uses: docker/build-push-action@v5
+      with:
+        context: .
+        file: ./server/Dockerfile
+        push: true
+        tags: |
+          ${{ env.DOCKER_REGISTRY }}/server:${{ steps.version.outputs.version }}
+          ${{ env.DOCKER_REGISTRY }}/server:latest
+        cache-from: type=gha
+        cache-to: type=gha,mode=max
+
+    - name: Build and push client image
+      uses: docker/build-push-action@v5
+      with:
+        context: .
+        file: ./client/Dockerfile
+        push: true
+        tags: |
+          ${{ env.DOCKER_REGISTRY }}/client:${{ steps.version.outputs.version }}
+          ${{ env.DOCKER_REGISTRY }}/client:latest
+        cache-from: type=gha
+        cache-to: type=gha,mode=max
+
+  deploy:
+    needs: [test, build]
+    runs-on: ubuntu-latest
+    environment: ${{ github.event.inputs.environment || 'production' }}
+    steps:
+    - name: Checkout code
+      uses: actions/checkout@v4
+
+    - name: Configure kubectl
+      uses: azure/k8s-set-context@v3
+      with:
+        method: kubeconfig
+        kubeconfig: ${{ secrets.KUBE_CONFIG }}
+
+    - name: Create namespace
+      run: kubectl apply -f k8s/namespace.yaml
+
+    - name: Deploy secrets
+      run: |
+        # Replace placeholders with actual secrets
+        sed -i "s/REPLACE_WITH_SECURE_PASSWORD/${{ secrets.POSTGRES_PASSWORD }}/g" k8s/secrets.yaml
+        sed -i "s/REPLACE_WITH_SECURE_JWT_SECRET/${{ secrets.JWT_SECRET }}/g" k8s/secrets.yaml
+        sed -i "s/REPLACE_WITH_SECURE_REFRESH_SECRET/${{ secrets.REFRESH_SECRET }}/g" k8s/secrets.yaml
+        sed -i "s/REPLACE_WITH_OPENAI_API_KEY/${{ secrets.OPENAI_API_KEY }}/g" k8s/secrets.yaml
+        sed -i "s/REPLACE_WITH_SMTP_USER/${{ secrets.SMTP_USER }}/g" k8s/secrets.yaml
+        sed -i "s/REPLACE_WITH_SMTP_PASSWORD/${{ secrets.SMTP_PASSWORD }}/g" k8s/secrets.yaml
+        sed -i "s/REPLACE_WITH_32_CHAR_ENCRYPTION_SALT/${{ secrets.ENCRYPTION_SALT }}/g" k8s/secrets.yaml
+        sed -i "s/REPLACE_WITH_SESSION_SECRET_KEY/${{ secrets.SESSION_SECRET }}/g" k8s/secrets.yaml
+        kubectl apply -f k8s/secrets.yaml
+
+    - name: Deploy configuration
+      run: kubectl apply -f k8s/configmap.yaml
+
+    - name: Deploy PostgreSQL
+      run: |
+        kubectl apply -f k8s/postgres-deployment.yaml
+        kubectl wait --for=condition=ready pod -l app=postgres -n ${{ env.NAMESPACE }} --timeout=300s
+
+    - name: Deploy Redis
+      run: |
+        kubectl apply -f k8s/redis-deployment.yaml
+        kubectl wait --for=condition=ready pod -l app=redis -n ${{ env.NAMESPACE }} --timeout=300s
+
+    - name: Deploy server
+      run: |
+        # Update image tags
+        sed -i "s|codementor-ai/server:latest|${{ env.DOCKER_REGISTRY }}/server:${{ needs.build.outputs.version }}|g" k8s/server-deployment.yaml
+        kubectl apply -f k8s/server-deployment.yaml
+        kubectl wait --for=condition=ready pod -l app=codementor-server -n ${{ env.NAMESPACE }} --timeout=300s
+
+    - name: Deploy client
+      run: |
+        # Update image tags
+        sed -i "s|codementor-ai/client:latest|${{ env.DOCKER_REGISTRY }}/client:${{ needs.build.outputs.version }}|g" k8s/client-deployment.yaml
+        kubectl apply -f k8s/client-deployment.yaml
+        kubectl wait --for=condition=ready pod -l app=codementor-client -n ${{ env.NAMESPACE }} --timeout=300s
+
+    - name: Run database migrations
+      run: |
+        SERVER_POD=$(kubectl get pods -n ${{ env.NAMESPACE }} -l app=codementor-server -o jsonpath='{.items[0].metadata.name}')
+        kubectl exec -n ${{ env.NAMESPACE }} ${SERVER_POD} -- npm run db:migrate:prod
+
+    - name: Verify deployment
+      run: |
+        kubectl get pods -n ${{ env.NAMESPACE }}
+        kubectl get services -n ${{ env.NAMESPACE }}
+        
+        # Test health endpoints
+        kubectl port-forward -n ${{ env.NAMESPACE }} service/codementor-server-service 8080:3001 &
+        PF_PID=$!
+        sleep 10
+        
+        if curl -f http://localhost:8080/health; then
+          echo "Health check passed"
+        else
+          echo "Health check failed"
+          kill $PF_PID
+          exit 1
+        fi
+        
+        kill $PF_PID
+
+    - name: Create backup
+      run: |
+        # Run backup script
+        ./scripts/backup-database.sh backup
+
+    - name: Notify deployment
+      if: always()
+      uses: 8398a7/action-slack@v3
+      with:
+        status: ${{ job.status }}
+        channel: '#deployments'
+        webhook_url: ${{ secrets.SLACK_WEBHOOK }}
+        fields: repo,message,commit,author,action,eventName,ref,workflow
