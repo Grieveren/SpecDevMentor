@@ -39,6 +39,9 @@ model User {
   activities        UserActivity[]
   workflowMetrics   WorkflowMetrics[]
   skillMetrics      SkillDevelopmentMetrics[]
+  notifications     Notification[]
+  notificationSettings NotificationSettings?
+  uploadedFiles     FileAttachment[] @relation("FileUploader")
 
   @@map("users")
 }
@@ -112,6 +115,7 @@ model SpecificationDocument {
   comments      CommentThread[]
   reviews       AIReview[]
   versions      DocumentVersion[]
+  attachments   FileAttachment[]
 
   @@unique([projectId, phase])
   @@map("specification_documents")
@@ -451,6 +455,115 @@ model BestPracticeGuide {
   @@map("best_practice_guides")
 }
 
+model Notification {
+  id          String            @id @default(cuid())
+  type        NotificationType
+  title       String
+  message     String            @db.Text
+  data        Json              @default("{}")
+  isRead      Boolean           @default(false)
+  readAt      DateTime?
+  createdAt   DateTime          @default(now())
+  expiresAt   DateTime?
+
+  // Relationships
+  user        User              @relation(fields: [userId], references: [id], onDelete: Cascade)
+  userId      String
+
+  @@index([userId, isRead, createdAt])
+  @@map("notifications")
+}
+
+model NotificationSettings {
+  id                    String   @id @default(cuid())
+  emailEnabled          Boolean  @default(true)
+  inAppEnabled          Boolean  @default(true)
+  workflowEvents        Boolean  @default(true)
+  commentNotifications  Boolean  @default(true)
+  reviewNotifications   Boolean  @default(true)
+  teamUpdates           Boolean  @default(true)
+  systemAlerts          Boolean  @default(true)
+  digestFrequency       DigestFrequency @default(DAILY)
+  quietHoursStart       Int?     // Hour in 24h format (0-23)
+  quietHoursEnd         Int?     // Hour in 24h format (0-23)
+  timezone              String   @default("UTC")
+  createdAt             DateTime @default(now())
+  updatedAt             DateTime @updatedAt
+
+  // Relationships
+  user                  User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  userId                String   @unique
+
+  @@map("notification_settings")
+}
+
+model EmailQueue {
+  id          String      @id @default(cuid())
+  to          String
+  subject     String
+  htmlContent String      @db.Text
+  textContent String?     @db.Text
+  templateId  String?
+  templateData Json       @default("{}")
+  status      EmailStatus @default(PENDING)
+  attempts    Int         @default(0)
+  maxAttempts Int         @default(3)
+  scheduledAt DateTime    @default(now())
+  sentAt      DateTime?
+  errorMessage String?
+  createdAt   DateTime    @default(now())
+  updatedAt   DateTime    @updatedAt
+
+  @@index([status, scheduledAt])
+  @@map("email_queue")
+}
+
+model FileAttachment {
+  id              String            @id @default(cuid())
+  filename        String
+  originalName    String
+  mimeType        String
+  size            Int               // Size in bytes
+  path            String            // File path on storage
+  url             String?           // Public URL if applicable
+  checksum        String            // File checksum for integrity
+  metadata        Json              @default("{}")
+  isPublic        Boolean           @default(false)
+  expiresAt       DateTime?
+  createdAt       DateTime          @default(now())
+  updatedAt       DateTime          @updatedAt
+
+  // Relationships
+  uploader        User              @relation("FileUploader", fields: [uploaderId], references: [id])
+  uploaderId      String
+  document        SpecificationDocument? @relation(fields: [documentId], references: [id], onDelete: Cascade)
+  documentId      String?
+  versions        FileVersion[]
+
+  @@index([uploaderId, createdAt])
+  @@index([documentId, createdAt])
+  @@index([mimeType])
+  @@map("file_attachments")
+}
+
+model FileVersion {
+  id              String            @id @default(cuid())
+  version         Int
+  filename        String
+  path            String
+  size            Int
+  checksum        String
+  metadata        Json              @default("{}")
+  createdAt       DateTime          @default(now())
+
+  // Relationships
+  attachment      FileAttachment    @relation(fields: [attachmentId], references: [id], onDelete: Cascade)
+  attachmentId    String
+
+  @@unique([attachmentId, version])
+  @@map("file_versions")
+}
+
 // Enums
 enum UserRole {
   STUDENT
@@ -555,4 +668,33 @@ enum ActivityType {
   LEARNING_MODULE_STARTED
   LEARNING_MODULE_COMPLETED
   EXERCISE_COMPLETED
+}
+
+enum NotificationType {
+  WORKFLOW_EVENT
+  COMMENT_ADDED
+  COMMENT_RESOLVED
+  REVIEW_REQUESTED
+  REVIEW_COMPLETED
+  PHASE_TRANSITION
+  PROJECT_INVITATION
+  TEAM_UPDATE
+  AI_REVIEW_READY
+  SYSTEM_ALERT
+  REMINDER
+}
+
+enum DigestFrequency {
+  NEVER
+  DAILY
+  WEEKLY
+  MONTHLY
+}
+
+enum EmailStatus {
+  PENDING
+  SENDING
+  SENT
+  FAILED
+  CANCELLED
 }

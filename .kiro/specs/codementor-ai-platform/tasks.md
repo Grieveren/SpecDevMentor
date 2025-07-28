@@ -220,22 +220,22 @@
     - Write compliance tests for data privacy and security
     - _Requirements: 8.4_
 
-- [ ] 12. Add missing core services and integrations
-  - [ ] 12.1 Implement notification system
+- [x] 12. Add missing core services and integrations
+  - [x] 12.1 Implement notification system
     - Create email notification service for workflow events
     - Add in-app notification system for real-time updates
     - Implement notification preferences and settings
     - Write tests for notification delivery
     - _Requirements: 4.5, 7.4_
 
-  - [ ] 12.2 Add file upload and attachment system
+  - [x] 12.2 Add file upload and attachment system
     - Implement secure file upload for specification documents
     - Add support for images, diagrams, and attachments
     - Create file versioning and storage management
     - Write security tests for file handling
     - _Requirements: 1.3, 8.3_
 
-  - [ ] 12.3 Enhance search and filtering capabilities
+  - [x] 12.3 Enhance search and filtering capabilities
     - Implement full-text search across specifications
     - Add advanced filtering for projects and documents
     - Create search indexing and optimization

@@ -16,8 +16,12 @@ import bestPracticesRoutes from './routes/best-practices.routes.js';
 import learningRoutes from './routes/learning.routes.js';
 import analyticsRoutes from './routes/analytics.routes.js';
 import performanceRoutes, { requestMetricsMiddleware } from './routes/performance.routes.js';
+import notificationRoutes, { initializeNotificationRoutes } from './routes/notification.routes.js';
+import fileUploadRoutes from './routes/file-upload.routes.js';
+import searchRoutes from './routes/search.routes.js';
 import RedisClient from './utils/redis.js';
 import { CollaborationService } from './services/collaboration.service.js';
+import { EmailProcessorService } from './services/email-processor.service.js';
 
 // Load environment variables
 dotenv.config();
@@ -72,6 +76,10 @@ async function setupServices() {
     // Initialize collaboration service
     const collaborationService = new CollaborationService(server, redis, prisma);
     
+    // Initialize email processor service
+    const emailProcessor = new EmailProcessorService(prisma, redis);
+    emailProcessor.start(); // Start processing emails every 30 seconds
+    
     // Authentication routes
     app.use('/api/auth', createAuthRoutes(redis));
     
@@ -102,6 +110,15 @@ async function setupServices() {
     // Performance monitoring routes
     app.use('/api/performance', performanceRoutes);
     
+    // Notification routes (initialize with Socket.IO server)
+    app.use('/api/notifications', initializeNotificationRoutes(collaborationService.io));
+    
+    // File upload routes
+    app.use('/api/files', fileUploadRoutes);
+    
+    // Search routes
+    app.use('/api/search', searchRoutes);
+    
     // Collaboration stats endpoint
     app.get('/api/collaboration/stats', (_req, res) => {
       const stats = collaborationService.getCollaborationStats();
@@ -109,7 +126,7 @@ async function setupServices() {
     });
     
     console.log('✅ Services and routes initialized successfully');
-    return { redis, collaborationService };
+    return { redis, collaborationService, emailProcessor };
   } catch (error) {
     console.error('❌ Failed to initialize services:', error);
     process.exit(1);
@@ -133,7 +150,7 @@ app.use('*', (_req, res) => {
 // Start server
 async function startServer() {
   try {
-    const { redis, collaborationService } = await setupServices();
+    const { redis, collaborationService, emailProcessor } = await setupServices();
     
     server.listen(PORT, () => {
       console.log(`🚀 Server running on port ${PORT}`);
@@ -146,6 +163,7 @@ async function startServer() {
     // Graceful shutdown
     process.on('SIGTERM', async () => {
       console.log('🛑 SIGTERM received, shutting down gracefully');
+      emailProcessor.stop();
       server.close(() => {
         redis.disconnect();
         prisma.$disconnect();
@@ -155,6 +173,7 @@ async function startServer() {
 
     process.on('SIGINT', async () => {
       console.log('🛑 SIGINT received, shutting down gracefully');
+      emailProcessor.stop();
       server.close(() => {
         redis.disconnect();
         prisma.$disconnect();

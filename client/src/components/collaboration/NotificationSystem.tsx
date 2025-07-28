@@ -1,185 +1,204 @@
 import React, { useState, useEffect } from 'react';
-import {
-  BellIcon,
-  CheckCircleIcon,
-  XCircleIcon,
-  ClockIcon,
-  ChatBubbleLeftIcon,
-  UserIcon,
-  ExclamationTriangleIcon,
-} from '@heroicons/react/24/outline';
-import { CollaborationUser } from '../../hooks/useCollaboration';
-import { UserAvatar } from './CollaborationIndicator';
+import { BellIcon, XMarkIcon, CheckIcon, Cog6ToothIcon } from '@heroicons/react/24/outline';
+import { BellIcon as BellSolidIcon } from '@heroicons/react/24/solid';
+import { Menu, Transition } from '@headlessui/react';
+import { Fragment } from 'react';
 import { cn } from '../../utils/cn';
+import { notificationService, Notification, NotificationType } from '../../services/notification.service';
+import { formatDistanceToNow } from 'date-fns';
 
-export interface Notification {
-  id: string;
-  type: 'review_request' | 'review_completed' | 'comment_added' | 'document_updated' | 'mention';
-  title: string;
-  message: string;
-  actor: CollaborationUser;
-  documentId?: string;
-  documentTitle?: string;
-  createdAt: Date;
-  read: boolean;
-  actionUrl?: string;
-  metadata?: Record<string, any>;
-}
-
-export interface NotificationSystemProps {
-  notifications: Notification[];
-  currentUser: CollaborationUser;
-  onMarkAsRead: (notificationId: string) => void;
-  onMarkAllAsRead: () => void;
-  onDeleteNotification: (notificationId: string) => void;
-  onNavigate?: (url: string) => void;
+interface NotificationSystemProps {
   className?: string;
 }
 
-export const NotificationSystem: React.FC<NotificationSystemProps> = ({
-  notifications,
-  currentUser,
-  onMarkAsRead,
-  onMarkAllAsRead,
-  onDeleteNotification,
-  onNavigate,
-  className,
-}) => {
-  const [isOpen, setIsOpen] = useState(false);
-  const [filter, setFilter] = useState<'all' | 'unread'>('all');
+export const NotificationSystem: React.FC<NotificationSystemProps> = ({ className }) => {
+  const [notifications, setNotifications] = useState<Notification[]>([]);
+  const [unreadCount, setUnreadCount] = useState(0);
+  const [isLoading, setIsLoading] = useState(false);
+  const [showSettings, setShowSettings] = useState(false);
 
-  const unreadCount = notifications.filter(n => !n.read).length;
-  const filteredNotifications = filter === 'unread' 
-    ? notifications.filter(n => !n.read)
-    : notifications;
+  useEffect(() => {
+    loadNotifications();
+    loadUnreadCount();
 
-  const getNotificationIcon = (type: Notification['type']) => {
-    switch (type) {
-      case 'review_request':
-        return <ChatBubbleLeftIcon className="h-5 w-5 text-blue-500" />;
-      case 'review_completed':
-        return <CheckCircleIcon className="h-5 w-5 text-green-500" />;
-      case 'comment_added':
-        return <ChatBubbleLeftIcon className="h-5 w-5 text-yellow-500" />;
-      case 'document_updated':
-        return <ClockIcon className="h-5 w-5 text-purple-500" />;
-      case 'mention':
-        return <UserIcon className="h-5 w-5 text-orange-500" />;
-      default:
-        return <BellIcon className="h-5 w-5 text-gray-500" />;
+    // Poll for new notifications every 30 seconds
+    const interval = setInterval(() => {
+      loadUnreadCount();
+    }, 30000);
+
+    return () => clearInterval(interval);
+  }, []);
+
+  const loadNotifications = async () => {
+    try {
+      setIsLoading(true);
+      const response = await notificationService.getNotifications({ limit: 10 });
+      setNotifications(response.notifications);
+    } catch (error) {
+      console.error('Failed to load notifications:', error);
+    } finally {
+      setIsLoading(false);
     }
   };
 
-  const handleNotificationClick = (notification: Notification) => {
-    if (!notification.read) {
-      onMarkAsRead(notification.id);
+  const loadUnreadCount = async () => {
+    try {
+      const count = await notificationService.getUnreadCount();
+      setUnreadCount(count);
+    } catch (error) {
+      console.error('Failed to load unread count:', error);
     }
-    
-    if (notification.actionUrl && onNavigate) {
-      onNavigate(notification.actionUrl);
+  };
+
+  const handleMarkAsRead = async (notificationId: string) => {
+    try {
+      await notificationService.markAsRead(notificationId);
+      setNotifications(prev =>
+        prev.map(n =>
+          n.id === notificationId ? { ...n, isRead: true, readAt: new Date().toISOString() } : n
+        )
+      );
+      setUnreadCount(prev => Math.max(0, prev - 1));
+    } catch (error) {
+      console.error('Failed to mark notification as read:', error);
     }
-    
-    setIsOpen(false);
+  };
+
+  const handleMarkAllAsRead = async () => {
+    try {
+      await notificationService.markAllAsRead();
+      setNotifications(prev => prev.map(n => ({ ...n, isRead: true, readAt: new Date().toISOString() })));
+      setUnreadCount(0);
+    } catch (error) {
+      console.error('Failed to mark all notifications as read:', error);
+    }
+  };
+
+  const getNotificationIcon = (type: NotificationType) => {
+    switch (type) {
+      case 'WORKFLOW_EVENT':
+      case 'PHASE_TRANSITION':
+        return '🔄';
+      case 'COMMENT_ADDED':
+      case 'COMMENT_RESOLVED':
+        return '💬';
+      case 'REVIEW_REQUESTED':
+      case 'REVIEW_COMPLETED':
+      case 'AI_REVIEW_READY':
+        return '📝';
+      case 'PROJECT_INVITATION':
+      case 'TEAM_UPDATE':
+        return '👥';
+      case 'SYSTEM_ALERT':
+        return '⚠️';
+      case 'REMINDER':
+        return '⏰';
+      default:
+        return '📢';
+    }
+  };
+
+  const getNotificationColor = (type: NotificationType) => {
+    switch (type) {
+      case 'SYSTEM_ALERT':
+        return 'text-red-600 bg-red-50';
+      case 'AI_REVIEW_READY':
+      case 'REVIEW_COMPLETED':
+        return 'text-green-600 bg-green-50';
+      case 'WORKFLOW_EVENT':
+      case 'PHASE_TRANSITION':
+        return 'text-blue-600 bg-blue-50';
+      default:
+        return 'text-gray-600 bg-gray-50';
+    }
   };
 
   return (
     <div className={cn('relative', className)}>
-      {/* Notification Bell */}
-      <button
-        onClick={() => setIsOpen(!isOpen)}
-        className="relative p-2 text-gray-600 hover:text-gray-900 focus:outline-none focus:ring-2 focus:ring-blue-500 rounded-full"
-      >
-        <BellIcon className="h-6 w-6" />
-        {unreadCount > 0 && (
-          <span className="absolute -top-1 -right-1 h-5 w-5 bg-red-500 text-white text-xs rounded-full flex items-center justify-center">
-            {unreadCount > 9 ? '9+' : unreadCount}
-          </span>
-        )}
-      </button>
+      <Menu as="div" className="relative">
+        <Menu.Button className="relative p-2 text-gray-600 hover:text-gray-900 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-2 rounded-md">
+          {unreadCount > 0 ? (
+            <BellSolidIcon className="h-6 w-6" />
+          ) : (
+            <BellIcon className="h-6 w-6" />
+          )}
+          {unreadCount > 0 && (
+            <span className="absolute -top-1 -right-1 h-5 w-5 bg-red-500 text-white text-xs rounded-full flex items-center justify-center">
+              {unreadCount > 99 ? '99+' : unreadCount}
+            </span>
+          )}
+        </Menu.Button>
 
-      {/* Notification Panel */}
-      {isOpen && (
-        <>
-          {/* Backdrop */}
-          <div
-            className="fixed inset-0 z-40"
-            onClick={() => setIsOpen(false)}
-          />
-          
-          {/* Panel */}
-          <div className="absolute right-0 mt-2 w-96 bg-white border border-gray-200 rounded-lg shadow-lg z-50">
-            {/* Header */}
-            <div className="flex items-center justify-between p-4 border-b border-gray-200">
-              <h3 className="text-lg font-medium text-gray-900">Notifications</h3>
-              <div className="flex items-center space-x-2">
-                <select
-                  value={filter}
-                  onChange={(e) => setFilter(e.target.value as 'all' | 'unread')}
-                  className="text-sm border border-gray-300 rounded px-2 py-1"
-                >
-                  <option value="all">All</option>
-                  <option value="unread">Unread ({unreadCount})</option>
-                </select>
-                
-                {unreadCount > 0 && (
+        <Transition
+          as={Fragment}
+          enter="transition ease-out duration-100"
+          enterFrom="transform opacity-0 scale-95"
+          enterTo="transform opacity-100 scale-100"
+          leave="transition ease-in duration-75"
+          leaveFrom="transform opacity-100 scale-100"
+          leaveTo="transform opacity-0 scale-95"
+        >
+          <Menu.Items className="absolute right-0 z-50 mt-2 w-96 bg-white rounded-md shadow-lg ring-1 ring-black ring-opacity-5 focus:outline-none">
+            <div className="p-4">
+              <div className="flex items-center justify-between mb-4">
+                <h3 className="text-lg font-medium text-gray-900">Notifications</h3>
+                <div className="flex items-center space-x-2">
                   <button
-                    onClick={onMarkAllAsRead}
-                    className="text-sm text-blue-600 hover:text-blue-800"
+                    onClick={() => setShowSettings(!showSettings)}
+                    className="p-1 text-gray-400 hover:text-gray-600 rounded"
+                    title="Notification Settings"
                   >
-                    Mark all read
+                    <Cog6ToothIcon className="h-4 w-4" />
                   </button>
-                )}
+                  {unreadCount > 0 && (
+                    <button
+                      onClick={handleMarkAllAsRead}
+                      className="text-sm text-blue-600 hover:text-blue-800"
+                    >
+                      Mark all read
+                    </button>
+                  )}
+                </div>
               </div>
-            </div>
 
-            {/* Notifications List */}
-            <div className="max-h-96 overflow-y-auto">
-              {filteredNotifications.length === 0 ? (
-                <div className="p-8 text-center">
-                  <BellIcon className="mx-auto h-12 w-12 text-gray-400" />
-                  <h3 className="mt-2 text-sm font-medium text-gray-900">
-                    {filter === 'unread' ? 'No unread notifications' : 'No notifications'}
-                  </h3>
-                  <p className="mt-1 text-sm text-gray-500">
-                    {filter === 'unread' 
-                      ? 'All caught up!' 
-                      : 'You\'ll see notifications here when there\'s activity.'
-                    }
-                  </p>
+              {isLoading ? (
+                <div className="flex items-center justify-center py-8">
+                  <div className="animate-spin rounded-full h-6 w-6 border-b-2 border-blue-600"></div>
+                </div>
+              ) : notifications.length === 0 ? (
+                <div className="text-center py-8 text-gray-500">
+                  <BellIcon className="h-12 w-12 mx-auto mb-2 text-gray-300" />
+                  <p>No notifications</p>
                 </div>
               ) : (
-                <div className="divide-y divide-gray-200">
-                  {filteredNotifications.map((notification) => (
+                <div className="space-y-2 max-h-96 overflow-y-auto">
+                  {notifications.map((notification) => (
                     <NotificationItem
                       key={notification.id}
                       notification={notification}
-                      onClick={() => handleNotificationClick(notification)}
-                      onDelete={() => onDeleteNotification(notification.id)}
+                      onMarkAsRead={handleMarkAsRead}
                     />
                   ))}
                 </div>
               )}
-            </div>
 
-            {/* Footer */}
-            {filteredNotifications.length > 0 && (
-              <div className="p-3 border-t border-gray-200 bg-gray-50">
+              <div className="mt-4 pt-4 border-t border-gray-200">
                 <button
-                  onClick={() => {
-                    // Navigate to full notifications page
-                    if (onNavigate) {
-                      onNavigate('/notifications');
-                    }
-                    setIsOpen(false);
-                  }}
-                  className="w-full text-sm text-blue-600 hover:text-blue-800"
+                  onClick={loadNotifications}
+                  className="w-full text-center text-sm text-blue-600 hover:text-blue-800"
                 >
                   View all notifications
                 </button>
               </div>
-            )}
-          </div>
-        </>
+            </div>
+          </Menu.Items>
+        </Transition>
+      </Menu>
+
+      {showSettings && (
+        <NotificationSettings
+          onClose={() => setShowSettings(false)}
+        />
       )}
     </div>
   );
@@ -187,306 +206,239 @@ export const NotificationSystem: React.FC<NotificationSystemProps> = ({
 
 interface NotificationItemProps {
   notification: Notification;
-  onClick: () => void;
-  onDelete: () => void;
+  onMarkAsRead: (id: string) => void;
 }
 
-const NotificationItem: React.FC<NotificationItemProps> = ({
-  notification,
-  onClick,
-  onDelete,
-}) => {
-  const [showActions, setShowActions] = useState(false);
-
-  const getNotificationIcon = (type: Notification['type']) => {
-    switch (type) {
-      case 'review_request':
-        return <ChatBubbleLeftIcon className="h-5 w-5 text-blue-500" />;
-      case 'review_completed':
-        return <CheckCircleIcon className="h-5 w-5 text-green-500" />;
-      case 'comment_added':
-        return <ChatBubbleLeftIcon className="h-5 w-5 text-yellow-500" />;
-      case 'document_updated':
-        return <ClockIcon className="h-5 w-5 text-purple-500" />;
-      case 'mention':
-        return <UserIcon className="h-5 w-5 text-orange-500" />;
-      default:
-        return <BellIcon className="h-5 w-5 text-gray-500" />;
+const NotificationItem: React.FC<NotificationItemProps> = ({ notification, onMarkAsRead }) => {
+  const handleClick = () => {
+    if (!notification.isRead) {
+      onMarkAsRead(notification.id);
     }
-  };
 
-  const formatTimeAgo = (date: Date): string => {
-    const now = new Date();
-    const diffInSeconds = Math.floor((now.getTime() - date.getTime()) / 1000);
-
-    if (diffInSeconds < 60) {
-      return 'Just now';
-    } else if (diffInSeconds < 3600) {
-      const minutes = Math.floor(diffInSeconds / 60);
-      return `${minutes}m ago`;
-    } else if (diffInSeconds < 86400) {
-      const hours = Math.floor(diffInSeconds / 3600);
-      return `${hours}h ago`;
-    } else {
-      const days = Math.floor(diffInSeconds / 86400);
-      return `${days}d ago`;
+    // Navigate to the relevant page if actionUrl is provided
+    if (notification.data?.actionUrl) {
+      window.location.href = notification.data.actionUrl;
     }
   };
 
   return (
     <div
       className={cn(
-        'relative p-4 hover:bg-gray-50 cursor-pointer transition-colors',
-        !notification.read && 'bg-blue-50'
+        'p-3 rounded-lg border cursor-pointer transition-colors',
+        notification.isRead
+          ? 'bg-white border-gray-200 hover:bg-gray-50'
+          : 'bg-blue-50 border-blue-200 hover:bg-blue-100'
       )}
-      onClick={onClick}
-      onMouseEnter={() => setShowActions(true)}
-      onMouseLeave={() => setShowActions(false)}
+      onClick={handleClick}
     >
       <div className="flex items-start space-x-3">
-        {/* Icon */}
-        <div className="flex-shrink-0">
-          {getNotificationIcon(notification.type)}
+        <div className={cn('flex-shrink-0 w-8 h-8 rounded-full flex items-center justify-center text-sm', 
+          notification.isRead ? 'bg-gray-100' : 'bg-blue-100'
+        )}>
+          {notification.type && (
+            <span>{notification.type === 'WORKFLOW_EVENT' ? '🔄' : 
+                   notification.type === 'COMMENT_ADDED' ? '💬' : 
+                   notification.type === 'REVIEW_COMPLETED' ? '📝' : '📢'}</span>
+          )}
         </div>
-
-        {/* Content */}
+        
         <div className="flex-1 min-w-0">
-          <div className="flex items-start justify-between">
-            <div className="flex-1">
-              <p className="text-sm font-medium text-gray-900">
-                {notification.title}
-              </p>
-              <p className="mt-1 text-sm text-gray-600">
-                {notification.message}
-              </p>
-              
-              {notification.documentTitle && (
-                <p className="mt-1 text-xs text-gray-500">
-                  Document: {notification.documentTitle}
-                </p>
-              )}
-            </div>
-
-            <div className="flex items-center space-x-2">
-              <span className="text-xs text-gray-500">
-                {formatTimeAgo(notification.createdAt)}
-              </span>
-              
-              {!notification.read && (
-                <div className="w-2 h-2 bg-blue-500 rounded-full" />
-              )}
-            </div>
+          <div className="flex items-center justify-between">
+            <p className={cn('text-sm font-medium', 
+              notification.isRead ? 'text-gray-900' : 'text-blue-900'
+            )}>
+              {notification.title}
+            </p>
+            {!notification.isRead && (
+              <button
+                onClick={(e) => {
+                  e.stopPropagation();
+                  onMarkAsRead(notification.id);
+                }}
+                className="flex-shrink-0 p-1 text-blue-600 hover:text-blue-800"
+                title="Mark as read"
+              >
+                <CheckIcon className="h-4 w-4" />
+              </button>
+            )}
           </div>
-
-          {/* Actor */}
-          <div className="mt-2 flex items-center space-x-2">
-            <UserAvatar user={notification.actor} size="sm" showTooltip={false} />
-            <span className="text-xs text-gray-500">
-              {notification.actor.name}
-            </span>
-          </div>
+          
+          <p className={cn('text-sm mt-1', 
+            notification.isRead ? 'text-gray-600' : 'text-blue-700'
+          )}>
+            {notification.message}
+          </p>
+          
+          <p className="text-xs text-gray-500 mt-2">
+            {formatDistanceToNow(new Date(notification.createdAt), { addSuffix: true })}
+          </p>
         </div>
-
-        {/* Actions */}
-        {showActions && (
-          <div className="absolute top-2 right-2">
-            <button
-              onClick={(e) => {
-                e.stopPropagation();
-                onDelete();
-              }}
-              className="p-1 text-gray-400 hover:text-gray-600 rounded"
-              title="Delete notification"
-            >
-              <XCircleIcon className="h-4 w-4" />
-            </button>
-          </div>
-        )}
       </div>
     </div>
   );
 };
 
-// Hook for managing notifications
-export const useNotifications = (currentUser: CollaborationUser) => {
-  const [notifications, setNotifications] = useState<Notification[]>([]);
+interface NotificationSettingsProps {
+  onClose: () => void;
+}
 
-  // Mock notifications - in real app, this would come from API/WebSocket
+const NotificationSettings: React.FC<NotificationSettingsProps> = ({ onClose }) => {
+  const [settings, setSettings] = useState({
+    emailEnabled: true,
+    inAppEnabled: true,
+    workflowEvents: true,
+    commentNotifications: true,
+    reviewNotifications: true,
+    teamUpdates: true,
+    systemAlerts: true,
+  });
+  const [isLoading, setIsLoading] = useState(true);
+  const [isSaving, setIsSaving] = useState(false);
+
   useEffect(() => {
-    const mockNotifications: Notification[] = [
-      {
-        id: '1',
-        type: 'review_request',
-        title: 'Review Request',
-        message: 'You have been requested to review the Requirements Document',
-        actor: {
-          id: 'user2',
-          name: 'Alice Johnson',
-          email: 'alice@example.com',
-          color: '#FF6B6B',
-          joinedAt: new Date(),
-          lastActivity: new Date(),
-        },
-        documentId: 'doc1',
-        documentTitle: 'Requirements Document',
-        createdAt: new Date(Date.now() - 30 * 60 * 1000), // 30 minutes ago
-        read: false,
-        actionUrl: '/documents/doc1/review',
-      },
-      {
-        id: '2',
-        type: 'comment_added',
-        title: 'New Comment',
-        message: 'Added a comment on your design document',
-        actor: {
-          id: 'user3',
-          name: 'Bob Smith',
-          email: 'bob@example.com',
-          color: '#4ECDC4',
-          joinedAt: new Date(),
-          lastActivity: new Date(),
-        },
-        documentId: 'doc2',
-        documentTitle: 'Design Document',
-        createdAt: new Date(Date.now() - 2 * 60 * 60 * 1000), // 2 hours ago
-        read: true,
-        actionUrl: '/documents/doc2#comment-123',
-      },
-      {
-        id: '3',
-        type: 'review_completed',
-        title: 'Review Completed',
-        message: 'Your review request has been completed with approval',
-        actor: {
-          id: 'user4',
-          name: 'Carol Davis',
-          email: 'carol@example.com',
-          color: '#45B7D1',
-          joinedAt: new Date(),
-          lastActivity: new Date(),
-        },
-        documentId: 'doc3',
-        documentTitle: 'Task List',
-        createdAt: new Date(Date.now() - 24 * 60 * 60 * 1000), // 1 day ago
-        read: false,
-        actionUrl: '/documents/doc3/review',
-      },
-    ];
-
-    setNotifications(mockNotifications);
+    loadSettings();
   }, []);
 
-  const markAsRead = (notificationId: string) => {
-    setNotifications(prev =>
-      prev.map(n =>
-        n.id === notificationId ? { ...n, read: true } : n
-      )
+  const loadSettings = async () => {
+    try {
+      const userSettings = await notificationService.getSettings();
+      setSettings(userSettings);
+    } catch (error) {
+      console.error('Failed to load notification settings:', error);
+    } finally {
+      setIsLoading(false);
+    }
+  };
+
+  const handleSave = async () => {
+    try {
+      setIsSaving(true);
+      await notificationService.updateSettings(settings);
+      onClose();
+    } catch (error) {
+      console.error('Failed to save notification settings:', error);
+    } finally {
+      setIsSaving(false);
+    }
+  };
+
+  if (isLoading) {
+    return (
+      <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
+        <div className="bg-white rounded-lg p-6">
+          <div className="animate-spin rounded-full h-6 w-6 border-b-2 border-blue-600 mx-auto"></div>
+        </div>
+      </div>
     );
-  };
+  }
 
-  const markAllAsRead = () => {
-    setNotifications(prev =>
-      prev.map(n => ({ ...n, read: true }))
-    );
-  };
+  return (
+    <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
+      <div className="bg-white rounded-lg p-6 w-full max-w-md">
+        <div className="flex items-center justify-between mb-4">
+          <h3 className="text-lg font-medium text-gray-900">Notification Settings</h3>
+          <button
+            onClick={onClose}
+            className="text-gray-400 hover:text-gray-600"
+          >
+            <XMarkIcon className="h-5 w-5" />
+          </button>
+        </div>
 
-  const deleteNotification = (notificationId: string) => {
-    setNotifications(prev =>
-      prev.filter(n => n.id !== notificationId)
-    );
-  };
+        <div className="space-y-4">
+          <div className="flex items-center justify-between">
+            <label className="text-sm font-medium text-gray-700">Email Notifications</label>
+            <input
+              type="checkbox"
+              checked={settings.emailEnabled}
+              onChange={(e) => setSettings(prev => ({ ...prev, emailEnabled: e.target.checked }))}
+              className="rounded border-gray-300 text-blue-600 focus:ring-blue-500"
+            />
+          </div>
 
-  const addNotification = (notification: Omit<Notification, 'id' | 'createdAt' | 'read'>) => {
-    const newNotification: Notification = {
-      ...notification,
-      id: `notification_${Date.now()}_${Math.random()}`,
-      createdAt: new Date(),
-      read: false,
-    };
+          <div className="flex items-center justify-between">
+            <label className="text-sm font-medium text-gray-700">In-App Notifications</label>
+            <input
+              type="checkbox"
+              checked={settings.inAppEnabled}
+              onChange={(e) => setSettings(prev => ({ ...prev, inAppEnabled: e.target.checked }))}
+              className="rounded border-gray-300 text-blue-600 focus:ring-blue-500"
+            />
+          </div>
 
-    setNotifications(prev => [newNotification, ...prev]);
-  };
+          <div className="border-t pt-4">
+            <h4 className="text-sm font-medium text-gray-900 mb-3">Notification Types</h4>
+            
+            <div className="space-y-3">
+              <div className="flex items-center justify-between">
+                <label className="text-sm text-gray-700">Workflow Events</label>
+                <input
+                  type="checkbox"
+                  checked={settings.workflowEvents}
+                  onChange={(e) => setSettings(prev => ({ ...prev, workflowEvents: e.target.checked }))}
+                  className="rounded border-gray-300 text-blue-600 focus:ring-blue-500"
+                />
+              </div>
 
-  return {
-    notifications,
-    markAsRead,
-    markAllAsRead,
-    deleteNotification,
-    addNotification,
-  };
+              <div className="flex items-center justify-between">
+                <label className="text-sm text-gray-700">Comments</label>
+                <input
+                  type="checkbox"
+                  checked={settings.commentNotifications}
+                  onChange={(e) => setSettings(prev => ({ ...prev, commentNotifications: e.target.checked }))}
+                  className="rounded border-gray-300 text-blue-600 focus:ring-blue-500"
+                />
+              </div>
+
+              <div className="flex items-center justify-between">
+                <label className="text-sm text-gray-700">Reviews</label>
+                <input
+                  type="checkbox"
+                  checked={settings.reviewNotifications}
+                  onChange={(e) => setSettings(prev => ({ ...prev, reviewNotifications: e.target.checked }))}
+                  className="rounded border-gray-300 text-blue-600 focus:ring-blue-500"
+                />
+              </div>
+
+              <div className="flex items-center justify-between">
+                <label className="text-sm text-gray-700">Team Updates</label>
+                <input
+                  type="checkbox"
+                  checked={settings.teamUpdates}
+                  onChange={(e) => setSettings(prev => ({ ...prev, teamUpdates: e.target.checked }))}
+                  className="rounded border-gray-300 text-blue-600 focus:ring-blue-500"
+                />
+              </div>
+
+              <div className="flex items-center justify-between">
+                <label className="text-sm text-gray-700">System Alerts</label>
+                <input
+                  type="checkbox"
+                  checked={settings.systemAlerts}
+                  onChange={(e) => setSettings(prev => ({ ...prev, systemAlerts: e.target.checked }))}
+                  className="rounded border-gray-300 text-blue-600 focus:ring-blue-500"
+                />
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <div className="flex justify-end space-x-3 mt-6">
+          <button
+            onClick={onClose}
+            className="px-4 py-2 text-sm font-medium text-gray-700 bg-white border border-gray-300 rounded-md hover:bg-gray-50"
+          >
+            Cancel
+          </button>
+          <button
+            onClick={handleSave}
+            disabled={isSaving}
+            className="px-4 py-2 text-sm font-medium text-white bg-blue-600 border border-transparent rounded-md hover:bg-blue-700 disabled:opacity-50"
+          >
+            {isSaving ? 'Saving...' : 'Save'}
+          </button>
+        </div>
+      </div>
+    </div>
+  );
 };
-
-// Notification types for different events
-export const createReviewRequestNotification = (
-  requester: CollaborationUser,
-  documentId: string,
-  documentTitle: string
-): Omit<Notification, 'id' | 'createdAt' | 'read'> => ({
-  type: 'review_request',
-  title: 'Review Request',
-  message: `${requester.name} requested your review`,
-  actor: requester,
-  documentId,
-  documentTitle,
-  actionUrl: `/documents/${documentId}/review`,
-});
-
-export const createReviewCompletedNotification = (
-  reviewer: CollaborationUser,
-  documentId: string,
-  documentTitle: string,
-  decision: 'approved' | 'rejected' | 'changes_requested'
-): Omit<Notification, 'id' | 'createdAt' | 'read'> => ({
-  type: 'review_completed',
-  title: 'Review Completed',
-  message: `${reviewer.name} ${decision === 'approved' ? 'approved' : decision === 'rejected' ? 'rejected' : 'requested changes to'} your document`,
-  actor: reviewer,
-  documentId,
-  documentTitle,
-  actionUrl: `/documents/${documentId}/review`,
-  metadata: { decision },
-});
-
-export const createCommentNotification = (
-  commenter: CollaborationUser,
-  documentId: string,
-  documentTitle: string,
-  commentId: string
-): Omit<Notification, 'id' | 'createdAt' | 'read'> => ({
-  type: 'comment_added',
-  title: 'New Comment',
-  message: `${commenter.name} added a comment`,
-  actor: commenter,
-  documentId,
-  documentTitle,
-  actionUrl: `/documents/${documentId}#comment-${commentId}`,
-});
-
-export const createDocumentUpdateNotification = (
-  updater: CollaborationUser,
-  documentId: string,
-  documentTitle: string
-): Omit<Notification, 'id' | 'createdAt' | 'read'> => ({
-  type: 'document_updated',
-  title: 'Document Updated',
-  message: `${updater.name} made changes to the document`,
-  actor: updater,
-  documentId,
-  documentTitle,
-  actionUrl: `/documents/${documentId}`,
-});
-
-export const createMentionNotification = (
-  mentioner: CollaborationUser,
-  documentId: string,
-  documentTitle: string,
-  commentId?: string
-): Omit<Notification, 'id' | 'createdAt' | 'read'> => ({
-  type: 'mention',
-  title: 'You were mentioned',
-  message: `${mentioner.name} mentioned you in ${commentId ? 'a comment' : 'the document'}`,
-  actor: mentioner,
-  documentId,
-  documentTitle,
-  actionUrl: commentId ? `/documents/${documentId}#comment-${commentId}` : `/documents/${documentId}`,
-});
