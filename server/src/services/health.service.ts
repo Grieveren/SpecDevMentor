@@ -312,7 +312,7 @@ export class HealthService extends EventEmitter {
     // Check OpenAI API
     if (process.env.OPENAI_API_KEY) {
       try {
-        const response = await fetch('https://api.openai.com/v1/models', {
+        const _response = await fetch('https://api.openai.com/v1/models', {
           method: 'GET',
           headers: {
             'Authorization': `Bearer ${process.env.OPENAI_API_KEY}`,

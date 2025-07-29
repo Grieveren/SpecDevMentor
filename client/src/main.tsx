@@ -53,7 +53,7 @@ function UnauthenticatedApp() {
 
   const handleAuthSuccess = () => {
     // Authentication successful, the AuthProvider will handle the state change
-    console.log('Authentication successful');
+    // // // console.log('Authentication successful');
   };
 
   return (

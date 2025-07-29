@@ -84,7 +84,7 @@ describe('ReviewWorkflow', () => {
 
   describe('Request Review Flow', () => {
     it('should open request review form when button is clicked', async () => {
-      const user = userEvent.setup();
+      const _user = userEvent.setup();
       render(<ReviewWorkflow {...defaultProps} />);
 
       const requestButton = screen.getByText('Request Review');
@@ -96,7 +96,7 @@ describe('ReviewWorkflow', () => {
     });
 
     it('should allow selecting reviewers and submitting request', async () => {
-      const user = userEvent.setup();
+      const _user = userEvent.setup();
       render(<ReviewWorkflow {...defaultProps} />);
 
       // Open form
@@ -122,7 +122,7 @@ describe('ReviewWorkflow', () => {
     });
 
     it('should require at least one reviewer to be selected', async () => {
-      const user = userEvent.setup();
+      const _user = userEvent.setup();
       render(<ReviewWorkflow {...defaultProps} />);
 
       await user.click(screen.getByText('Request Review'));
@@ -132,7 +132,7 @@ describe('ReviewWorkflow', () => {
     });
 
     it('should allow setting due date', async () => {
-      const user = userEvent.setup();
+      const _user = userEvent.setup();
       render(<ReviewWorkflow {...defaultProps} />);
 
       await user.click(screen.getByText('Request Review'));
@@ -155,7 +155,7 @@ describe('ReviewWorkflow', () => {
     });
 
     it('should close form when cancelled', async () => {
-      const user = userEvent.setup();
+      const _user = userEvent.setup();
       render(<ReviewWorkflow {...defaultProps} />);
 
       await user.click(screen.getByText('Request Review'));
@@ -224,7 +224,7 @@ describe('ReviewWorkflow', () => {
     });
 
     it('should call onCancelReview when cancel button is clicked', async () => {
-      const user = userEvent.setup();
+      const _user = userEvent.setup();
       const userAsRequester = {
         ...defaultProps,
         currentUser: mockRequester,
@@ -251,7 +251,7 @@ describe('ReviewWorkflow', () => {
     });
 
     it('should open review submission form', async () => {
-      const user = userEvent.setup();
+      const _user = userEvent.setup();
       render(<ReviewWorkflow {...reviewerProps} />);
 
       await user.click(screen.getByText('Submit Review'));
@@ -262,7 +262,7 @@ describe('ReviewWorkflow', () => {
     });
 
     it('should allow selecting approve decision', async () => {
-      const user = userEvent.setup();
+      const _user = userEvent.setup();
       render(<ReviewWorkflow {...reviewerProps} />);
 
       await user.click(screen.getByText('Submit Review'));
@@ -274,7 +274,7 @@ describe('ReviewWorkflow', () => {
     });
 
     it('should allow selecting request changes decision', async () => {
-      const user = userEvent.setup();
+      const _user = userEvent.setup();
       render(<ReviewWorkflow {...reviewerProps} />);
 
       await user.click(screen.getByText('Submit Review'));
@@ -286,7 +286,7 @@ describe('ReviewWorkflow', () => {
     });
 
     it('should allow selecting reject decision', async () => {
-      const user = userEvent.setup();
+      const _user = userEvent.setup();
       render(<ReviewWorkflow {...reviewerProps} />);
 
       await user.click(screen.getByText('Submit Review'));
@@ -298,7 +298,7 @@ describe('ReviewWorkflow', () => {
     });
 
     it('should require summary to submit review', async () => {
-      const user = userEvent.setup();
+      const _user = userEvent.setup();
       render(<ReviewWorkflow {...reviewerProps} />);
 
       await user.click(screen.getByText('Submit Review'));
@@ -313,7 +313,7 @@ describe('ReviewWorkflow', () => {
     });
 
     it('should submit review with all details', async () => {
-      const user = userEvent.setup();
+      const _user = userEvent.setup();
       render(<ReviewWorkflow {...reviewerProps} />);
 
       await user.click(screen.getByText('Submit Review'));
@@ -341,7 +341,7 @@ describe('ReviewWorkflow', () => {
     });
 
     it('should close form when cancelled', async () => {
-      const user = userEvent.setup();
+      const _user = userEvent.setup();
       render(<ReviewWorkflow {...reviewerProps} />);
 
       await user.click(screen.getByText('Submit Review'));
@@ -393,7 +393,7 @@ describe('ReviewWorkflow', () => {
     });
 
     it('should call onResolveComment when resolve is clicked', async () => {
-      const user = userEvent.setup();
+      const _user = userEvent.setup();
       const reviewerProps = {
         ...defaultProps,
         currentUser: mockReviewer,
@@ -475,7 +475,7 @@ describe('ReviewWorkflow', () => {
 
   describe('Accessibility', () => {
     it('should be keyboard navigable', async () => {
-      const user = userEvent.setup();
+      const _user = userEvent.setup();
       render(<ReviewWorkflow {...defaultProps} />);
 
       // Tab to request review button
@@ -488,7 +488,7 @@ describe('ReviewWorkflow', () => {
     });
 
     it('should have proper form labels', async () => {
-      const user = userEvent.setup();
+      const _user = userEvent.setup();
       render(<ReviewWorkflow {...defaultProps} />);
 
       await user.click(screen.getByText('Request Review'));

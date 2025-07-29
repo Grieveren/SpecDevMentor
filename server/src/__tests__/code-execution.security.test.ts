@@ -61,7 +61,7 @@ describe('CodeExecutionService - Security Tests', () => {
     it('should block file system access', async () => {
       const maliciousCode = `
         const fs = require('fs');
-        console.log(fs.readFileSync('/etc/passwd', 'utf8'));
+        // // console.log(fs.readFileSync('/etc/passwd', 'utf8'));
       `;
 
       await expect(
@@ -75,7 +75,7 @@ describe('CodeExecutionService - Security Tests', () => {
     it('should block child process execution', async () => {
       const maliciousCode = `
         const { exec } = require('child_process');
-        exec('ls -la', (error, stdout) => console.log(stdout));
+        exec('ls -la', (error, stdout) => // // console.log(stdout));
       `;
 
       await expect(
@@ -128,7 +128,7 @@ describe('CodeExecutionService - Security Tests', () => {
 
     it('should block process object access', async () => {
       const maliciousCode = `
-        console.log(process.env);
+        // // console.log(process.env);
       `;
 
       await expect(
@@ -365,7 +365,7 @@ while (true) {
 
       const startTime = Date.now();
       
-      const result = await service.executeCode({
+      const _result = await service.executeCode({
         code: infiniteLoopCode,
         language: SupportedLanguage.JAVASCRIPT,
         timeout: 5000, // 5 seconds
@@ -384,11 +384,11 @@ const arr = [];
 for (let i = 0; i < 1000000; i++) {
   arr.push('a'.repeat(1000));
 }
-console.log('Memory test completed');
+// // console.log('Memory test completed');
       `;
 
       // This should either complete or be killed by memory limits
-      const result = await service.executeCode({
+      const _result = await service.executeCode({
         code: memoryIntensiveCode,
         language: SupportedLanguage.JAVASCRIPT,
         timeout: 10000,
@@ -403,11 +403,11 @@ console.log('Memory test completed');
     it('should isolate multiple executions', async () => {
       const code1 = `
 let globalVar = 'test1';
-console.log(globalVar);
+// // console.log(globalVar);
       `;
 
       const code2 = `
-console.log(typeof globalVar === 'undefined' ? 'isolated' : 'not isolated');
+// // console.log(typeof globalVar === 'undefined' ? 'isolated' : 'not isolated');
       `;
 
       const [result1, result2] = await Promise.all([
@@ -444,10 +444,10 @@ console.log(typeof globalVar === 'undefined' ? 'isolated' : 'not isolated');
     it('should execute safe JavaScript code', async () => {
       const safeCode = `
 const message = 'Hello, World!';
-console.log(message);
+// // console.log(message);
       `;
 
-      const result = await service.executeCode({
+      const _result = await service.executeCode({
         code: safeCode,
         language: SupportedLanguage.JAVASCRIPT,
       });
@@ -464,7 +464,7 @@ message = 'Hello, Python!'
 print(message)
       `;
 
-      const result = await service.executeCode({
+      const _result = await service.executeCode({
         code: safeCode,
         language: SupportedLanguage.PYTHON,
       });
@@ -477,10 +477,10 @@ print(message)
 
     it('should handle code with syntax errors', async () => {
       const invalidCode = `
-console.log('missing quote);
+// // console.log('missing quote);
       `;
 
-      const result = await service.executeCode({
+      const _result = await service.executeCode({
         code: invalidCode,
         language: SupportedLanguage.JAVASCRIPT,
       });
@@ -495,7 +495,7 @@ console.log('missing quote);
 throw new Error('Runtime error');
       `;
 
-      const result = await service.executeCode({
+      const _result = await service.executeCode({
         code: errorCode,
         language: SupportedLanguage.JAVASCRIPT,
       });

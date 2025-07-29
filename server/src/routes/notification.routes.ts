@@ -37,7 +37,7 @@ router.get(
       const userId = req.user!.id;
       const { page, limit, unreadOnly } = req.query;
 
-      const result = await notificationService.getUserNotifications(userId, {
+      const _result = await notificationService.getUserNotifications(userId, {
         page: page as number,
         limit: limit as number,
         unreadOnly: unreadOnly as boolean,

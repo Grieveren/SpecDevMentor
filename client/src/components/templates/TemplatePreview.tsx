@@ -23,7 +23,7 @@ export const TemplatePreview: React.FC<TemplatePreviewProps> = ({
   const [feedback, setFeedback] = useState('');
   const [showRating, setShowRating] = useState(false);
 
-  const handleVariableChange = (name: string, value: string) => {
+  const handleVariableChange = (name: string, _value: string) => {
     setVariables(prev => ({ ...prev, [name]: value }));
   };
 

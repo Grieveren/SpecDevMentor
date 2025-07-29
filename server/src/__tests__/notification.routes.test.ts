@@ -16,14 +16,14 @@ vi.mock('../services/notification.service.js');
 
 describe('Notification Routes', () => {
   let app: express.Application;
-  let mockNotificationService: any;
+  let mockNotificationService: unknown;
 
   beforeEach(() => {
     app = express();
     app.use(express.json());
 
     // Mock auth middleware
-    (authMiddleware as any).mockImplementation((req: any, res: any, next: any) => {
+    (authMiddleware as any).mockImplementation((_req: unknown, _res: unknown, _next: unknown) => {
       req.user = { id: 'user1', role: 'DEVELOPER' };
       next();
     });
@@ -76,7 +76,7 @@ describe('Notification Routes', () => {
 
       mockNotificationService.getUserNotifications.mockResolvedValue(mockResponse);
 
-      const response = await request(app)
+      const _response = await request(app)
         .get('/api/notifications')
         .expect(200);
 
@@ -112,7 +112,7 @@ describe('Notification Routes', () => {
     it('should handle service errors', async () => {
       mockNotificationService.getUserNotifications.mockRejectedValue(new Error('Service error'));
 
-      const response = await request(app)
+      const _response = await request(app)
         .get('/api/notifications')
         .expect(500);
 
@@ -127,7 +127,7 @@ describe('Notification Routes', () => {
     it('should return unread count', async () => {
       mockNotificationService.getUnreadCount.mockResolvedValue(5);
 
-      const response = await request(app)
+      const _response = await request(app)
         .get('/api/notifications/unread-count')
         .expect(200);
 
@@ -144,7 +144,7 @@ describe('Notification Routes', () => {
     it('should mark notification as read', async () => {
       mockNotificationService.markAsRead.mockResolvedValue();
 
-      const response = await request(app)
+      const _response = await request(app)
         .patch('/api/notifications/notif1/read')
         .expect(200);
 
@@ -167,7 +167,7 @@ describe('Notification Routes', () => {
     it('should mark all notifications as read', async () => {
       mockNotificationService.markAllAsRead.mockResolvedValue();
 
-      const response = await request(app)
+      const _response = await request(app)
         .patch('/api/notifications/read-all')
         .expect(200);
 
@@ -194,7 +194,7 @@ describe('Notification Routes', () => {
 
       mockNotificationService.getUserNotificationSettings.mockResolvedValue(mockSettings);
 
-      const response = await request(app)
+      const _response = await request(app)
         .get('/api/notifications/settings')
         .expect(200);
 
@@ -216,7 +216,7 @@ describe('Notification Routes', () => {
 
       mockNotificationService.updateNotificationSettings.mockResolvedValue();
 
-      const response = await request(app)
+      const _response = await request(app)
         .put('/api/notifications/settings')
         .send(settingsUpdate)
         .expect(200);
@@ -243,7 +243,7 @@ describe('Notification Routes', () => {
   describe('POST /api/notifications/test', () => {
     it('should send test notification for admin users', async () => {
       // Mock admin user
-      (authMiddleware as any).mockImplementation((req: any, res: any, next: any) => {
+      (authMiddleware as any).mockImplementation((_req: unknown, _res: unknown, _next: unknown) => {
         req.user = { id: 'admin1', role: 'ADMIN' };
         next();
       });
@@ -258,7 +258,7 @@ describe('Notification Routes', () => {
 
       mockNotificationService.sendNotification.mockResolvedValue();
 
-      const response = await request(app)
+      const _response = await request(app)
         .post('/api/notifications/test')
         .send(testNotification)
         .expect(200);
@@ -279,7 +279,7 @@ describe('Notification Routes', () => {
         message: 'This is a test',
       };
 
-      const response = await request(app)
+      const _response = await request(app)
         .post('/api/notifications/test')
         .send(testNotification)
         .expect(403);
@@ -294,7 +294,7 @@ describe('Notification Routes', () => {
 
     it('should validate test notification data', async () => {
       // Mock admin user
-      (authMiddleware as any).mockImplementation((req: any, res: any, next: any) => {
+      (authMiddleware as any).mockImplementation((_req: unknown, _res: unknown, _next: unknown) => {
         req.user = { id: 'admin1', role: 'ADMIN' };
         next();
       });

@@ -7,7 +7,7 @@ import { AIReviewResult, AISuggestion } from '../../../services/ai-review.servic
 
 // Mock the child components
 vi.mock('../SuggestionCard', () => ({
-  SuggestionCard: ({ suggestion, onApply, onDismiss, onRollback }: any) => (
+  SuggestionCard: ({ suggestion, onApply, onDismiss, onRollback }: unknown) => (
     <div data-testid={`suggestion-${suggestion.id}`}>
       <span>{suggestion.title}</span>
       <button onClick={onApply}>Apply</button>
@@ -18,19 +18,19 @@ vi.mock('../SuggestionCard', () => ({
 }));
 
 vi.mock('../ReviewHistory', () => ({
-  ReviewHistory: ({ documentId }: any) => (
+  ReviewHistory: ({ documentId }: unknown) => (
     <div data-testid="review-history">History for {documentId}</div>
   ),
 }));
 
 vi.mock('../ScoreIndicator', () => ({
-  ScoreIndicator: ({ score }: any) => (
+  ScoreIndicator: ({ score }: unknown) => (
     <div data-testid="score-indicator">{score}%</div>
   ),
 }));
 
 vi.mock('../QualityMetrics', () => ({
-  QualityMetrics: ({ metrics }: any) => (
+  QualityMetrics: ({ metrics }: unknown) => (
     <div data-testid="quality-metrics">Quality: {metrics.clarity}</div>
   ),
 }));
@@ -103,7 +103,7 @@ describe('AIReviewPanel', () => {
   });
 
   it('should render error state', () => {
-    const error = 'Failed to analyze document';
+    const _error = 'Failed to analyze document';
     render(<AIReviewPanel {...defaultProps} error={error} />);
 
     expect(screen.getByText(error)).toBeInTheDocument();
@@ -137,7 +137,7 @@ describe('AIReviewPanel', () => {
   });
 
   it('should handle tab switching', async () => {
-    const user = userEvent.setup();
+    const _user = userEvent.setup();
     render(<AIReviewPanel {...defaultProps} currentReview={mockReview} />);
 
     // Default tab should be suggestions
@@ -153,7 +153,7 @@ describe('AIReviewPanel', () => {
   });
 
   it('should call onRequestReview when request review button is clicked', async () => {
-    const user = userEvent.setup();
+    const _user = userEvent.setup();
     render(<AIReviewPanel {...defaultProps} />);
 
     await user.click(screen.getByText('Request AI Review'));
@@ -161,7 +161,7 @@ describe('AIReviewPanel', () => {
   });
 
   it('should call onRequestReview from header when review exists', async () => {
-    const user = userEvent.setup();
+    const _user = userEvent.setup();
     render(<AIReviewPanel {...defaultProps} currentReview={mockReview} />);
 
     await user.click(screen.getByText('New Review'));
@@ -169,7 +169,7 @@ describe('AIReviewPanel', () => {
   });
 
   it('should handle panel expansion/collapse', async () => {
-    const user = userEvent.setup();
+    const _user = userEvent.setup();
     render(<AIReviewPanel {...defaultProps} currentReview={mockReview} />);
 
     // Panel should be expanded by default
@@ -184,7 +184,7 @@ describe('AIReviewPanel', () => {
   });
 
   it('should pass suggestion actions to SuggestionCard', async () => {
-    const user = userEvent.setup();
+    const _user = userEvent.setup();
     render(<AIReviewPanel {...defaultProps} currentReview={mockReview} />);
 
     // Test apply suggestion
@@ -245,7 +245,7 @@ describe('AIReviewPanel', () => {
   });
 
   it('should maintain tab state when review changes', async () => {
-    const user = userEvent.setup();
+    const _user = userEvent.setup();
     const { rerender } = render(<AIReviewPanel {...defaultProps} currentReview={mockReview} />);
 
     // Switch to quality tab

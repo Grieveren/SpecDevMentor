@@ -32,12 +32,12 @@ export const useNotifications = (): UseNotificationsReturn => {
 
     newSocket.on('connect', () => {
       setIsConnected(true);
-      console.log('Connected to notification service');
+      // // // console.log('Connected to notification service');
     });
 
     newSocket.on('disconnect', () => {
       setIsConnected(false);
-      console.log('Disconnected from notification service');
+      // // // console.log('Disconnected from notification service');
     });
 
     // Listen for real-time notifications
@@ -94,7 +94,7 @@ export const useNotifications = (): UseNotificationsReturn => {
   const loadNotifications = async (page = 1, append = false) => {
     try {
       setIsLoading(true);
-      const response = await notificationService.getNotifications({
+      const _response = await notificationService.getNotifications({
         page,
         limit: 20,
       });

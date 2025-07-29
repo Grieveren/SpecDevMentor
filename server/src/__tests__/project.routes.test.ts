@@ -97,7 +97,7 @@ describe('Project Routes Integration Tests', () => {
         teamMemberIds: [testUsers[1].id],
       };
 
-      const response = await request(app)
+      const _response = await request(app)
         .post('/api/projects')
         .set('Authorization', `Bearer ${authTokens[0]}`)
         .send(projectData)
@@ -135,7 +135,7 @@ describe('Project Routes Integration Tests', () => {
     });
 
     it('should validate required fields', async () => {
-      const response = await request(app)
+      const _response = await request(app)
         .post('/api/projects')
         .set('Authorization', `Bearer ${authTokens[0]}`)
         .send({}) // Missing name
@@ -153,7 +153,7 @@ describe('Project Routes Integration Tests', () => {
         description: 'Valid description',
       };
 
-      const response = await request(app)
+      const _response = await request(app)
         .post('/api/projects')
         .set('Authorization', `Bearer ${authTokens[0]}`)
         .send(projectData)
@@ -193,7 +193,7 @@ describe('Project Routes Integration Tests', () => {
       });
 
       // Add team member to one project
-      const project = await prisma.specificationProject.findFirst({
+      const _project = await prisma.specificationProject.findFirst({
         where: { name: 'Owner Project 1' },
       });
 
@@ -210,7 +210,7 @@ describe('Project Routes Integration Tests', () => {
     });
 
     it('should return projects for authenticated user', async () => {
-      const response = await request(app)
+      const _response = await request(app)
         .get('/api/projects')
         .set('Authorization', `Bearer ${authTokens[0]}`)
         .expect(200);
@@ -232,7 +232,7 @@ describe('Project Routes Integration Tests', () => {
     });
 
     it('should return projects where user is team member', async () => {
-      const response = await request(app)
+      const _response = await request(app)
         .get('/api/projects')
         .set('Authorization', `Bearer ${authTokens[1]}`) // Team member
         .expect(200);
@@ -242,7 +242,7 @@ describe('Project Routes Integration Tests', () => {
     });
 
     it('should support search filtering', async () => {
-      const response = await request(app)
+      const _response = await request(app)
         .get('/api/projects?search=First')
         .set('Authorization', `Bearer ${authTokens[0]}`)
         .expect(200);
@@ -252,7 +252,7 @@ describe('Project Routes Integration Tests', () => {
     });
 
     it('should support status filtering', async () => {
-      const response = await request(app)
+      const _response = await request(app)
         .get('/api/projects?status=COMPLETED')
         .set('Authorization', `Bearer ${authTokens[0]}`)
         .expect(200);
@@ -262,7 +262,7 @@ describe('Project Routes Integration Tests', () => {
     });
 
     it('should support pagination', async () => {
-      const response = await request(app)
+      const _response = await request(app)
         .get('/api/projects?page=1&limit=1')
         .set('Authorization', `Bearer ${authTokens[0]}`)
         .expect(200);
@@ -284,7 +284,7 @@ describe('Project Routes Integration Tests', () => {
   });
 
   describe('GET /api/projects/:id', () => {
-    let testProject: any;
+    let testProject: unknown;
 
     beforeEach(async () => {
       testProject = await prisma.specificationProject.create({
@@ -313,7 +313,7 @@ describe('Project Routes Integration Tests', () => {
     });
 
     it('should return project details for owner', async () => {
-      const response = await request(app)
+      const _response = await request(app)
         .get(`/api/projects/${testProject.id}`)
         .set('Authorization', `Bearer ${authTokens[0]}`)
         .expect(200);
@@ -335,7 +335,7 @@ describe('Project Routes Integration Tests', () => {
     });
 
     it('should return 404 for non-existent project', async () => {
-      const response = await request(app)
+      const _response = await request(app)
         .get('/api/projects/non-existent-id')
         .set('Authorization', `Bearer ${authTokens[0]}`)
         .expect(404);
@@ -348,7 +348,7 @@ describe('Project Routes Integration Tests', () => {
     });
 
     it('should deny access to unauthorized user', async () => {
-      const response = await request(app)
+      const _response = await request(app)
         .get(`/api/projects/${testProject.id}`)
         .set('Authorization', `Bearer ${authTokens[2]}`) // Other user
         .expect(404);
@@ -358,7 +358,7 @@ describe('Project Routes Integration Tests', () => {
   });
 
   describe('PUT /api/projects/:id', () => {
-    let testProject: any;
+    let testProject: unknown;
 
     beforeEach(async () => {
       testProject = await prisma.specificationProject.create({
@@ -378,7 +378,7 @@ describe('Project Routes Integration Tests', () => {
         status: ProjectStatus.COMPLETED,
       };
 
-      const response = await request(app)
+      const _response = await request(app)
         .put(`/api/projects/${testProject.id}`)
         .set('Authorization', `Bearer ${authTokens[0]}`)
         .send(updateData)
@@ -401,7 +401,7 @@ describe('Project Routes Integration Tests', () => {
         name: 'Partially Updated Name',
       };
 
-      const response = await request(app)
+      const _response = await request(app)
         .put(`/api/projects/${testProject.id}`)
         .set('Authorization', `Bearer ${authTokens[0]}`)
         .send(updateData)
@@ -416,7 +416,7 @@ describe('Project Routes Integration Tests', () => {
         name: 'Unauthorized Update',
       };
 
-      const response = await request(app)
+      const _response = await request(app)
         .put(`/api/projects/${testProject.id}`)
         .set('Authorization', `Bearer ${authTokens[2]}`) // Other user
         .send(updateData)
@@ -427,7 +427,7 @@ describe('Project Routes Integration Tests', () => {
   });
 
   describe('DELETE /api/projects/:id', () => {
-    let testProject: any;
+    let testProject: unknown;
 
     beforeEach(async () => {
       testProject = await prisma.specificationProject.create({
@@ -440,7 +440,7 @@ describe('Project Routes Integration Tests', () => {
     });
 
     it('should delete project successfully', async () => {
-      const response = await request(app)
+      const _response = await request(app)
         .delete(`/api/projects/${testProject.id}`)
         .set('Authorization', `Bearer ${authTokens[0]}`)
         .expect(200);
@@ -458,7 +458,7 @@ describe('Project Routes Integration Tests', () => {
     });
 
     it('should deny deletion to non-owner', async () => {
-      const response = await request(app)
+      const _response = await request(app)
         .delete(`/api/projects/${testProject.id}`)
         .set('Authorization', `Bearer ${authTokens[1]}`) // Team member
         .expect(404);
@@ -468,7 +468,7 @@ describe('Project Routes Integration Tests', () => {
   });
 
   describe('Team Management', () => {
-    let testProject: any;
+    let testProject: unknown;
 
     beforeEach(async () => {
       testProject = await prisma.specificationProject.create({
@@ -487,7 +487,7 @@ describe('Project Routes Integration Tests', () => {
           role: 'MEMBER',
         };
 
-        const response = await request(app)
+        const _response = await request(app)
           .post(`/api/projects/${testProject.id}/team`)
           .set('Authorization', `Bearer ${authTokens[0]}`)
           .send(teamMemberData)
@@ -527,7 +527,7 @@ describe('Project Routes Integration Tests', () => {
           role: 'LEAD',
         };
 
-        const response = await request(app)
+        const _response = await request(app)
           .post(`/api/projects/${testProject.id}/team`)
           .set('Authorization', `Bearer ${authTokens[0]}`)
           .send(teamMemberData)
@@ -542,7 +542,7 @@ describe('Project Routes Integration Tests', () => {
           role: 'MEMBER',
         };
 
-        const response = await request(app)
+        const _response = await request(app)
           .post(`/api/projects/${testProject.id}/team`)
           .set('Authorization', `Bearer ${authTokens[1]}`) // Non-owner
           .send(teamMemberData)
@@ -566,7 +566,7 @@ describe('Project Routes Integration Tests', () => {
       });
 
       it('should remove team member successfully', async () => {
-        const response = await request(app)
+        const _response = await request(app)
           .delete(`/api/projects/${testProject.id}/team/${testUsers[1].id}`)
           .set('Authorization', `Bearer ${authTokens[0]}`)
           .expect(200);
@@ -589,7 +589,7 @@ describe('Project Routes Integration Tests', () => {
       });
 
       it('should prevent removing project owner', async () => {
-        const response = await request(app)
+        const _response = await request(app)
           .delete(`/api/projects/${testProject.id}/team/${testUsers[0].id}`)
           .set('Authorization', `Bearer ${authTokens[0]}`)
           .expect(400);
@@ -600,7 +600,7 @@ describe('Project Routes Integration Tests', () => {
   });
 
   describe('GET /api/projects/:id/analytics', () => {
-    let testProject: any;
+    let testProject: unknown;
 
     beforeEach(async () => {
       testProject = await prisma.specificationProject.create({
@@ -631,7 +631,7 @@ describe('Project Routes Integration Tests', () => {
     });
 
     it('should return project analytics', async () => {
-      const response = await request(app)
+      const _response = await request(app)
         .get(`/api/projects/${testProject.id}/analytics`)
         .set('Authorization', `Bearer ${authTokens[0]}`)
         .expect(200);
@@ -646,7 +646,7 @@ describe('Project Routes Integration Tests', () => {
     });
 
     it('should deny access to unauthorized user', async () => {
-      const response = await request(app)
+      const _response = await request(app)
         .get(`/api/projects/${testProject.id}/analytics`)
         .set('Authorization', `Bearer ${authTokens[2]}`) // Other user
         .expect(404);

@@ -3,7 +3,7 @@ import { SupportedLanguage } from '../../types/code-execution';
 
 interface CodeEditorProps {
   value: string;
-  onChange: (value: string) => void;
+  onChange: (_value: string) => void;
   language: SupportedLanguage;
   onLanguageChange: (language: SupportedLanguage) => void;
   placeholder?: string;
@@ -26,14 +26,14 @@ function greet(name) {
   return \`Hello, \${name}!\`;
 }
 
-console.log(greet('World'));`,
+// // // console.log(greet('World'));`,
 
   [SupportedLanguage.TYPESCRIPT]: `// TypeScript Example
 function greet(name: string): string {
   return \`Hello, \${name}!\`;
 }
 
-console.log(greet('World'));`,
+// // // console.log(greet('World'));`,
 
   [SupportedLanguage.PYTHON]: `# Python Example
 def greet(name):

@@ -77,13 +77,13 @@ export interface AnalyzeQualityRequest {
 }
 
 export class BestPracticesService {
-  async createGuide(data: CreateGuideRequest): Promise<BestPracticeGuide> {
-    const response = await apiClient.post('/best-practices', data);
+  async createGuide(_data: CreateGuideRequest): Promise<BestPracticeGuide> {
+    const _response = await apiClient.post('/best-practices', data);
     return response.data.data;
   }
 
-  async updateGuide(guideId: string, data: UpdateGuideRequest): Promise<BestPracticeGuide> {
-    const response = await apiClient.put(`/best-practices/${guideId}`, data);
+  async updateGuide(guideId: string, _data: UpdateGuideRequest): Promise<BestPracticeGuide> {
+    const _response = await apiClient.put(`/best-practices/${guideId}`, data);
     return response.data.data;
   }
 
@@ -92,27 +92,27 @@ export class BestPracticesService {
   }
 
   async getGuide(guideId: string): Promise<BestPracticeGuide> {
-    const response = await apiClient.get(`/best-practices/${guideId}`);
+    const _response = await apiClient.get(`/best-practices/${guideId}`);
     return response.data.data;
   }
 
   async getAllGuides(): Promise<BestPracticeGuide[]> {
-    const response = await apiClient.get('/best-practices');
+    const _response = await apiClient.get('/best-practices');
     return response.data.data;
   }
 
   async getGuidesByPhase(phase: 'REQUIREMENTS' | 'DESIGN' | 'TASKS' | 'IMPLEMENTATION'): Promise<BestPracticeGuide[]> {
-    const response = await apiClient.get(`/best-practices/phase/${phase}`);
+    const _response = await apiClient.get(`/best-practices/phase/${phase}`);
     return response.data.data;
   }
 
-  async getContextualGuidance(request: GetGuidanceRequest): Promise<ContextualGuidance> {
-    const response = await apiClient.post('/best-practices/guidance', request);
+  async getContextualGuidance(_request: GetGuidanceRequest): Promise<ContextualGuidance> {
+    const _response = await apiClient.post('/best-practices/guidance', request);
     return response.data.data;
   }
 
-  async analyzeDocumentQuality(request: AnalyzeQualityRequest): Promise<QualityAnalysis> {
-    const response = await apiClient.post('/best-practices/analyze', request);
+  async analyzeDocumentQuality(_request: AnalyzeQualityRequest): Promise<QualityAnalysis> {
+    const _response = await apiClient.post('/best-practices/analyze', request);
     return response.data.data;
   }
 }

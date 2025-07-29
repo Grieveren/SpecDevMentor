@@ -25,12 +25,12 @@ export class RedisClient {
       });
 
       RedisClient.instance.on('connect', () => {
-        console.log('Redis Client Connected');
+        // // console.log('Redis Client Connected');
         RedisClient.isConnected = true;
       });
 
       RedisClient.instance.on('disconnect', () => {
-        console.log('Redis Client Disconnected');
+        // // console.log('Redis Client Disconnected');
         RedisClient.isConnected = false;
       });
 

@@ -13,25 +13,25 @@ vi.mock('../../../services/analytics.service', () => ({
 
 // Mock the child components
 vi.mock('../ProjectAnalyticsView', () => ({
-  ProjectAnalyticsView: ({ analytics }: any) => (
+  ProjectAnalyticsView: ({ analytics }: unknown) => (
     <div data-testid="project-analytics-view">Project Analytics: {analytics.projectId}</div>
   ),
 }));
 
 vi.mock('../TeamAnalyticsView', () => ({
-  TeamAnalyticsView: ({ analytics }: any) => (
+  TeamAnalyticsView: ({ analytics }: unknown) => (
     <div data-testid="team-analytics-view">Team Analytics: {analytics.projectId}</div>
   ),
 }));
 
 vi.mock('../UserAnalyticsView', () => ({
-  UserAnalyticsView: ({ analytics }: any) => (
+  UserAnalyticsView: ({ analytics }: unknown) => (
     <div data-testid="user-analytics-view">User Analytics: {analytics.userId}</div>
   ),
 }));
 
 vi.mock('../TimeRangeSelector', () => ({
-  TimeRangeSelector: ({ onChange }: any) => (
+  TimeRangeSelector: ({ onChange }: unknown) => (
     <button onClick={() => onChange({ start: '2024-01-01', end: '2024-01-31' })}>
       Time Range Selector
     </button>
@@ -39,7 +39,7 @@ vi.mock('../TimeRangeSelector', () => ({
 }));
 
 vi.mock('../MetricCard', () => ({
-  MetricCard: ({ title, value }: any) => (
+  MetricCard: ({ title, value }: unknown) => (
     <div data-testid="metric-card">
       {title}: {value}
     </div>

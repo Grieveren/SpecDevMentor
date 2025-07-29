@@ -23,7 +23,7 @@ const mockUser = {
 };
 
 // Mock authentication middleware
-vi.mocked(authenticateToken).mockImplementation((req: any, res, next) => {
+vi.mocked(authenticateToken).mockImplementation((_req: unknown, res, next) => {
   req.user = mockUser;
   next();
 });
@@ -46,7 +46,7 @@ describe('AI Review Routes', () => {
         projectId: 'project-123',
       };
 
-      const response = await request(app)
+      const _response = await request(app)
         .post('/api/ai-review/request')
         .send(requestData)
         .expect(201);
@@ -56,7 +56,7 @@ describe('AI Review Routes', () => {
     });
 
     it('should validate required fields', async () => {
-      const response = await request(app)
+      const _response = await request(app)
         .post('/api/ai-review/request')
         .send({})
         .expect(400);
@@ -73,13 +73,13 @@ describe('AI Review Routes', () => {
         content: 'Test content',
       };
 
-      const response = await request(app)
+      const _response = await request(app)
         .post('/api/ai-review/request')
         .send(requestData)
         .expect(400);
 
       expect(response.body.success).toBe(false);
-      expect(response.body.details.some((d: any) => d.field === 'phase')).toBe(true);
+      expect(response.body.details.some((d: unknown) => d.field === 'phase')).toBe(true);
     });
   });
 
@@ -87,7 +87,7 @@ describe('AI Review Routes', () => {
     it('should get AI review by ID', async () => {
       const reviewId = 'review-123';
 
-      const response = await request(app)
+      const _response = await request(app)
         .get(`/api/ai-review/${reviewId}`)
         .expect(200);
 
@@ -95,7 +95,7 @@ describe('AI Review Routes', () => {
     });
 
     it('should validate review ID parameter', async () => {
-      const response = await request(app)
+      const _response = await request(app)
         .get('/api/ai-review/')
         .expect(404);
     });
@@ -105,7 +105,7 @@ describe('AI Review Routes', () => {
     it('should get document reviews with default pagination', async () => {
       const documentId = 'doc-123';
 
-      const response = await request(app)
+      const _response = await request(app)
         .get(`/api/ai-review/document/${documentId}`)
         .expect(200);
 
@@ -115,7 +115,7 @@ describe('AI Review Routes', () => {
     it('should handle pagination parameters', async () => {
       const documentId = 'doc-123';
 
-      const response = await request(app)
+      const _response = await request(app)
         .get(`/api/ai-review/document/${documentId}`)
         .query({ limit: '5', offset: '10' })
         .expect(200);
@@ -126,7 +126,7 @@ describe('AI Review Routes', () => {
     it('should validate pagination parameters', async () => {
       const documentId = 'doc-123';
 
-      const response = await request(app)
+      const _response = await request(app)
         .get(`/api/ai-review/document/${documentId}`)
         .query({ limit: '100', offset: '-1' })
         .expect(400);
@@ -143,7 +143,7 @@ describe('AI Review Routes', () => {
         documentContent: 'Original content to be modified',
       };
 
-      const response = await request(app)
+      const _response = await request(app)
         .post(`/api/ai-review/${reviewId}/apply-suggestion`)
         .send(requestData)
         .expect(200);
@@ -155,7 +155,7 @@ describe('AI Review Routes', () => {
     it('should validate required fields for suggestion application', async () => {
       const reviewId = 'review-123';
 
-      const response = await request(app)
+      const _response = await request(app)
         .post(`/api/ai-review/${reviewId}/apply-suggestion`)
         .send({})
         .expect(400);
@@ -172,7 +172,7 @@ describe('AI Review Routes', () => {
         suggestionId: 'suggestion-123',
       };
 
-      const response = await request(app)
+      const _response = await request(app)
         .post(`/api/ai-review/${reviewId}/rollback-suggestion`)
         .send(requestData)
         .expect(200);
@@ -184,7 +184,7 @@ describe('AI Review Routes', () => {
     it('should validate required fields for rollback', async () => {
       const reviewId = 'review-123';
 
-      const response = await request(app)
+      const _response = await request(app)
         .post(`/api/ai-review/${reviewId}/rollback-suggestion`)
         .send({})
         .expect(400);
@@ -200,7 +200,7 @@ describe('AI Review Routes', () => {
         content: 'WHEN user clicks submit THEN system SHALL validate form',
       };
 
-      const response = await request(app)
+      const _response = await request(app)
         .post('/api/ai-review/validate-ears')
         .send(requestData)
         .expect(200);
@@ -210,7 +210,7 @@ describe('AI Review Routes', () => {
     });
 
     it('should validate content field for EARS validation', async () => {
-      const response = await request(app)
+      const _response = await request(app)
         .post('/api/ai-review/validate-ears')
         .send({})
         .expect(400);
@@ -226,7 +226,7 @@ describe('AI Review Routes', () => {
         content: 'As a user, I want to login, so that I can access my account',
       };
 
-      const response = await request(app)
+      const _response = await request(app)
         .post('/api/ai-review/validate-user-stories')
         .send(requestData)
         .expect(200);
@@ -236,7 +236,7 @@ describe('AI Review Routes', () => {
     });
 
     it('should validate content field for user story validation', async () => {
-      const response = await request(app)
+      const _response = await request(app)
         .post('/api/ai-review/validate-user-stories')
         .send({})
         .expect(400);
@@ -256,7 +256,7 @@ describe('AI Review Routes', () => {
         content: 'Test content',
       };
 
-      const response = await request(app)
+      const _response = await request(app)
         .post('/api/ai-review/request')
         .send(requestData);
 
@@ -267,11 +267,11 @@ describe('AI Review Routes', () => {
 
     it('should handle authentication errors', async () => {
       // Mock authentication failure
-      vi.mocked(authenticateToken).mockImplementationOnce((req: any, res, next) => {
+      vi.mocked(authenticateToken).mockImplementationOnce((_req: unknown, res, next) => {
         res.status(401).json({ error: 'Unauthorized' });
       });
 
-      const response = await request(app)
+      const _response = await request(app)
         .post('/api/ai-review/request')
         .send({
           documentId: 'doc-123',

@@ -251,7 +251,7 @@ export class LearningService {
       },
     });
 
-    const updateData: any = {
+    const updateData: unknown = {
       lastAccessed: new Date(),
       ...(validatedData.completedLessons && { completedLessons: validatedData.completedLessons }),
       ...(validatedData.exerciseResults && { exerciseResults: validatedData.exerciseResults }),
@@ -515,7 +515,7 @@ export class LearningService {
     const results: CompetencyResult[] = [];
 
     for (const criteria of mapping.assessmentCriteria) {
-      const response = responses[criteria.id];
+      const _response = responses[criteria.id];
       const score = this.calculateCriteriaScore(criteria, response);
       const maxScore = Math.max(...criteria.rubric.map(r => r.points));
 
@@ -531,7 +531,7 @@ export class LearningService {
     return results;
   }
 
-  private calculateCriteriaScore(criteria: AssessmentCriteria, response: any): number {
+  private calculateCriteriaScore(criteria: AssessmentCriteria, _response: unknown): number {
     // This is a simplified scoring mechanism
     // In a real implementation, this would use more sophisticated analysis
     if (typeof response === 'number' && response >= 1 && response <= 4) {
@@ -570,7 +570,7 @@ export class LearningService {
     userId: string,
     moduleId: string,
     exerciseId: string,
-    response: any
+    response: unknown
   ): Promise<ExerciseResult> {
     const module = await this.prisma.learningModule.findUnique({
       where: { id: moduleId },
@@ -635,7 +635,7 @@ export class LearningService {
     return result;
   }
 
-  private calculateExerciseScore(exercise: Exercise, response: any): {
+  private calculateExerciseScore(exercise: Exercise, _response: unknown): {
     score: number;
     maxScore: number;
     feedback: string;

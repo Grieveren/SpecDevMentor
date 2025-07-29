@@ -42,8 +42,8 @@ const periodSchema = Joi.object({
 });
 
 // Middleware to check if user has analytics access
-const requireAnalyticsAccess = async (req: any, res: Response, next: any) => {
-  const user = req.user;
+const requireAnalyticsAccess = async (_req: unknown, _res: Response, _next: unknown) => {
+  const _user = req.user;
   
   if (!user) {
     return res.status(401).json({ error: 'Authentication required' });
@@ -57,7 +57,7 @@ const requireAnalyticsAccess = async (req: any, res: Response, next: any) => {
   // For project-specific analytics, check if user is project owner or team member
   const projectId = req.params.projectId || req.query.projectId;
   if (projectId) {
-    const project = await prisma.specificationProject.findFirst({
+    const _project = await prisma.specificationProject.findFirst({
       where: {
         id: projectId,
         OR: [
@@ -79,7 +79,7 @@ const requireAnalyticsAccess = async (req: any, res: Response, next: any) => {
 router.post('/activity', 
   authMiddleware,
   validationMiddleware(trackActivitySchema),
-  async (req: any, res: Response) => {
+  async (_req: unknown, _res: Response) => {
     try {
       const { action, resource, resourceId, metadata, duration, sessionId } = req.body;
       const userId = req.user.id;
@@ -110,7 +110,7 @@ router.post('/activity',
 router.post('/workflow-progress',
   authMiddleware,
   validationMiddleware(workflowProgressSchema),
-  async (req: any, res: Response) => {
+  async (_req: unknown, _res: Response) => {
     try {
       const userId = req.user.id;
       const workflowData = { ...req.body, userId };
@@ -130,7 +130,7 @@ router.get('/projects/:projectId',
   authMiddleware,
   requireAnalyticsAccess,
   validationMiddleware(timeRangeSchema, 'query'),
-  async (req: any, res: Response) => {
+  async (_req: unknown, _res: Response) => {
     try {
       const { projectId } = req.params;
       const { start, end } = req.query;
@@ -151,7 +151,7 @@ router.get('/teams/:projectId',
   authMiddleware,
   requireAnalyticsAccess,
   validationMiddleware(timeRangeSchema, 'query'),
-  async (req: any, res: Response) => {
+  async (_req: unknown, _res: Response) => {
     try {
       const { projectId } = req.params;
       const { start, end } = req.query;
@@ -171,7 +171,7 @@ router.get('/teams/:projectId',
 router.get('/users/:userId?',
   authMiddleware,
   validationMiddleware(timeRangeSchema, 'query'),
-  async (req: any, res: Response) => {
+  async (_req: unknown, _res: Response) => {
     try {
       const requestedUserId = req.params.userId;
       const currentUserId = req.user.id;
@@ -203,7 +203,7 @@ router.post('/teams/:projectId/performance',
   authMiddleware,
   requireAnalyticsAccess,
   validationMiddleware(periodSchema),
-  async (req: any, res: Response) => {
+  async (_req: unknown, _res: Response) => {
     try {
       const { projectId } = req.params;
       const { period } = req.body;
@@ -221,7 +221,7 @@ router.post('/teams/:projectId/performance',
 // Calculate skill development metrics
 router.post('/users/:userId/skills',
   authMiddleware,
-  async (req: any, res: Response) => {
+  async (_req: unknown, _res: Response) => {
     try {
       const requestedUserId = req.params.userId;
       const currentUserId = req.user.id;
@@ -249,9 +249,9 @@ router.post('/users/:userId/skills',
 // Get system performance metrics (admin only)
 router.get('/system/performance',
   authMiddleware,
-  async (req: any, res: Response) => {
+  async (_req: unknown, _res: Response) => {
     try {
-      const user = req.user;
+      const _user = req.user;
       
       if (user.role !== 'ADMIN') {
         return res.status(403).json({ error: 'Admin access required' });
@@ -259,7 +259,7 @@ router.get('/system/performance',
 
       const { metricType, start, end, limit = 100 } = req.query;
 
-      const whereClause: any = {};
+      const whereClause: unknown = {};
       if (metricType) {
         whereClause.metricType = metricType;
       }
@@ -287,9 +287,9 @@ router.get('/system/performance',
 router.post('/aggregate',
   authMiddleware,
   validationMiddleware(periodSchema),
-  async (req: any, res: Response) => {
+  async (_req: unknown, _res: Response) => {
     try {
-      const user = req.user;
+      const _user = req.user;
       
       if (user.role !== 'ADMIN') {
         return res.status(403).json({ error: 'Admin access required' });
@@ -311,12 +311,12 @@ router.post('/aggregate',
 router.get('/dashboard/:projectId?',
   authMiddleware,
   requireAnalyticsAccess,
-  async (req: any, res: Response) => {
+  async (_req: unknown, _res: Response) => {
     try {
       const { projectId } = req.params;
       const userId = req.user.id;
 
-      let dashboardData: any = {};
+      let dashboardData: unknown = {};
 
       if (projectId) {
         // Project-specific dashboard
@@ -353,9 +353,9 @@ router.get('/dashboard/:projectId?',
 // Get real-time metrics from Redis
 router.get('/realtime',
   authMiddleware,
-  async (req: any, res: Response) => {
+  async (_req: unknown, _res: Response) => {
     try {
-      const user = req.user;
+      const _user = req.user;
       
       if (user.role !== 'TEAM_LEAD' && user.role !== 'ADMIN') {
         return res.status(403).json({ error: 'Insufficient permissions' });

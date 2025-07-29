@@ -157,7 +157,7 @@ router.post(
       const { suggestionId, documentContent } = req.body;
       const userId = req.user.id;
 
-      const result = await aiReviewService.applySuggestion({
+      const _result = await aiReviewService.applySuggestion({
         reviewId,
         suggestionId,
         documentContent,
@@ -199,7 +199,7 @@ router.post(
       const { suggestionId } = req.body;
       const userId = req.user.id;
 
-      const result = await aiReviewService.rollbackSuggestion({
+      const _result = await aiReviewService.rollbackSuggestion({
         reviewId,
         suggestionId,
         userId,

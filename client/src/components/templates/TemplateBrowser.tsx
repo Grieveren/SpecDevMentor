@@ -80,7 +80,7 @@ export const TemplateBrowser: React.FC<TemplateBrowserProps> = ({
     try {
       setLoading(true);
       setError(null);
-      const result = await templateService.searchTemplates(filters);
+      const _result = await templateService.searchTemplates(filters);
       setTemplates(result.templates);
       setPagination(result.pagination);
     } catch (err) {
@@ -94,7 +94,7 @@ export const TemplateBrowser: React.FC<TemplateBrowserProps> = ({
     setFilters(prev => ({ ...prev, query, page: 1 }));
   };
 
-  const handleFilterChange = (key: keyof SearchTemplatesRequest, value: any) => {
+  const handleFilterChange = (key: keyof SearchTemplatesRequest, _value: unknown) => {
     setFilters(prev => ({ ...prev, [key]: value, page: 1 }));
   };
 

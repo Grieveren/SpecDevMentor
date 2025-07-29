@@ -69,7 +69,7 @@ describe('Learning Assessment Integration', () => {
       mockPrisma.userProgress.findUnique = vi.fn().mockResolvedValue(null);
       mockPrisma.userProgress.upsert = vi.fn().mockResolvedValue({});
 
-      const result = await learningService.evaluateExercise(
+      const _result = await learningService.evaluateExercise(
         userId,
         moduleId,
         exerciseId,
@@ -119,7 +119,7 @@ describe('Learning Assessment Integration', () => {
       mockPrisma.userProgress.findUnique = vi.fn().mockResolvedValue(null);
       mockPrisma.userProgress.upsert = vi.fn().mockResolvedValue({});
 
-      const result = await learningService.evaluateExercise(
+      const _result = await learningService.evaluateExercise(
         userId,
         moduleId,
         exerciseId,
@@ -139,12 +139,12 @@ describe('Learning Assessment Integration', () => {
       const userId = 'user-1';
       const moduleId = 'module-1';
       const exerciseId = 'exercise-2';
-      const response = 'As a user, I want to login so that I can access my account. WHEN user enters valid credentials THEN system SHALL authenticate user.';
+      const _response = 'As a user, I want to login so that I can access my account. WHEN user enters valid credentials THEN system SHALL authenticate user.';
 
       mockPrisma.userProgress.findUnique = vi.fn().mockResolvedValue(null);
       mockPrisma.userProgress.upsert = vi.fn().mockResolvedValue({});
 
-      const result = await learningService.evaluateExercise(
+      const _result = await learningService.evaluateExercise(
         userId,
         moduleId,
         exerciseId,
@@ -178,7 +178,7 @@ describe('Learning Assessment Integration', () => {
       mockPrisma.userProgress.findUnique = vi.fn().mockResolvedValue(existingProgress);
       mockPrisma.userProgress.upsert = vi.fn().mockResolvedValue({});
 
-      const result = await learningService.evaluateExercise(
+      const _result = await learningService.evaluateExercise(
         userId,
         moduleId,
         exerciseId,
@@ -218,7 +218,7 @@ describe('Learning Assessment Integration', () => {
       mockPrisma.userProgress.findUnique = vi.fn().mockResolvedValue(existingProgress);
       mockPrisma.userProgress.update = vi.fn().mockResolvedValue({});
 
-      const result = await learningService.assessSkill(
+      const _result = await learningService.assessSkill(
         userId,
         moduleId,
         skillId,

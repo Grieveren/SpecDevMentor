@@ -45,11 +45,11 @@ class ProjectService {
     };
   }
 
-  private async handleResponse<T>(response: Response): Promise<T> {
-    const data = await response.json();
+  private async handleResponse<T>(_response: Response): Promise<T> {
+    const _data = await response.json();
 
     if (!response.ok) {
-      const error = data as ApiError;
+      const _error = data as ApiError;
       throw new ProjectApiError(
         error.message || 'An error occurred',
         error.code,
@@ -75,7 +75,7 @@ class ProjectService {
     params.append('page', pagination.page.toString());
     params.append('limit', pagination.limit.toString());
 
-    const response = await fetch(`${API_BASE_URL}/projects?${params}`, {
+    const _response = await fetch(`${API_BASE_URL}/projects?${params}`, {
       method: 'GET',
       headers: this.getAuthHeaders(),
     });
@@ -84,7 +84,7 @@ class ProjectService {
   }
 
   async getProject(id: string): Promise<Project> {
-    const response = await fetch(`${API_BASE_URL}/projects/${id}`, {
+    const _response = await fetch(`${API_BASE_URL}/projects/${id}`, {
       method: 'GET',
       headers: this.getAuthHeaders(),
     });
@@ -92,8 +92,8 @@ class ProjectService {
     return this.handleResponse<Project>(response);
   }
 
-  async createProject(data: CreateProjectRequest): Promise<Project> {
-    const response = await fetch(`${API_BASE_URL}/projects`, {
+  async createProject(_data: CreateProjectRequest): Promise<Project> {
+    const _response = await fetch(`${API_BASE_URL}/projects`, {
       method: 'POST',
       headers: this.getAuthHeaders(),
       body: JSON.stringify(data),
@@ -102,8 +102,8 @@ class ProjectService {
     return this.handleResponse<Project>(response);
   }
 
-  async updateProject(id: string, data: UpdateProjectRequest): Promise<Project> {
-    const response = await fetch(`${API_BASE_URL}/projects/${id}`, {
+  async updateProject(id: string, _data: UpdateProjectRequest): Promise<Project> {
+    const _response = await fetch(`${API_BASE_URL}/projects/${id}`, {
       method: 'PUT',
       headers: this.getAuthHeaders(),
       body: JSON.stringify(data),
@@ -113,7 +113,7 @@ class ProjectService {
   }
 
   async deleteProject(id: string): Promise<void> {
-    const response = await fetch(`${API_BASE_URL}/projects/${id}`, {
+    const _response = await fetch(`${API_BASE_URL}/projects/${id}`, {
       method: 'DELETE',
       headers: this.getAuthHeaders(),
     });
@@ -121,8 +121,8 @@ class ProjectService {
     await this.handleResponse<void>(response);
   }
 
-  async addTeamMember(projectId: string, data: AddTeamMemberRequest): Promise<void> {
-    const response = await fetch(`${API_BASE_URL}/projects/${projectId}/team`, {
+  async addTeamMember(projectId: string, _data: AddTeamMemberRequest): Promise<void> {
+    const _response = await fetch(`${API_BASE_URL}/projects/${projectId}/team`, {
       method: 'POST',
       headers: this.getAuthHeaders(),
       body: JSON.stringify(data),
@@ -132,7 +132,7 @@ class ProjectService {
   }
 
   async removeTeamMember(projectId: string, memberId: string): Promise<void> {
-    const response = await fetch(`${API_BASE_URL}/projects/${projectId}/team/${memberId}`, {
+    const _response = await fetch(`${API_BASE_URL}/projects/${projectId}/team/${memberId}`, {
       method: 'DELETE',
       headers: this.getAuthHeaders(),
     });
@@ -141,7 +141,7 @@ class ProjectService {
   }
 
   async getProjectAnalytics(projectId: string): Promise<ProjectAnalytics> {
-    const response = await fetch(`${API_BASE_URL}/projects/${projectId}/analytics`, {
+    const _response = await fetch(`${API_BASE_URL}/projects/${projectId}/analytics`, {
       method: 'GET',
       headers: this.getAuthHeaders(),
     });

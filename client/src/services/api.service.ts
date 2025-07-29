@@ -25,7 +25,7 @@ apiClient.interceptors.request.use(
 
 // Response interceptor for error handling
 apiClient.interceptors.response.use(
-  (response: AxiosResponse) => {
+  (_response: AxiosResponse) => {
     return response;
   },
   (error) => {

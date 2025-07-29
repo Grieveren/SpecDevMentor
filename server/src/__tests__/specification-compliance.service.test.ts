@@ -65,7 +65,7 @@ function calculateTotal(items) {
         },
       ];
 
-      const result = await service.validateCodeCompliance(
+      const _result = await service.validateCodeCompliance(
         code,
         SupportedLanguage.JAVASCRIPT,
         specifications
@@ -82,7 +82,7 @@ function calculateTotal(items) {
       const code = 'console.log("Hello World");';
       const specifications = [];
 
-      const result = await service.validateCodeCompliance(
+      const _result = await service.validateCodeCompliance(
         code,
         SupportedLanguage.JAVASCRIPT,
         specifications
@@ -103,7 +103,7 @@ function calculateTotal(items) {
         },
       ];
 
-      const result = await service.validateCodeCompliance(
+      const _result = await service.validateCodeCompliance(
         code,
         SupportedLanguage.JAVASCRIPT,
         specifications
@@ -135,7 +135,7 @@ function saveToDatabase(data) { return data; }
 function displayError(message) { console.error(message); }
       `;
 
-      const result = await service.validateCodeCompliance(
+      const _result = await service.validateCodeCompliance(
         code,
         SupportedLanguage.JAVASCRIPT,
         specifications
@@ -169,7 +169,7 @@ function addToCart(item) { /* implementation */ }
 function viewAllOrders() { /* implementation */ }
       `;
 
-      const result = await service.validateCodeCompliance(
+      const _result = await service.validateCodeCompliance(
         code,
         SupportedLanguage.JAVASCRIPT,
         specifications
@@ -212,7 +212,7 @@ app.post('/api/users', (req, res) => { /* implementation */ });
 app.put('/api/users/:id', (req, res) => { /* implementation */ });
       `;
 
-      const result = await service.validateCodeCompliance(
+      const _result = await service.validateCodeCompliance(
         code,
         SupportedLanguage.JAVASCRIPT,
         specifications
@@ -261,7 +261,7 @@ interface Product {
 }
       `;
 
-      const result = await service.validateCodeCompliance(
+      const _result = await service.validateCodeCompliance(
         code,
         SupportedLanguage.TYPESCRIPT,
         specifications
@@ -306,7 +306,7 @@ class DatabaseService { /* implementation */ }
 app.post('/api/register', (req, res) => { /* implementation */ });
       `;
 
-      const result = await service.validateCodeCompliance(
+      const _result = await service.validateCodeCompliance(
         code,
         SupportedLanguage.JAVASCRIPT,
         specifications
@@ -360,7 +360,7 @@ app.get('/api/calculate', (req, res) => {
         },
       ];
 
-      const result = await service.validateCodeCompliance(
+      const _result = await service.validateCodeCompliance(
         code,
         SupportedLanguage.JAVASCRIPT,
         specifications
@@ -397,7 +397,7 @@ def multiply(a, b):
         },
       ];
 
-      const result = await service.validateCodeCompliance(
+      const _result = await service.validateCodeCompliance(
         code,
         SupportedLanguage.PYTHON,
         specifications
@@ -438,7 +438,7 @@ function handleError(error) {
 }
       `;
 
-      const result = await service.validateCodeCompliance(
+      const _result = await service.validateCodeCompliance(
         goodCode,
         SupportedLanguage.JAVASCRIPT,
         specifications
@@ -459,11 +459,11 @@ function handleError(error) {
 
       const badCode = `
 function unrelatedFunction() {
-  console.log('This does nothing related to saving');
+  // // console.log('This does nothing related to saving');
 }
       `;
 
-      const result = await service.validateCodeCompliance(
+      const _result = await service.validateCodeCompliance(
         badCode,
         SupportedLanguage.JAVASCRIPT,
         specifications
@@ -485,7 +485,7 @@ function unrelatedFunction() {
         },
       ];
 
-      const result = await service.validateCodeCompliance(code, SupportedLanguage.JAVASCRIPT, invalidSpecs);
+      const _result = await service.validateCodeCompliance(code, SupportedLanguage.JAVASCRIPT, invalidSpecs);
       expect(result).toBeDefined();
       expect(result.score).toBe(0);
     });
@@ -504,7 +504,7 @@ function unrelatedFunction() {
         },
       ];
 
-      const result = await service.validateCodeCompliance(
+      const _result = await service.validateCodeCompliance(
         code,
         SupportedLanguage.JAVASCRIPT,
         specifications
@@ -534,11 +534,11 @@ IF any field is invalid THEN system SHALL show specific error
 function submitForm(data) {
   // Missing validation
   // Missing error handling
-  console.log('Form submitted');
+  // // console.log('Form submitted');
 }
       `;
 
-      const result = await service.validateCodeCompliance(
+      const _result = await service.validateCodeCompliance(
         incompleteCode,
         SupportedLanguage.JAVASCRIPT,
         specifications

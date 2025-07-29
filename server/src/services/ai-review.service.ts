@@ -31,8 +31,8 @@ export interface StoredAIReview {
   phase: string;
   overallScore: number;
   suggestions: AISuggestion[];
-  completenessCheck: any;
-  qualityMetrics: any;
+  completenessCheck: unknown;
+  qualityMetrics: unknown;
   complianceIssues: any[];
   appliedSuggestions: string[];
   createdAt: Date;
@@ -66,7 +66,7 @@ export class AIReviewService {
   /**
    * Request a new AI review for a document
    */
-  async requestReview(request: ReviewRequest): Promise<StoredAIReview> {
+  async requestReview(_request: ReviewRequest): Promise<StoredAIReview> {
     try {
       // Check if user has access to the document
       await this.validateDocumentAccess(request.documentId, request.userId);
@@ -158,7 +158,7 @@ export class AIReviewService {
   /**
    * Apply an AI suggestion to the document
    */
-  async applySuggestion(request: ApplySuggestionRequest): Promise<{
+  async applySuggestion(_request: ApplySuggestionRequest): Promise<{
     success: boolean;
     modifiedContent: string;
     appliedSuggestion: AISuggestion;
@@ -229,7 +229,7 @@ export class AIReviewService {
   /**
    * Rollback an applied AI suggestion
    */
-  async rollbackSuggestion(request: RollbackSuggestionRequest): Promise<{
+  async rollbackSuggestion(_request: RollbackSuggestionRequest): Promise<{
     success: boolean;
     originalContent: string;
     rolledBackSuggestion: AISuggestion;
@@ -298,7 +298,7 @@ export class AIReviewService {
    */
   private async validateDocumentAccess(documentId: string, userId: string): Promise<void> {
     // Get the document and check if user has access
-    const document = await this.prisma.specificationDocument.findUnique({
+    const _document = await this.prisma.specificationDocument.findUnique({
       where: { id: documentId },
       include: {
         project: {
@@ -378,7 +378,7 @@ export class AIReviewService {
   /**
    * Map database review to stored review format
    */
-  private mapToStoredReview(review: any, userId: string): StoredAIReview {
+  private mapToStoredReview(review: unknown, userId: string): StoredAIReview {
     return {
       id: review.id,
       documentId: review.documentId,

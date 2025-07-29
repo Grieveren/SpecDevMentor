@@ -29,10 +29,10 @@ interface ProjectState {
   setFilters: (filters: ProjectFilters) => void;
   loadProjects: (pagination?: PaginationOptions) => Promise<void>;
   loadProject: (id: string) => Promise<void>;
-  createProject: (data: CreateProjectRequest) => Promise<Project>;
-  updateProject: (id: string, data: UpdateProjectRequest) => Promise<Project>;
+  createProject: (_data: CreateProjectRequest) => Promise<Project>;
+  updateProject: (id: string, _data: UpdateProjectRequest) => Promise<Project>;
   deleteProject: (id: string) => Promise<void>;
-  addTeamMember: (projectId: string, data: AddTeamMemberRequest) => Promise<void>;
+  addTeamMember: (projectId: string, _data: AddTeamMemberRequest) => Promise<void>;
   removeTeamMember: (projectId: string, memberId: string) => Promise<void>;
   clearError: () => void;
   clearCurrentProject: () => void;
@@ -69,7 +69,7 @@ export const useProjectStore = create<ProjectState>()(
             limit: get().pagination.limit,
           };
 
-          const result = await projectService.getProjects(filters, paginationOptions);
+          const _result = await projectService.getProjects(filters, paginationOptions);
 
           set(
             {
@@ -100,7 +100,7 @@ export const useProjectStore = create<ProjectState>()(
         set({ loading: true, error: null }, false, 'loadProject:start');
 
         try {
-          const project = await projectService.getProject(id);
+          const _project = await projectService.getProject(id);
 
           set(
             {
@@ -126,11 +126,11 @@ export const useProjectStore = create<ProjectState>()(
         }
       },
 
-      createProject: async (data: CreateProjectRequest) => {
+      createProject: async (_data: CreateProjectRequest) => {
         set({ loading: true, error: null }, false, 'createProject:start');
 
         try {
-          const project = await projectService.createProject(data);
+          const _project = await projectService.createProject(data);
 
           set(
             (state) => ({
@@ -160,7 +160,7 @@ export const useProjectStore = create<ProjectState>()(
         }
       },
 
-      updateProject: async (id: string, data: UpdateProjectRequest) => {
+      updateProject: async (id: string, _data: UpdateProjectRequest) => {
         set({ loading: true, error: null }, false, 'updateProject:start');
 
         try {
@@ -228,7 +228,7 @@ export const useProjectStore = create<ProjectState>()(
         }
       },
 
-      addTeamMember: async (projectId: string, data: AddTeamMemberRequest) => {
+      addTeamMember: async (projectId: string, _data: AddTeamMemberRequest) => {
         set({ loading: true, error: null }, false, 'addTeamMember:start');
 
         try {

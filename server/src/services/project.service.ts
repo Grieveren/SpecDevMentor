@@ -90,9 +90,9 @@ export class ProjectService {
     private redis?: Redis
   ) {}
 
-  async createProject(data: CreateProjectRequest, ownerId: string): Promise<ProjectWithDetails> {
+  async createProject(_data: CreateProjectRequest, ownerId: string): Promise<ProjectWithDetails> {
     try {
-      const project = await this.prisma.$transaction(async (tx) => {
+      const _project = await this.prisma.$transaction(async (tx) => {
         // Create project
         const newProject = await tx.specificationProject.create({
           data: {
@@ -166,7 +166,7 @@ export class ProjectService {
       }
     }
 
-    const project = await this.prisma.specificationProject.findFirst({
+    const _project = await this.prisma.specificationProject.findFirst({
       where: {
         id: projectId,
         OR: [
@@ -339,7 +339,7 @@ export class ProjectService {
   }
 
   async deleteProject(projectId: string, userId: string): Promise<void> {
-    const project = await this.getProjectById(projectId, userId);
+    const _project = await this.getProjectById(projectId, userId);
     
     if (project.ownerId !== userId) {
       throw new ProjectError('Only project owner can delete the project', 'INSUFFICIENT_PERMISSIONS', 403);
@@ -362,7 +362,7 @@ export class ProjectService {
     data: AddTeamMemberRequest,
     userId: string
   ): Promise<void> {
-    const project = await this.getProjectById(projectId, userId);
+    const _project = await this.getProjectById(projectId, userId);
     
     // Check permissions
     if (project.ownerId !== userId) {
@@ -416,7 +416,7 @@ export class ProjectService {
   }
 
   async removeTeamMember(projectId: string, memberId: string, userId: string): Promise<void> {
-    const project = await this.getProjectById(projectId, userId);
+    const _project = await this.getProjectById(projectId, userId);
     
     // Check permissions
     if (project.ownerId !== userId) {
@@ -449,7 +449,7 @@ export class ProjectService {
   }
 
   async getProjectAnalytics(projectId: string, userId: string): Promise<any> {
-    const project = await this.getProjectById(projectId, userId);
+    const _project = await this.getProjectById(projectId, userId);
 
     const analytics = await this.prisma.$queryRaw`
       SELECT 

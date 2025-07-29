@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState } from 'react';
 import {
   SparklesIcon,
   ChevronDownIcon,
@@ -6,7 +6,6 @@ import {
   ClockIcon,
   CheckCircleIcon,
   ExclamationTriangleIcon,
-  XMarkIcon,
 } from '@heroicons/react/24/outline';
 import { AIReviewResult, AISuggestion } from '../../services/ai-review.service';
 import { cn } from '../../utils/cn';

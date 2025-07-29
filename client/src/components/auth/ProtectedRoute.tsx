@@ -81,7 +81,7 @@ export const withRoleProtection = (
   Component: React.ComponentType,
   requiredRoles: UserRole[]
 ) => {
-  return (props: any) => (
+  return (props: unknown) => (
     <ProtectedRoute requiredRoles={requiredRoles}>
       <Component {...props} />
     </ProtectedRoute>

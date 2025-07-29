@@ -131,7 +131,7 @@ export const WorkflowIntegration: React.FC<WorkflowIntegrationProps> = ({
             },
           });
         } catch (err) {
-          console.warn(`Failed to validate phase ${phase}:`, err);
+          // // // console.warn(`Failed to validate phase ${phase}:`, err);
           phaseValidations[phase] = {
             isValid: false,
             errors: ['Validation failed'],
@@ -235,7 +235,7 @@ export const WorkflowIntegration: React.FC<WorkflowIntegrationProps> = ({
   const handleTriggerAIReview = async (phase: SpecificationPhase) => {
     try {
       setError(null);
-      const result = await workflowService.triggerAIReview(projectId, phase);
+      const _result = await workflowService.triggerAIReview(projectId, phase);
       
       if (result.success) {
         // Reload workflow data to reflect new AI review

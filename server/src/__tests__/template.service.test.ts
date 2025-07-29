@@ -67,7 +67,7 @@ describe('TemplateService', () => {
 
       (mockPrisma.template.create as any).mockResolvedValue(mockTemplate);
 
-      const result = await templateService.createTemplate(templateData, 'user-1');
+      const _result = await templateService.createTemplate(templateData, 'user-1');
 
       expect(mockPrisma.template.create).toHaveBeenCalledWith({
         data: {
@@ -115,7 +115,7 @@ describe('TemplateService', () => {
       (mockPrisma.template.findUnique as any).mockResolvedValue(mockTemplate);
       (mockPrisma.template.update as any).mockResolvedValue(mockUpdatedTemplate);
 
-      const result = await templateService.updateTemplate(templateId, updateData, userId);
+      const _result = await templateService.updateTemplate(templateId, updateData, userId);
 
       expect(mockPrisma.template.update).toHaveBeenCalledWith({
         where: { id: templateId },
@@ -148,7 +148,7 @@ describe('TemplateService', () => {
         ...updateData,
       });
 
-      const result = await templateService.updateTemplate(templateId, updateData, userId);
+      const _result = await templateService.updateTemplate(templateId, updateData, userId);
 
       expect(mockPrisma.user.findUnique).toHaveBeenCalledWith({
         where: { id: userId },
@@ -216,7 +216,7 @@ describe('TemplateService', () => {
       (mockPrisma.template.findMany as any).mockResolvedValue(mockTemplates);
       (mockPrisma.template.count as any).mockResolvedValue(1);
 
-      const result = await templateService.searchTemplates(searchParams, userId);
+      const _result = await templateService.searchTemplates(searchParams, userId);
 
       expect(result.templates).toEqual(mockTemplates);
       expect(result.pagination).toEqual({
@@ -281,7 +281,7 @@ describe('TemplateService', () => {
         });
       });
 
-      const result = await templateService.applyTemplate(
+      const _result = await templateService.applyTemplate(
         { templateId, variables },
         userId
       );
@@ -337,7 +337,7 @@ describe('TemplateService', () => {
         });
       });
 
-      const result = await templateService.applyTemplate(
+      const _result = await templateService.applyTemplate(
         { templateId, variables },
         userId
       );

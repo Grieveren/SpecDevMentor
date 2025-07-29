@@ -12,8 +12,8 @@ vi.mock('ioredis', () => ({
 
 describe('SearchService', () => {
   let searchService: SearchService;
-  let mockPrisma: any;
-  let mockRedis: any;
+  let mockPrisma: unknown;
+  let mockRedis: unknown;
 
   beforeEach(() => {
     mockPrisma = {
@@ -131,7 +131,7 @@ describe('SearchService', () => {
       mockRedis.get.mockResolvedValue(null); // No cached results
       mockRedis.lrange.mockResolvedValue(['test search', 'another search']);
 
-      const result = await searchService.search('user1', {
+      const _result = await searchService.search('user1', {
         query: 'test',
         page: 1,
         limit: 20,
@@ -240,7 +240,7 @@ describe('SearchService', () => {
       mockRedis.get.mockResolvedValue(null);
       mockRedis.lrange.mockResolvedValue([]);
 
-      const result = await searchService.search('user1', {
+      const _result = await searchService.search('user1', {
         query: 'test',
         sortBy: 'relevance',
       });
@@ -292,7 +292,7 @@ describe('SearchService', () => {
       mockRedis.get.mockResolvedValue(null);
       mockRedis.lrange.mockResolvedValue([]);
 
-      const result = await searchService.search('user1', { query: 'project' });
+      const _result = await searchService.search('user1', { query: 'project' });
 
       expect(result.facets.phases).toEqual({
         REQUIREMENTS: 1,

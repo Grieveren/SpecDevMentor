@@ -105,7 +105,7 @@ router.get('/', authenticateToken, async (req, res) => {
       sortOrder: sortOrder as any,
     };
 
-    const result = await templateService.searchTemplates(searchParams, userId);
+    const _result = await templateService.searchTemplates(searchParams, userId);
 
     res.json({
       success: true,

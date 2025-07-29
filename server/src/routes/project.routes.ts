@@ -31,7 +31,7 @@ const projectService = new ProjectService(prisma, redis);
 const authService = new AuthService(redis);
 
 // Validation middleware
-const validateRequest = (req: Request, res: Response, next: NextFunction) => {
+const validateRequest = (_req: Request, _res: Response, _next: NextFunction) => {
   const errors = validationResult(req);
   if (!errors.isEmpty()) {
     return res.status(400).json({
@@ -44,7 +44,7 @@ const validateRequest = (req: Request, res: Response, next: NextFunction) => {
 };
 
 // Auth middleware
-const authMiddleware = async (req: Request, res: Response, next: NextFunction): Promise<void> => {
+const authMiddleware = async (_req: Request, _res: Response, _next: NextFunction): Promise<void> => {
   try {
     const authHeader = req.headers.authorization;
 
@@ -79,7 +79,7 @@ const authMiddleware = async (req: Request, res: Response, next: NextFunction): 
 };
 
 // Error handling middleware for project operations
-const handleProjectError = (error: any, req: Request, res: Response, next: NextFunction) => {
+const handleProjectError = (_error: unknown, _req: Request, _res: Response, _next: NextFunction) => {
   if (error instanceof ProjectError) {
     return res.status(error.statusCode).json({
       success: false,
@@ -109,7 +109,7 @@ router.get(
     query('ownerId').optional().isString(),
   ],
   validateRequest,
-  async (req: AuthenticatedRequest, res: Response, next: NextFunction) => {
+  async (_req: AuthenticatedRequest, _res: Response, _next: NextFunction) => {
     try {
       const {
         page = '1',
@@ -120,7 +120,7 @@ router.get(
         ownerId,
       } = req.query;
 
-      const result = await projectService.getProjectsForUser(
+      const _result = await projectService.getProjectsForUser(
         req.user.id,
         {
           search: search as string,
@@ -170,7 +170,7 @@ router.post(
       .withMessage('Each team member ID must be a string'),
   ],
   validateRequest,
-  async (req: AuthenticatedRequest, res: Response, next: NextFunction) => {
+  async (_req: AuthenticatedRequest, _res: Response, _next: NextFunction) => {
     try {
       const projectData: CreateProjectRequest = {
         name: req.body.name,
@@ -178,7 +178,7 @@ router.post(
         teamMemberIds: req.body.teamMemberIds,
       };
 
-      const project = await projectService.createProject(projectData, req.user.id);
+      const _project = await projectService.createProject(projectData, req.user.id);
 
       res.status(201).json({
         success: true,
@@ -199,9 +199,9 @@ router.get(
     param('id').isString().withMessage('Project ID is required'),
   ],
   validateRequest,
-  async (req: AuthenticatedRequest, res: Response, next: NextFunction) => {
+  async (_req: AuthenticatedRequest, _res: Response, _next: NextFunction) => {
     try {
-      const project = await projectService.getProjectById(req.params.id, req.user.id);
+      const _project = await projectService.getProjectById(req.params.id, req.user.id);
 
       res.json({
         success: true,
@@ -241,7 +241,7 @@ router.put(
       .withMessage('Invalid status'),
   ],
   validateRequest,
-  async (req: AuthenticatedRequest, res: Response, next: NextFunction) => {
+  async (_req: AuthenticatedRequest, _res: Response, _next: NextFunction) => {
     try {
       const updateData: UpdateProjectRequest = {
         name: req.body.name,
@@ -250,7 +250,7 @@ router.put(
         status: req.body.status,
       };
 
-      const project = await projectService.updateProject(req.params.id, updateData, req.user.id);
+      const _project = await projectService.updateProject(req.params.id, updateData, req.user.id);
 
       res.json({
         success: true,
@@ -271,7 +271,7 @@ router.delete(
     param('id').isString().withMessage('Project ID is required'),
   ],
   validateRequest,
-  async (req: AuthenticatedRequest, res: Response, next: NextFunction) => {
+  async (_req: AuthenticatedRequest, _res: Response, _next: NextFunction) => {
     try {
       await projectService.deleteProject(req.params.id, req.user.id);
 
@@ -297,7 +297,7 @@ router.post(
       .withMessage('Role must be MEMBER, LEAD, or ADMIN'),
   ],
   validateRequest,
-  async (req: AuthenticatedRequest, res: Response, next: NextFunction) => {
+  async (_req: AuthenticatedRequest, _res: Response, _next: NextFunction) => {
     try {
       const teamMemberData: AddTeamMemberRequest = {
         userId: req.body.userId,
@@ -325,7 +325,7 @@ router.delete(
     param('memberId').isString().withMessage('Member ID is required'),
   ],
   validateRequest,
-  async (req: AuthenticatedRequest, res: Response, next: NextFunction) => {
+  async (_req: AuthenticatedRequest, _res: Response, _next: NextFunction) => {
     try {
       await projectService.removeTeamMember(req.params.id, req.params.memberId, req.user.id);
 
@@ -347,7 +347,7 @@ router.get(
     param('id').isString().withMessage('Project ID is required'),
   ],
   validateRequest,
-  async (req: AuthenticatedRequest, res: Response, next: NextFunction) => {
+  async (_req: AuthenticatedRequest, _res: Response, _next: NextFunction) => {
     try {
       const analytics = await projectService.getProjectAnalytics(req.params.id, req.user.id);
 

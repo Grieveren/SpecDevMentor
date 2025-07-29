@@ -113,7 +113,7 @@ export class CodeExecutionService {
     };
   }
 
-  async executeCode(request: CodeExecutionRequest): Promise<ExecutionResult> {
+  async executeCode(_request: CodeExecutionRequest): Promise<ExecutionResult> {
     const startTime = Date.now();
 
     // Validate input
@@ -137,7 +137,7 @@ export class CodeExecutionService {
 
     try {
       // Execute with timeout
-      const result = await this.runWithTimeout(
+      const _result = await this.runWithTimeout(
         sandbox,
         request.timeout || config.timeoutMs
       );
@@ -250,7 +250,7 @@ export class CodeExecutionService {
 
         // Handle output
         stream.on('data', (chunk: Buffer) => {
-          const data = chunk.toString();
+          const _data = chunk.toString();
           // Docker multiplexes stdout/stderr, first byte indicates stream type
           if (chunk[0] === 1) {
             stdout += data.slice(8); // Remove Docker header
@@ -260,7 +260,7 @@ export class CodeExecutionService {
         });
 
         // Wait for container to finish
-        const result = await container.wait();
+        const _result = await container.wait();
 
         clearTimeout(timeout);
 
@@ -281,7 +281,7 @@ export class CodeExecutionService {
     });
   }
 
-  private validateCodeInput(request: CodeExecutionRequest): ValidationResult {
+  private validateCodeInput(_request: CodeExecutionRequest): ValidationResult {
     const errors: string[] = [];
     const warnings: string[] = [];
 

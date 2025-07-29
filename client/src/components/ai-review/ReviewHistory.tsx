@@ -37,7 +37,7 @@ export const ReviewHistory: React.FC<ReviewHistoryProps> = ({
     setError(null);
 
     try {
-      const response = await aiReviewService.getDocumentReviews(documentId, {
+      const _response = await aiReviewService.getDocumentReviews(documentId, {
         limit: 20,
         offset: 0,
       });

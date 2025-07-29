@@ -57,7 +57,7 @@ describe('BestPracticesService', () => {
 
       (mockPrisma.bestPracticeGuide.create as any).mockResolvedValue(mockGuide);
 
-      const result = await bestPracticesService.createGuide(guideData);
+      const _result = await bestPracticesService.createGuide(guideData);
 
       expect(mockPrisma.bestPracticeGuide.create).toHaveBeenCalledWith({
         data: {
@@ -108,7 +108,7 @@ describe('BestPracticesService', () => {
 
       (mockPrisma.bestPracticeGuide.findMany as any).mockResolvedValue(mockGuides);
 
-      const result = await bestPracticesService.getGuidesByPhase('REQUIREMENTS');
+      const _result = await bestPracticesService.getGuidesByPhase('REQUIREMENTS');
 
       expect(mockPrisma.bestPracticeGuide.findMany).toHaveBeenCalledWith({
         where: {
@@ -169,7 +169,7 @@ describe('BestPracticesService', () => {
       (mockPrisma.bestPracticeGuide.findMany as any).mockResolvedValue(mockGuides);
 
       const content = 'As a user, I want to login so that I can access my account';
-      const result = await bestPracticesService.getContextualGuidance('REQUIREMENTS', content);
+      const _result = await bestPracticesService.getContextualGuidance('REQUIREMENTS', content);
 
       expect(result.tips).toHaveLength(1);
       expect(result.tips[0].title).toBe('Use user stories');
@@ -193,7 +193,7 @@ describe('BestPracticesService', () => {
       (mockPrisma.bestPracticeGuide.findMany as any).mockResolvedValue(mockGuides);
 
       const content = 'The system should handle user login';
-      const result = await bestPracticesService.getContextualGuidance('REQUIREMENTS', content);
+      const _result = await bestPracticesService.getContextualGuidance('REQUIREMENTS', content);
 
       expect(result.recommendations).toContain('Consider adding user stories to better capture user needs');
       expect(result.recommendations).toContain('Add acceptance criteria to make requirements testable');
@@ -210,7 +210,7 @@ describe('BestPracticesService', () => {
         The application could support multiple languages.
       `;
 
-      const result = await bestPracticesService.analyzeDocumentQuality('REQUIREMENTS', content);
+      const _result = await bestPracticesService.analyzeDocumentQuality('REQUIREMENTS', content);
 
       expect(result.score).toBeLessThan(100);
       expect(result.issues).toEqual(
@@ -236,7 +236,7 @@ describe('BestPracticesService', () => {
       (mockPrisma.bestPracticeGuide.findMany as any).mockResolvedValue([]);
 
       const content = 'This is a basic design document without architecture details.';
-      const result = await bestPracticesService.analyzeDocumentQuality('DESIGN', content);
+      const _result = await bestPracticesService.analyzeDocumentQuality('DESIGN', content);
 
       expect(result.issues).toEqual(
         expect.arrayContaining([
@@ -262,7 +262,7 @@ describe('BestPracticesService', () => {
         - Create database
       `;
 
-      const result = await bestPracticesService.analyzeDocumentQuality('TASKS', content);
+      const _result = await bestPracticesService.analyzeDocumentQuality('TASKS', content);
 
       expect(result.issues).toEqual(
         expect.arrayContaining([
@@ -279,7 +279,7 @@ describe('BestPracticesService', () => {
       (mockPrisma.bestPracticeGuide.findMany as any).mockResolvedValue([]);
 
       const content = 'Implementation will involve coding the features.';
-      const result = await bestPracticesService.analyzeDocumentQuality('IMPLEMENTATION', content);
+      const _result = await bestPracticesService.analyzeDocumentQuality('IMPLEMENTATION', content);
 
       expect(result.issues).toEqual(
         expect.arrayContaining([
@@ -317,7 +317,7 @@ describe('BestPracticesService', () => {
 
       (mockPrisma.bestPracticeGuide.update as any).mockResolvedValue(mockUpdatedGuide);
 
-      const result = await bestPracticesService.updateGuide(guideId, updateData);
+      const _result = await bestPracticesService.updateGuide(guideId, updateData);
 
       expect(mockPrisma.bestPracticeGuide.update).toHaveBeenCalledWith({
         where: { id: guideId },

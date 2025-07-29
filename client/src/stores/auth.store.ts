@@ -13,18 +13,18 @@ import { authService, getStoredTokens, clearStoredTokens } from '../services/aut
 
 interface AuthActions {
   // Authentication actions
-  register: (data: RegisterRequest) => Promise<void>;
-  login: (data: LoginRequest) => Promise<void>;
+  register: (_data: RegisterRequest) => Promise<void>;
+  login: (_data: LoginRequest) => Promise<void>;
   logout: () => Promise<void>;
   refreshTokens: () => Promise<void>;
   
   // User actions
   getCurrentUser: () => Promise<void>;
-  changePassword: (data: ChangePasswordRequest) => Promise<void>;
+  changePassword: (_data: ChangePasswordRequest) => Promise<void>;
   
   // Password reset actions
   requestPasswordReset: (email: string) => Promise<void>;
-  resetPassword: (data: ResetPasswordRequest) => Promise<void>;
+  resetPassword: (_data: ResetPasswordRequest) => Promise<void>;
   
   // Email verification
   verifyEmail: (token: string) => Promise<void>;
@@ -54,11 +54,11 @@ export const useAuthStore = create<AuthStore>()(
       error: null,
 
       // Authentication actions
-      register: async (data: RegisterRequest) => {
+      register: async (_data: RegisterRequest) => {
         set({ isLoading: true, error: null });
         
         try {
-          const response = await authService.register(data);
+          const _response = await authService.register(data);
           
           set({
             user: response.data.user,
@@ -66,7 +66,7 @@ export const useAuthStore = create<AuthStore>()(
             isAuthenticated: true,
             isLoading: false,
           });
-        } catch (error: any) {
+        } catch (_error: unknown) {
           set({
             error: error.error || 'Registration failed',
             isLoading: false,
@@ -75,11 +75,11 @@ export const useAuthStore = create<AuthStore>()(
         }
       },
 
-      login: async (data: LoginRequest) => {
+      login: async (_data: LoginRequest) => {
         set({ isLoading: true, error: null });
         
         try {
-          const response = await authService.login(data);
+          const _response = await authService.login(data);
           
           set({
             user: response.data.user,
@@ -87,7 +87,7 @@ export const useAuthStore = create<AuthStore>()(
             isAuthenticated: true,
             isLoading: false,
           });
-        } catch (error: any) {
+        } catch (_error: unknown) {
           set({
             error: error.error || 'Login failed',
             isLoading: false,
@@ -136,13 +136,13 @@ export const useAuthStore = create<AuthStore>()(
         set({ isLoading: true, error: null });
         
         try {
-          const user = await authService.getCurrentUser();
+          const _user = await authService.getCurrentUser();
           set({
             user,
             isAuthenticated: true,
             isLoading: false,
           });
-        } catch (error: any) {
+        } catch (_error: unknown) {
           set({
             error: error.error || 'Failed to get user',
             isLoading: false,
@@ -157,13 +157,13 @@ export const useAuthStore = create<AuthStore>()(
         }
       },
 
-      changePassword: async (data: ChangePasswordRequest) => {
+      changePassword: async (_data: ChangePasswordRequest) => {
         set({ isLoading: true, error: null });
         
         try {
           await authService.changePassword(data);
           set({ isLoading: false });
-        } catch (error: any) {
+        } catch (_error: unknown) {
           set({
             error: error.error || 'Password change failed',
             isLoading: false,
@@ -179,7 +179,7 @@ export const useAuthStore = create<AuthStore>()(
         try {
           await authService.requestPasswordReset(email);
           set({ isLoading: false });
-        } catch (error: any) {
+        } catch (_error: unknown) {
           set({
             error: error.error || 'Password reset request failed',
             isLoading: false,
@@ -188,13 +188,13 @@ export const useAuthStore = create<AuthStore>()(
         }
       },
 
-      resetPassword: async (data: ResetPasswordRequest) => {
+      resetPassword: async (_data: ResetPasswordRequest) => {
         set({ isLoading: true, error: null });
         
         try {
           await authService.resetPassword(data);
           set({ isLoading: false });
-        } catch (error: any) {
+        } catch (_error: unknown) {
           set({
             error: error.error || 'Password reset failed',
             isLoading: false,
@@ -220,7 +220,7 @@ export const useAuthStore = create<AuthStore>()(
           } else {
             set({ isLoading: false });
           }
-        } catch (error: any) {
+        } catch (_error: unknown) {
           set({
             error: error.error || 'Email verification failed',
             isLoading: false,

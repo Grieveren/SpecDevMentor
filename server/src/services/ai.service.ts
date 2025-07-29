@@ -65,7 +65,7 @@ export type SpecificationPhase = 'requirements' | 'design' | 'tasks';
 export class AIServiceError extends Error {
   constructor(
     message: string,
-    public originalError?: any,
+    public originalError?: unknown,
     public errorCode?: AIErrorCode,
     public retryable: boolean = false
   ) {
@@ -97,8 +97,8 @@ interface AIServiceConfig {
 
 // Cache interface
 interface AICache {
-  get(key: string): Promise<AIReviewResult | null>;
-  set(key: string, result: AIReviewResult, ttl?: number): Promise<void>;
+  get(_key: string): Promise<AIReviewResult | null>;
+  set(_key: string, _result: AIReviewResult, ttl?: number): Promise<void>;
   invalidate(pattern: string): Promise<void>;
 }
 
@@ -106,7 +106,7 @@ interface AICache {
 class RedisAICache implements AICache {
   constructor(private redis: Redis) {}
 
-  async get(key: string): Promise<AIReviewResult | null> {
+  async get(_key: string): Promise<AIReviewResult | null> {
     try {
       const cached = await this.redis.get(`ai:${key}`);
       return cached ? JSON.parse(cached) : null;
@@ -116,7 +116,7 @@ class RedisAICache implements AICache {
     }
   }
 
-  async set(key: string, result: AIReviewResult, ttl: number = 3600): Promise<void> {
+  async set(_key: string, _result: AIReviewResult, ttl: number = 3600): Promise<void> {
     try {
       await this.redis.setex(`ai:${key}`, ttl, JSON.stringify(result));
     } catch (error) {
@@ -188,8 +188,8 @@ export class AIService {
     const prompt = this.getReviewPrompt(phase, sanitizedContent);
     
     try {
-      const response = await this.generateCompletion(prompt);
-      const result = this.parseReviewResponse(response, phase);
+      const _response = await this.generateCompletion(prompt);
+      const _result = this.parseReviewResponse(response, phase);
       
       // Cache the result
       await this.cache.set(cacheKey, result);
@@ -212,7 +212,7 @@ export class AIService {
     const prompt = this.getEARSValidationPrompt(content);
     
     try {
-      const response = await this.generateCompletion(prompt);
+      const _response = await this.generateCompletion(prompt);
       return this.parseComplianceResponse(response);
     } catch (error) {
       throw new AIServiceError(
@@ -231,7 +231,7 @@ export class AIService {
     const prompt = this.getUserStoryValidationPrompt(content);
     
     try {
-      const response = await this.generateCompletion(prompt);
+      const _response = await this.generateCompletion(prompt);
       return this.parseComplianceResponse(response);
     } catch (error) {
       throw new AIServiceError(
@@ -255,7 +255,7 @@ export class AIService {
     await this.tokenRateLimiter.consume('ai-service', estimatedTokens);
 
     try {
-      const response = await this.client.chat.completions.create({
+      const _response = await this.client.chat.completions.create({
         model: this.config.model,
         messages: [{ role: 'user', content: prompt }],
         max_tokens: this.config.maxTokens,
@@ -263,7 +263,7 @@ export class AIService {
       });
 
       return response.choices[0]?.message?.content || '';
-    } catch (error: any) {
+    } catch (_error: unknown) {
       if (error.status === 429) {
         throw new AIServiceError(
           'Rate limit exceeded',
@@ -473,7 +473,7 @@ ${content}
   /**
    * Parse AI review response
    */
-  private parseReviewResponse(response: string, phase: SpecificationPhase): AIReviewResult {
+  private parseReviewResponse(_response: string, phase: SpecificationPhase): AIReviewResult {
     try {
       const parsed = JSON.parse(response);
       
@@ -511,7 +511,7 @@ ${content}
   /**
    * Parse compliance response
    */
-  private parseComplianceResponse(response: string): ComplianceIssue[] {
+  private parseComplianceResponse(_response: string): ComplianceIssue[] {
     try {
       return JSON.parse(response) || [];
     } catch (error) {
@@ -522,7 +522,7 @@ ${content}
   /**
    * Map error to error code
    */
-  private mapErrorCode(error: any): AIErrorCode {
+  private mapErrorCode(_error: unknown): AIErrorCode {
     if (error.status === 429) return AIErrorCode.RATE_LIMIT_EXCEEDED;
     if (error.status === 401) return AIErrorCode.API_KEY_INVALID;
     if (error.message?.includes('content_filter')) return AIErrorCode.CONTENT_FILTERED;
@@ -534,7 +534,7 @@ ${content}
   /**
    * Check if error is retryable
    */
-  private isRetryableError(error: any): boolean {
+  private isRetryableError(_error: unknown): boolean {
     const retryableCodes = [
       AIErrorCode.RATE_LIMIT_EXCEEDED,
       AIErrorCode.SERVICE_UNAVAILABLE,

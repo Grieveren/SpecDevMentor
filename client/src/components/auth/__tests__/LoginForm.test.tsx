@@ -35,7 +35,7 @@ describe('LoginForm', () => {
   });
 
   it('shows validation errors for empty fields', async () => {
-    const user = userEvent.setup();
+    const _user = userEvent.setup();
     
     render(<LoginForm onSuccess={mockOnSuccess} />);
 
@@ -49,7 +49,7 @@ describe('LoginForm', () => {
   });
 
   it('shows validation error for invalid email', async () => {
-    const user = userEvent.setup();
+    const _user = userEvent.setup();
     
     render(<LoginForm onSuccess={mockOnSuccess} />);
 
@@ -65,7 +65,7 @@ describe('LoginForm', () => {
   });
 
   it('toggles password visibility', async () => {
-    const user = userEvent.setup();
+    const _user = userEvent.setup();
     
     render(<LoginForm onSuccess={mockOnSuccess} />);
 
@@ -82,7 +82,7 @@ describe('LoginForm', () => {
   });
 
   it('calls onSwitchToRegister when sign up link is clicked', async () => {
-    const user = userEvent.setup();
+    const _user = userEvent.setup();
     
     render(<LoginForm onSwitchToRegister={mockOnSwitchToRegister} />);
 
@@ -93,7 +93,7 @@ describe('LoginForm', () => {
   });
 
   it('calls onForgotPassword when forgot password link is clicked', async () => {
-    const user = userEvent.setup();
+    const _user = userEvent.setup();
     
     render(<LoginForm onForgotPassword={mockOnForgotPassword} />);
 
@@ -104,7 +104,7 @@ describe('LoginForm', () => {
   });
 
   it('submits form with valid data', async () => {
-    const user = userEvent.setup();
+    const _user = userEvent.setup();
     const mockLogin = vi.fn().mockResolvedValue({});
     
     vi.mocked(require('../../../stores/auth.store').useAuthActions).mockReturnValue({

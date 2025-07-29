@@ -58,7 +58,7 @@ export class NotificationService {
   /**
    * Send a notification to a user
    */
-  async sendNotification(data: NotificationData): Promise<void> {
+  async sendNotification(_data: NotificationData): Promise<void> {
     try {
       // Get user's notification preferences
       const settings = await this.getUserNotificationSettings(data.userId);
@@ -105,7 +105,7 @@ export class NotificationService {
   /**
    * Create in-app notification
    */
-  private async createInAppNotification(data: NotificationData): Promise<void> {
+  private async createInAppNotification(_data: NotificationData): Promise<void> {
     await this.prisma.notification.create({
       data: {
         userId: data.userId,
@@ -121,7 +121,7 @@ export class NotificationService {
   /**
    * Send real-time notification via WebSocket
    */
-  private async sendRealTimeNotification(data: NotificationData): Promise<void> {
+  private async sendRealTimeNotification(_data: NotificationData): Promise<void> {
     if (!this.io) return;
 
     this.io.to(`user:${data.userId}`).emit('notification', {
@@ -136,9 +136,9 @@ export class NotificationService {
   /**
    * Send email notification
    */
-  private async sendEmailNotification(data: NotificationData): Promise<void> {
+  private async sendEmailNotification(_data: NotificationData): Promise<void> {
     try {
-      const user = await this.prisma.user.findUnique({
+      const _user = await this.prisma.user.findUnique({
         where: { id: data.userId },
         select: { email: true, name: true },
       });
@@ -161,7 +161,7 @@ export class NotificationService {
   /**
    * Queue email for sending
    */
-  private async queueEmail(data: EmailNotificationData): Promise<void> {
+  private async queueEmail(_data: EmailNotificationData): Promise<void> {
     await this.prisma.emailQueue.create({
       data: {
         to: data.to,
@@ -398,7 +398,7 @@ export class NotificationService {
   /**
    * Generate HTML email content
    */
-  private generateEmailHTML(data: NotificationData, userName: string): string {
+  private generateEmailHTML(_data: NotificationData, userName: string): string {
     return `
       <!DOCTYPE html>
       <html>
@@ -437,7 +437,7 @@ export class NotificationService {
   /**
    * Generate plain text email content
    */
-  private generateEmailText(data: NotificationData, userName: string): string {
+  private generateEmailText(_data: NotificationData, userName: string): string {
     return `
 Hi ${userName},
 
@@ -472,7 +472,7 @@ This is an automated message from CodeMentor AI.
     data: Record<string, any>
   ): Promise<void> {
     // Get project team members
-    const project = await this.prisma.specificationProject.findUnique({
+    const _project = await this.prisma.specificationProject.findUnique({
       where: { id: projectId },
       include: {
         owner: true,

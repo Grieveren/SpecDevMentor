@@ -47,7 +47,7 @@ const reportSchema = Joi.object({
 });
 
 // Middleware to check admin access
-const requireAdminAccess = (req: any, res: Response, next: any) => {
+const requireAdminAccess = (_req: unknown, _res: Response, _next: unknown) => {
   if (req.user?.role !== 'ADMIN') {
     return res.status(403).json({ error: 'Admin access required' });
   }
@@ -59,7 +59,7 @@ router.post('/metrics',
   authMiddleware,
   requireAdminAccess,
   validationMiddleware(recordMetricSchema),
-  async (req: Request, res: Response) => {
+  async (_req: Request, _res: Response) => {
     try {
       const { metricType, value, unit, tags } = req.body;
 
@@ -82,7 +82,7 @@ router.post('/metrics',
 router.get('/metrics/realtime',
   authMiddleware,
   requireAdminAccess,
-  async (req: Request, res: Response) => {
+  async (_req: Request, _res: Response) => {
     try {
       const { types } = req.query;
       const metricTypes = types ? (types as string).split(',') : undefined;
@@ -100,7 +100,7 @@ router.get('/metrics/realtime',
 // Get system health
 router.get('/health',
   authMiddleware,
-  async (req: Request, res: Response) => {
+  async (_req: Request, _res: Response) => {
     try {
       const health = await performanceService.getSystemHealth();
       res.json(health);
@@ -116,7 +116,7 @@ router.post('/reports',
   authMiddleware,
   requireAdminAccess,
   validationMiddleware(reportSchema),
-  async (req: Request, res: Response) => {
+  async (_req: Request, _res: Response) => {
     try {
       const { period, startDate, endDate } = req.body;
 
@@ -139,7 +139,7 @@ router.post('/alerts/rules',
   authMiddleware,
   requireAdminAccess,
   validationMiddleware(alertRuleSchema),
-  async (req: Request, res: Response) => {
+  async (_req: Request, _res: Response) => {
     try {
       const rule = await performanceService.createAlertRule(req.body);
       res.status(201).json(rule);
@@ -153,7 +153,7 @@ router.post('/alerts/rules',
 router.get('/alerts/rules',
   authMiddleware,
   requireAdminAccess,
-  async (req: Request, res: Response) => {
+  async (_req: Request, _res: Response) => {
     try {
       const rules = await performanceService.getAlertRules();
       res.json(rules);
@@ -168,7 +168,7 @@ router.put('/alerts/rules/:id',
   authMiddleware,
   requireAdminAccess,
   validationMiddleware(updateAlertRuleSchema),
-  async (req: Request, res: Response) => {
+  async (_req: Request, _res: Response) => {
     try {
       const { id } = req.params;
       const rule = await performanceService.updateAlertRule(id, req.body);
@@ -188,7 +188,7 @@ router.put('/alerts/rules/:id',
 router.delete('/alerts/rules/:id',
   authMiddleware,
   requireAdminAccess,
-  async (req: Request, res: Response) => {
+  async (_req: Request, _res: Response) => {
     try {
       const { id } = req.params;
       const deleted = await performanceService.deleteAlertRule(id);
@@ -209,7 +209,7 @@ router.delete('/alerts/rules/:id',
 router.get('/alerts',
   authMiddleware,
   requireAdminAccess,
-  async (req: Request, res: Response) => {
+  async (_req: Request, _res: Response) => {
     try {
       const alerts = await performanceService.getActiveAlerts();
       res.json(alerts);
@@ -223,7 +223,7 @@ router.get('/alerts',
 router.post('/alerts/:id/acknowledge',
   authMiddleware,
   requireAdminAccess,
-  async (req: any, res: Response) => {
+  async (_req: unknown, _res: Response) => {
     try {
       const { id } = req.params;
       const userId = req.user.id;
@@ -245,7 +245,7 @@ router.post('/alerts/:id/acknowledge',
 router.post('/alerts/:id/resolve',
   authMiddleware,
   requireAdminAccess,
-  async (req: Request, res: Response) => {
+  async (_req: Request, _res: Response) => {
     try {
       const { id } = req.params;
 
@@ -267,7 +267,7 @@ router.post('/alerts/:id/resolve',
 router.get('/alerts/stream',
   authMiddleware,
   requireAdminAccess,
-  async (req: Request, res: Response) => {
+  async (_req: Request, _res: Response) => {
     try {
       // Set up Server-Sent Events for real-time alerts
       res.writeHead(200, {
@@ -278,7 +278,7 @@ router.get('/alerts/stream',
         'Access-Control-Allow-Headers': 'Cache-Control',
       });
 
-      const sendEvent = (data: any) => {
+      const sendEvent = (_data: unknown) => {
         res.write(`data: ${JSON.stringify(data)}\n\n`);
       };
 
@@ -287,11 +287,11 @@ router.get('/alerts/stream',
       sendEvent({ type: 'health', data: health });
 
       // Listen for alerts
-      const alertHandler = (alert: any) => {
+      const alertHandler = (alert: unknown) => {
         sendEvent({ type: 'alert', data: alert });
       };
 
-      const healthHandler = (health: any) => {
+      const healthHandler = (health: unknown) => {
         sendEvent({ type: 'health', data: health });
       };
 
@@ -325,7 +325,7 @@ router.get('/alerts/stream',
 );
 
 // Middleware to record request metrics
-export const requestMetricsMiddleware = (req: Request, res: Response, next: any) => {
+export const requestMetricsMiddleware = (_req: Request, _res: Response, _next: unknown) => {
   const startTime = Date.now();
 
   res.on('finish', async () => {

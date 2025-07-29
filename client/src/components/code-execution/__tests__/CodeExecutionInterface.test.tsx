@@ -47,7 +47,7 @@ const mockSpecifications = [
 ];
 
 describe('CodeExecutionInterface', () => {
-  const user = userEvent.setup();
+  const _user = userEvent.setup();
 
   beforeEach(() => {
     vi.clearAllMocks();

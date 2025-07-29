@@ -67,7 +67,7 @@ export const TemplateEditor: React.FC<TemplateEditorProps> = ({
     }
   }, [template]);
 
-  const handleInputChange = (field: keyof CreateTemplateRequest, value: any) => {
+  const handleInputChange = (field: keyof CreateTemplateRequest, _value: unknown) => {
     setFormData(prev => ({ ...prev, [field]: value }));
     if (errors[field]) {
       setErrors(prev => ({ ...prev, [field]: '' }));
@@ -95,13 +95,13 @@ export const TemplateEditor: React.FC<TemplateEditorProps> = ({
     handleInputChange('variables', [...(formData.variables || []), newVariable]);
   };
 
-  const handleUpdateVariable = (index: number, field: keyof TemplateVariable, value: any) => {
+  const handleUpdateVariable = (_index: number, field: keyof TemplateVariable, _value: unknown) => {
     const updatedVariables = [...(formData.variables || [])];
     updatedVariables[index] = { ...updatedVariables[index], [field]: value };
     handleInputChange('variables', updatedVariables);
   };
 
-  const handleRemoveVariable = (index: number) => {
+  const handleRemoveVariable = (_index: number) => {
     const updatedVariables = [...(formData.variables || [])];
     updatedVariables.splice(index, 1);
     handleInputChange('variables', updatedVariables);
@@ -114,7 +114,7 @@ export const TemplateEditor: React.FC<TemplateEditorProps> = ({
     handleInputChange('variables', updatedVariables);
   };
 
-  const handleUpdateVariableOption = (variableIndex: number, optionIndex: number, value: string) => {
+  const handleUpdateVariableOption = (variableIndex: number, optionIndex: number, _value: string) => {
     const updatedVariables = [...(formData.variables || [])];
     const variable = updatedVariables[variableIndex];
     if (variable.options) {

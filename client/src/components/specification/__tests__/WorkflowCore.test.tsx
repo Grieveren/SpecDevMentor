@@ -134,7 +134,7 @@ describe('WorkflowIntegration with AI Integration', () => {
   });
 
   it('should trigger AI review when AI Review button is clicked', async () => {
-    const user = userEvent.setup();
+    const _user = userEvent.setup();
     mockWorkflowService.triggerAIReview.mockResolvedValue({
       success: true,
       review: {
@@ -169,7 +169,7 @@ describe('WorkflowIntegration with AI Integration', () => {
   });
 
   it('should handle AI review failure gracefully', async () => {
-    const user = userEvent.setup();
+    const _user = userEvent.setup();
     mockWorkflowService.triggerAIReview.mockResolvedValue({
       success: false,
       error: 'AI service temporarily unavailable',
@@ -271,7 +271,7 @@ describe('WorkflowIntegration with AI Integration', () => {
   });
 
   it('should trigger automatic AI review on phase transition', async () => {
-    const user = userEvent.setup();
+    const _user = userEvent.setup();
     
     // Setup mocks for successful transition
     const navigationStateWithProgress = {
@@ -354,7 +354,7 @@ describe('WorkflowIntegration with AI Integration', () => {
   });
 
   it('should call onPhaseChange when phase is changed', async () => {
-    const user = userEvent.setup();
+    const _user = userEvent.setup();
     const onPhaseChange = vi.fn();
 
     const navigationStateWithAccessiblePhases = {

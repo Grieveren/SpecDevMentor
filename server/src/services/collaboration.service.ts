@@ -264,9 +264,9 @@ export class CollaborationService {
 
   private setupEventHandlers(): void {
     this.io.on('connection', (socket: Socket) => {
-      console.log(`Socket connected: ${socket.id}`);
+      // // console.log(`Socket connected: ${socket.id}`);
 
-      socket.on('join-document', (data: JoinDocumentRequest) => 
+      socket.on('join-document', (_data: JoinDocumentRequest) => 
         this.handleJoinDocument(socket, data)
       );
       
@@ -284,7 +284,7 @@ export class CollaborationService {
     });
   }
 
-  private async handleJoinDocument(socket: Socket, data: JoinDocumentRequest): Promise<void> {
+  private async handleJoinDocument(socket: Socket, _data: JoinDocumentRequest): Promise<void> {
     try {
       // Verify JWT token
       const decoded = jwt.verify(data.token, process.env.JWT_SECRET!) as any;
@@ -298,7 +298,7 @@ export class CollaborationService {
       }
 
       // Get user information
-      const user = await this.prisma.user.findUnique({
+      const _user = await this.prisma.user.findUnique({
         where: { id: userId },
         select: { id: true, name: true, email: true, avatar: true },
       });
@@ -350,7 +350,7 @@ export class CollaborationService {
         user: collaborationUser,
       });
 
-      console.log(`User ${user.name} joined document ${data.documentId}`);
+      // // console.log(`User ${user.name} joined document ${data.documentId}`);
     } catch (error) {
       console.error('Error joining document:', error);
       socket.emit('error', { message: 'Failed to join document' });
@@ -422,12 +422,12 @@ export class CollaborationService {
     const roomName = `doc:${session.documentId}`;
     socket.to(roomName).emit('user-left', session.userId);
 
-    console.log(`User ${session.userId} left document ${session.documentId}`);
+    // // console.log(`User ${session.userId} left document ${session.documentId}`);
   }
 
   private async validateDocumentAccess(userId: string, documentId: string): Promise<boolean> {
     try {
-      const document = await this.prisma.specificationDocument.findFirst({
+      const _document = await this.prisma.specificationDocument.findFirst({
         where: {
           id: documentId,
           project: {
@@ -447,7 +447,7 @@ export class CollaborationService {
   }
 
   private async getDocumentState(documentId: string): Promise<DocumentState> {
-    const document = await this.prisma.specificationDocument.findUnique({
+    const _document = await this.prisma.specificationDocument.findUnique({
       where: { id: documentId },
       select: { content: true, version: true, updatedAt: true },
     });
@@ -472,7 +472,7 @@ export class CollaborationService {
     for (const socketId of socketIds) {
       const session = this.userSessions.get(socketId);
       if (session) {
-        const user = await this.prisma.user.findUnique({
+        const _user = await this.prisma.user.findUnique({
           where: { id: session.userId },
           select: { id: true, name: true, email: true, avatar: true },
         });
@@ -518,7 +518,7 @@ export class CollaborationService {
   }
 
   private async updateDocument(documentId: string, change: DocumentChange): Promise<void> {
-    const document = await this.prisma.specificationDocument.findUnique({
+    const _document = await this.prisma.specificationDocument.findUnique({
       where: { id: documentId },
     });
 

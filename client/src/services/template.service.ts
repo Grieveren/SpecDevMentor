@@ -88,13 +88,13 @@ export interface RateTemplateRequest {
 }
 
 export class TemplateService {
-  async createTemplate(data: CreateTemplateRequest): Promise<Template> {
-    const response = await apiClient.post('/templates', data);
+  async createTemplate(_data: CreateTemplateRequest): Promise<Template> {
+    const _response = await apiClient.post('/templates', data);
     return response.data.data;
   }
 
-  async updateTemplate(templateId: string, data: UpdateTemplateRequest): Promise<Template> {
-    const response = await apiClient.put(`/templates/${templateId}`, data);
+  async updateTemplate(templateId: string, _data: UpdateTemplateRequest): Promise<Template> {
+    const _response = await apiClient.put(`/templates/${templateId}`, data);
     return response.data.data;
   }
 
@@ -103,17 +103,17 @@ export class TemplateService {
   }
 
   async getTemplate(templateId: string): Promise<Template> {
-    const response = await apiClient.get(`/templates/${templateId}`);
+    const _response = await apiClient.get(`/templates/${templateId}`);
     return response.data.data;
   }
 
   async searchTemplates(params: SearchTemplatesRequest = {}): Promise<PaginatedTemplates> {
-    const response = await apiClient.get('/templates', { params });
+    const _response = await apiClient.get('/templates', { params });
     return response.data.data;
   }
 
-  async applyTemplate(request: ApplyTemplateRequest): Promise<string> {
-    const response = await apiClient.post('/templates/apply', request);
+  async applyTemplate(_request: ApplyTemplateRequest): Promise<string> {
+    const _response = await apiClient.post('/templates/apply', request);
     return response.data.data.content;
   }
 
@@ -124,12 +124,12 @@ export class TemplateService {
     await apiClient.post(`/templates/${templateId}/share`, data);
   }
 
-  async rateTemplate(templateId: string, data: RateTemplateRequest): Promise<void> {
+  async rateTemplate(templateId: string, _data: RateTemplateRequest): Promise<void> {
     await apiClient.post(`/templates/${templateId}/rate`, data);
   }
 
   async getTemplatesByProject(projectId: string): Promise<Template[]> {
-    const response = await apiClient.get(`/templates/project/${projectId}`);
+    const _response = await apiClient.get(`/templates/project/${projectId}`);
     return response.data.data;
   }
 }

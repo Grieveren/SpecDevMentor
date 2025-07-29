@@ -31,7 +31,7 @@ export const RegisterForm: React.FC<RegisterFormProps> = ({
     resolver: zodResolver(registerSchema),
   });
 
-  const onSubmit = async (data: RegisterFormData) => {
+  const onSubmit = async (_data: RegisterFormData) => {
     setIsSubmitting(true);
     
     try {
@@ -41,13 +41,13 @@ export const RegisterForm: React.FC<RegisterFormProps> = ({
         password: data.password,
       });
       onSuccess?.();
-    } catch (error: any) {
+    } catch (_error: unknown) {
       // Handle specific error cases
       if (error.code === 'USER_EXISTS') {
         setError('email', { message: 'An account with this email already exists' });
       } else if (error.details) {
         // Handle validation errors from server
-        error.details.forEach((detail: any) => {
+        error.details.forEach((detail: unknown) => {
           setError(detail.field as keyof RegisterFormData, {
             message: detail.message,
           });

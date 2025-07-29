@@ -325,7 +325,7 @@ describe('CodeExecutionService', () => {
         timeout: 1000, // 1 second timeout
       };
 
-      const result = await service.executeCode(request);
+      const _result = await service.executeCode(request);
       
       expect(result.timedOut).toBe(true);
       expect(result.exitCode).toBe(124);
@@ -357,7 +357,7 @@ describe('CodeExecutionService', () => {
         language: SupportedLanguage.JAVASCRIPT,
       };
 
-      const result = await service.executeCode(request);
+      const _result = await service.executeCode(request);
 
       expect(result.success).toBe(true);
       expect(result.exitCode).toBe(0);
@@ -373,7 +373,7 @@ describe('CodeExecutionService', () => {
         input: 'test input',
       };
 
-      const result = await service.executeCode(request);
+      const _result = await service.executeCode(request);
 
       expect(result.success).toBe(true);
       expect(result.exitCode).toBe(0);
@@ -387,7 +387,7 @@ describe('CodeExecutionService', () => {
         timeout: 5000,
       };
 
-      const result = await service.executeCode(request);
+      const _result = await service.executeCode(request);
 
       expect(result.success).toBe(true);
       expect(result.executionTime).toBeLessThan(5000);

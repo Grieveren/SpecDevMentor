@@ -80,7 +80,7 @@ export interface ContextualGuidance {
 export class BestPracticesService {
   constructor(private prisma: PrismaClient) {}
 
-  async createGuide(data: CreateGuideRequest): Promise<BestPracticeGuide> {
+  async createGuide(_data: CreateGuideRequest): Promise<BestPracticeGuide> {
     const validatedData = createGuideSchema.parse(data);
 
     const guide = await this.prisma.bestPracticeGuide.create({
@@ -94,7 +94,7 @@ export class BestPracticesService {
     return guide;
   }
 
-  async updateGuide(guideId: string, data: UpdateGuideRequest): Promise<BestPracticeGuide> {
+  async updateGuide(guideId: string, _data: UpdateGuideRequest): Promise<BestPracticeGuide> {
     const validatedData = updateGuideSchema.parse(data);
 
     const guide = await this.prisma.bestPracticeGuide.update({

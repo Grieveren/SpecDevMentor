@@ -74,7 +74,7 @@ export class FileUploadService {
     }
 
     try {
-      const response = await apiClient.post('/files/upload', formData, {
+      const _response = await apiClient.post('/files/upload', formData, {
         headers: {
           'Content-Type': 'multipart/form-data',
         },
@@ -95,7 +95,7 @@ export class FileUploadService {
       });
 
       return response.data.data.files;
-    } catch (error: any) {
+    } catch (_error: unknown) {
       const errorProgress = progressArray.map(p => ({
         ...p,
         status: 'error' as const,
@@ -114,7 +114,7 @@ export class FileUploadService {
    * Get file by ID
    */
   async getFile(fileId: string): Promise<FileAttachment> {
-    const response = await apiClient.get(`/files/${fileId}`);
+    const _response = await apiClient.get(`/files/${fileId}`);
     return response.data.data;
   }
 
@@ -122,7 +122,7 @@ export class FileUploadService {
    * Download file
    */
   async downloadFile(fileId: string, filename?: string): Promise<void> {
-    const response = await apiClient.get(`/files/${fileId}/download`, {
+    const _response = await apiClient.get(`/files/${fileId}/download`, {
       responseType: 'blob',
     });
 
@@ -141,7 +141,7 @@ export class FileUploadService {
    * Get files for a document
    */
   async getDocumentFiles(documentId: string): Promise<FileAttachment[]> {
-    const response = await apiClient.get(`/files/document/${documentId}`);
+    const _response = await apiClient.get(`/files/document/${documentId}`);
     return response.data.data.files;
   }
 
@@ -156,7 +156,7 @@ export class FileUploadService {
     const formData = new FormData();
     formData.append('file', file);
 
-    const response = await apiClient.post(`/files/${fileId}/version`, formData, {
+    const _response = await apiClient.post(`/files/${fileId}/version`, formData, {
       headers: {
         'Content-Type': 'multipart/form-data',
       },
@@ -182,7 +182,7 @@ export class FileUploadService {
    * Get storage statistics
    */
   async getStorageStats(global = false): Promise<StorageStats> {
-    const response = await apiClient.get('/files/stats/storage', {
+    const _response = await apiClient.get('/files/stats/storage', {
       params: { global },
     });
     return response.data.data;

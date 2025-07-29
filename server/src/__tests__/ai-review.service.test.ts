@@ -13,8 +13,8 @@ const MockedAIService = vi.mocked(AIService);
 
 describe('AIReviewService', () => {
   let aiReviewService: AIReviewService;
-  let mockPrisma: any;
-  let mockAIService: any;
+  let mockPrisma: unknown;
+  let mockAIService: unknown;
 
   const mockAIReviewResult: AIReviewResult = {
     id: 'ai-review-123',
@@ -118,7 +118,7 @@ describe('AIReviewService', () => {
         updatedAt: new Date(),
       });
 
-      const result = await aiReviewService.requestReview(mockRequest);
+      const _result = await aiReviewService.requestReview(mockRequest);
 
       expect(result).toBeDefined();
       expect(result.overallScore).toBe(85);
@@ -201,7 +201,7 @@ describe('AIReviewService', () => {
         },
       });
 
-      const result = await aiReviewService.getReview(reviewId, userId);
+      const _result = await aiReviewService.getReview(reviewId, userId);
 
       expect(result).toBeDefined();
       expect(result?.id).toBe(reviewId);
@@ -211,7 +211,7 @@ describe('AIReviewService', () => {
     it('should return null for non-existent review', async () => {
       mockPrisma.aIReview.findUnique.mockResolvedValue(null);
 
-      const result = await aiReviewService.getReview('non-existent', 'user-123');
+      const _result = await aiReviewService.getReview('non-existent', 'user-123');
 
       expect(result).toBeNull();
     });
@@ -261,7 +261,7 @@ describe('AIReviewService', () => {
       mockPrisma.aIReview.findMany.mockResolvedValue(mockReviews);
       mockPrisma.aIReview.count.mockResolvedValue(2);
 
-      const result = await aiReviewService.getDocumentReviews(documentId, userId, options);
+      const _result = await aiReviewService.getDocumentReviews(documentId, userId, options);
 
       expect(result.reviews).toHaveLength(2);
       expect(result.total).toBe(2);
@@ -303,7 +303,7 @@ describe('AIReviewService', () => {
       // Mock review update
       mockPrisma.aIReview.update.mockResolvedValue({});
 
-      const result = await aiReviewService.applySuggestion(request);
+      const _result = await aiReviewService.applySuggestion(request);
 
       expect(result.success).toBe(true);
       expect(result.modifiedContent).toContain('SHALL process user requests within 2 seconds');
@@ -388,7 +388,7 @@ describe('AIReviewService', () => {
       // Mock review update
       mockPrisma.aIReview.update.mockResolvedValue({});
 
-      const result = await aiReviewService.rollbackSuggestion(request);
+      const _result = await aiReviewService.rollbackSuggestion(request);
 
       expect(result.success).toBe(true);
       expect(result.originalContent).toBeDefined();

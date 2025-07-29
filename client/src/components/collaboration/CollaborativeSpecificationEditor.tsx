@@ -206,12 +206,12 @@ export const CollaborativeSpecificationEditor: React.FC<CollaborativeSpecificati
   // Comment handlers
   const handleAddComment = (threadId: string, content: string) => {
     // This would typically make an API call
-    console.log('Add comment to thread:', threadId, content);
+    // // // console.log('Add comment to thread:', threadId, content);
   };
 
   const handleCreateThread = (position: { line: number; character: number }, content: string) => {
     // This would typically make an API call
-    console.log('Create comment thread at:', position, content);
+    // // // console.log('Create comment thread at:', position, content);
   };
 
   const handleResolveThread = (threadId: string) => {
@@ -235,11 +235,11 @@ export const CollaborativeSpecificationEditor: React.FC<CollaborativeSpecificati
   };
 
   const handleAddReaction = (commentId: string, type: Reaction['type']) => {
-    console.log('Add reaction:', commentId, type);
+    // // // console.log('Add reaction:', commentId, type);
   };
 
   const handleRemoveReaction = (commentId: string, type: Reaction['type']) => {
-    console.log('Remove reaction:', commentId, type);
+    // // // console.log('Remove reaction:', commentId, type);
   };
 
   const getPhaseTitle = (phase: SpecificationPhase): string => {

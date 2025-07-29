@@ -16,7 +16,7 @@ try {
     aiService = createAIService(redis);
   }
 } catch (error) {
-  console.warn('AI service initialization failed:', error);
+  // // console.warn('AI service initialization failed:', error);
 }
 
 const workflowService = new SpecificationWorkflowService(prisma, redis, aiService);
@@ -28,7 +28,7 @@ router.get('/projects/:projectId/workflow/validate/:phase', authenticateToken, a
     const userId = req.user.id;
 
     // Check if user has access to project
-    const project = await prisma.specificationProject.findFirst({
+    const _project = await prisma.specificationProject.findFirst({
       where: {
         id: projectId,
         OR: [
@@ -61,7 +61,7 @@ router.get('/projects/:projectId/workflow/state', authenticateToken, async (req,
     const userId = req.user.id;
 
     // Check if user has access to project
-    const project = await prisma.specificationProject.findFirst({
+    const _project = await prisma.specificationProject.findFirst({
       where: {
         id: projectId,
         OR: [
@@ -107,7 +107,7 @@ router.get('/projects/:projectId/workflow/state', authenticateToken, async (req,
     }));
 
     // Add user names to approvals
-    const enrichedApprovals: any = {};
+    const enrichedApprovals: unknown = {};
     Object.keys(workflowState.approvals).forEach(phase => {
       enrichedApprovals[phase] = workflowState.approvals[phase as any].map(approval => ({
         ...approval,
@@ -134,7 +134,7 @@ router.post('/projects/:projectId/workflow/approve', authenticateToken, async (r
     const userId = req.user.id;
 
     // Check if user has access to project
-    const project = await prisma.specificationProject.findFirst({
+    const _project = await prisma.specificationProject.findFirst({
       where: {
         id: projectId,
         OR: [
@@ -165,7 +165,7 @@ router.post('/projects/:projectId/workflow/transition', authenticateToken, async
     const userId = req.user.id;
 
     // Check if user has access to project
-    const project = await prisma.specificationProject.findFirst({
+    const _project = await prisma.specificationProject.findFirst({
       where: {
         id: projectId,
         OR: [
@@ -213,7 +213,7 @@ router.put('/projects/:projectId/workflow/documents/:phase', authenticateToken, 
     const userId = req.user.id;
 
     // Check if user has access to project
-    const project = await prisma.specificationProject.findFirst({
+    const _project = await prisma.specificationProject.findFirst({
       where: {
         id: projectId,
         OR: [
@@ -310,7 +310,7 @@ router.get('/projects/:projectId/workflow/can-transition/:targetPhase', authenti
     const userId = req.user.id;
 
     // Check if user has access to project
-    const project = await prisma.specificationProject.findFirst({
+    const _project = await prisma.specificationProject.findFirst({
       where: {
         id: projectId,
         OR: [
@@ -344,7 +344,7 @@ router.get('/projects/:projectId/workflow/ai-validation/:phase', authenticateTok
     const userId = req.user.id;
 
     // Check if user has access to project
-    const project = await prisma.specificationProject.findFirst({
+    const _project = await prisma.specificationProject.findFirst({
       where: {
         id: projectId,
         OR: [
@@ -387,7 +387,7 @@ router.post('/projects/:projectId/workflow/ai-review/:phase', authenticateToken,
     const userId = req.user.id;
 
     // Check if user has access to project
-    const project = await prisma.specificationProject.findFirst({
+    const _project = await prisma.specificationProject.findFirst({
       where: {
         id: projectId,
         OR: [

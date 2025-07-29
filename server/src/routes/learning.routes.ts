@@ -88,7 +88,7 @@ router.get('/modules', authMiddleware, async (req, res) => {
   try {
     const { phase, difficulty, search } = req.query;
     
-    const filters: any = {};
+    const filters: unknown = {};
     if (phase) filters.phase = phase as string;
     if (difficulty) filters.difficulty = difficulty as string;
     if (search) filters.search = search as string;
@@ -291,7 +291,7 @@ router.post(
       }
 
       // Calculate score based on exercise type and response
-      const result = await learningService.evaluateExercise(
+      const _result = await learningService.evaluateExercise(
         req.user.id,
         moduleId,
         exerciseId,

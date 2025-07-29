@@ -45,7 +45,7 @@ router.post('/execute', authMiddleware, validateExecutionRequest, async (req, re
     const { code, language, input, timeout } = req.body;
 
     // Execute code
-    const result = await codeExecutionService.executeCode({
+    const _result = await codeExecutionService.executeCode({
       code,
       language,
       input,
@@ -172,7 +172,7 @@ router.post('/validate-compliance', authMiddleware, [
     const { code, language, specifications } = req.body;
 
     // Validate compliance
-    const result = await complianceService.validateCodeCompliance(
+    const _result = await complianceService.validateCodeCompliance(
       code,
       language,
       specifications

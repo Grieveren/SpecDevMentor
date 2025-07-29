@@ -16,7 +16,7 @@ import { searchService, SearchOptions, SearchResponse, SearchResult } from '../.
 import { formatDistanceToNow } from 'date-fns';
 
 interface SearchInterfaceProps {
-  onResultSelect?: (result: SearchResult) => void;
+  onResultSelect?: (_result: SearchResult) => void;
   initialQuery?: string;
   projectId?: string;
   className?: string;
@@ -71,7 +71,7 @@ export const SearchInterface: React.FC<SearchInterfaceProps> = ({
           }
 
           setResults(searchResults);
-        } catch (err: any) {
+        } catch (err: unknown) {
           setError(err.response?.data?.message || 'Search failed');
           setResults(null);
         } finally {
@@ -134,7 +134,7 @@ export const SearchInterface: React.FC<SearchInterfaceProps> = ({
   };
 
   // Handle result click
-  const handleResultClick = (result: SearchResult) => {
+  const handleResultClick = (_result: SearchResult) => {
     onResultSelect?.(result);
   };
 
@@ -147,7 +147,7 @@ export const SearchInterface: React.FC<SearchInterfaceProps> = ({
 
   // Click outside handler for suggestions
   useEffect(() => {
-    const handleClickOutside = (event: MouseEvent) => {
+    const handleClickOutside = (_event: MouseEvent) => {
       if (
         suggestionsRef.current &&
         !suggestionsRef.current.contains(event.target as Node) &&
@@ -382,7 +382,7 @@ const SearchFilters: React.FC<SearchFiltersProps> = ({
 interface SearchResultsProps {
   results: SearchResponse;
   query: string;
-  onResultClick: (result: SearchResult) => void;
+  onResultClick: (_result: SearchResult) => void;
   onPageChange: (page: number) => void;
 }
 

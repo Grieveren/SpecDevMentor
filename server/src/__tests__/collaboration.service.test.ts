@@ -141,7 +141,7 @@ describe('OperationalTransform', () => {
         documentId: 'doc1',
       };
 
-      const result = OperationalTransform.apply(content, operation);
+      const _result = OperationalTransform.apply(content, operation);
       expect(result).toBe('Hello beautiful world');
     });
 
@@ -157,7 +157,7 @@ describe('OperationalTransform', () => {
         documentId: 'doc1',
       };
 
-      const result = OperationalTransform.apply(content, operation);
+      const _result = OperationalTransform.apply(content, operation);
       expect(result).toBe('Hello world');
     });
 
@@ -172,7 +172,7 @@ describe('OperationalTransform', () => {
         documentId: 'doc1',
       };
 
-      const result = OperationalTransform.apply(content, operation);
+      const _result = OperationalTransform.apply(content, operation);
       expect(result).toBe(content);
     });
   });

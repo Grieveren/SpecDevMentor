@@ -101,7 +101,7 @@ export interface ApplyTemplateRequest {
 export class TemplateService {
   constructor(private prisma: PrismaClient) {}
 
-  async createTemplate(data: CreateTemplateRequest, authorId: string): Promise<Template> {
+  async createTemplate(_data: CreateTemplateRequest, authorId: string): Promise<Template> {
     const validatedData = createTemplateSchema.parse(data);
 
     const template = await this.prisma.template.create({
@@ -133,7 +133,7 @@ export class TemplateService {
 
     if (template.authorId !== userId) {
       // Check if user has admin role
-      const user = await this.prisma.user.findUnique({
+      const _user = await this.prisma.user.findUnique({
         where: { id: userId },
       });
 
@@ -162,7 +162,7 @@ export class TemplateService {
     }
 
     if (template.authorId !== userId) {
-      const user = await this.prisma.user.findUnique({
+      const _user = await this.prisma.user.findUnique({
         where: { id: userId },
       });
 
@@ -222,7 +222,7 @@ export class TemplateService {
     const skip = (page - 1) * limit;
 
     // Build where clause
-    const where: any = {
+    const where: unknown = {
       OR: [
         { isPublic: true },
         { authorId: userId },
@@ -270,7 +270,7 @@ export class TemplateService {
     }
 
     // Build order by clause
-    const orderBy: any = {};
+    const orderBy: unknown = {};
     orderBy[sortBy] = sortOrder;
 
     const [templates, total] = await Promise.all([
@@ -366,7 +366,7 @@ export class TemplateService {
     }
 
     // Check if user has access to the project
-    const project = await this.prisma.specificationProject.findFirst({
+    const _project = await this.prisma.specificationProject.findFirst({
       where: {
         id: projectId,
         OR: [
@@ -441,7 +441,7 @@ export class TemplateService {
 
   async getTemplatesByProject(projectId: string, userId: string): Promise<TemplateWithAuthor[]> {
     // Check project access
-    const project = await this.prisma.specificationProject.findFirst({
+    const _project = await this.prisma.specificationProject.findFirst({
       where: {
         id: projectId,
         OR: [
@@ -527,7 +527,7 @@ export class TemplateService {
   }
 
   private async updateTemplateRating(templateId: string): Promise<void> {
-    const result = await this.prisma.templateUsage.aggregate({
+    const _result = await this.prisma.templateUsage.aggregate({
       where: {
         templateId,
         rating: { not: null },

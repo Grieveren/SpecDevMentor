@@ -86,7 +86,7 @@ export const clearStoredTokens = (): void => {
 
 // Auth API functions
 export const authService = {
-  async register(data: RegisterRequest): Promise<AuthResponse> {
+  async register(_data: RegisterRequest): Promise<AuthResponse> {
     try {
       const response: AxiosResponse<AuthResponse> = await apiClient.post('/auth/register', data);
       
@@ -100,7 +100,7 @@ export const authService = {
     }
   },
 
-  async login(data: LoginRequest): Promise<AuthResponse> {
+  async login(_data: LoginRequest): Promise<AuthResponse> {
     try {
       const response: AxiosResponse<AuthResponse> = await apiClient.post('/auth/login', data);
       
@@ -162,7 +162,7 @@ export const authService = {
     }
   },
 
-  async resetPassword(data: ResetPasswordRequest): Promise<void> {
+  async resetPassword(_data: ResetPasswordRequest): Promise<void> {
     try {
       await apiClient.post('/auth/reset-password', data);
     } catch (error) {
@@ -170,7 +170,7 @@ export const authService = {
     }
   },
 
-  async changePassword(data: ChangePasswordRequest): Promise<void> {
+  async changePassword(_data: ChangePasswordRequest): Promise<void> {
     try {
       await apiClient.post('/auth/change-password', data);
     } catch (error) {
@@ -178,11 +178,11 @@ export const authService = {
     }
   },
 
-  async validateToken(token?: string): Promise<{ valid: boolean; payload?: any }> {
+  async validateToken(token?: string): Promise<{ valid: boolean; payload?: unknown }> {
     try {
       const response: AxiosResponse<{ 
         success: boolean; 
-        data: { valid: boolean; payload?: any } 
+        data: { valid: boolean; payload?: unknown } 
       }> = await apiClient.post('/auth/validate', { token });
       
       return response.data.data;
@@ -209,9 +209,9 @@ async function refreshTokens(refreshToken: string): Promise<TokenPair> {
 }
 
 // Error handling utility
-function handleAuthError(error: any): AuthError {
+function handleAuthError(_error: unknown): AuthError {
   if (axios.isAxiosError(error)) {
-    const response = error.response;
+    const _response = error.response;
     
     if (response?.data) {
       return {

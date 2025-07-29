@@ -382,7 +382,7 @@ class AlertingService extends EventEmitter {
       ],
     };
 
-    const response = await fetch(config.webhookUrl, {
+    const _response = await fetch(config.webhookUrl, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify(payload),
@@ -396,7 +396,7 @@ class AlertingService extends EventEmitter {
   }
 
   private async sendWebhookNotification(alert: Alert, config: Record<string, any>): Promise<void> {
-    const response = await fetch(config.url, {
+    const _response = await fetch(config.url, {
       method: 'POST',
       headers: {
         'Content-Type': 'application/json',

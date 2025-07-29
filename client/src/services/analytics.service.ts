@@ -161,31 +161,31 @@ export interface TimeRange {
 
 class AnalyticsService {
   // Activity tracking
-  async trackActivity(data: TrackActivityRequest): Promise<void> {
+  async trackActivity(_data: TrackActivityRequest): Promise<void> {
     await apiClient.post('/analytics/activity', data);
   }
 
-  async trackWorkflowProgress(data: TrackWorkflowProgressRequest): Promise<void> {
+  async trackWorkflowProgress(_data: TrackWorkflowProgressRequest): Promise<void> {
     await apiClient.post('/analytics/workflow-progress', data);
   }
 
   // Analytics retrieval
   async getProjectAnalytics(projectId: string, timeRange?: TimeRange): Promise<ProjectAnalytics> {
     const params = timeRange ? { start: timeRange.start, end: timeRange.end } : {};
-    const response = await apiClient.get(`/analytics/projects/${projectId}`, { params });
+    const _response = await apiClient.get(`/analytics/projects/${projectId}`, { params });
     return response.data;
   }
 
   async getTeamAnalytics(projectId: string, timeRange?: TimeRange): Promise<TeamAnalytics> {
     const params = timeRange ? { start: timeRange.start, end: timeRange.end } : {};
-    const response = await apiClient.get(`/analytics/teams/${projectId}`, { params });
+    const _response = await apiClient.get(`/analytics/teams/${projectId}`, { params });
     return response.data;
   }
 
   async getUserAnalytics(userId?: string, timeRange?: TimeRange): Promise<UserAnalytics> {
     const params = timeRange ? { start: timeRange.start, end: timeRange.end } : {};
     const endpoint = userId ? `/analytics/users/${userId}` : '/analytics/users';
-    const response = await apiClient.get(endpoint, { params });
+    const _response = await apiClient.get(endpoint, { params });
     return response.data;
   }
 
@@ -194,26 +194,26 @@ class AnalyticsService {
     projectId: string,
     period: 'daily' | 'weekly' | 'monthly'
   ): Promise<TeamPerformanceMetrics> {
-    const response = await apiClient.post(`/analytics/teams/${projectId}/performance`, { period });
+    const _response = await apiClient.post(`/analytics/teams/${projectId}/performance`, { period });
     return response.data;
   }
 
   async calculateSkillDevelopment(userId?: string): Promise<SkillDevelopmentMetrics[]> {
     const endpoint = userId ? `/analytics/users/${userId}/skills` : '/analytics/users/skills';
-    const response = await apiClient.post(endpoint);
+    const _response = await apiClient.post(endpoint);
     return response.data;
   }
 
   // Dashboard data
   async getDashboardData(projectId?: string): Promise<DashboardData> {
     const endpoint = projectId ? `/analytics/dashboard/${projectId}` : '/analytics/dashboard';
-    const response = await apiClient.get(endpoint);
+    const _response = await apiClient.get(endpoint);
     return response.data;
   }
 
   // Real-time metrics
   async getRealTimeMetrics(): Promise<RealTimeMetrics> {
-    const response = await apiClient.get('/analytics/realtime');
+    const _response = await apiClient.get('/analytics/realtime');
     return response.data;
   }
 
@@ -223,7 +223,7 @@ class AnalyticsService {
     timeRange?: TimeRange,
     limit?: number
   ): Promise<SystemPerformanceMetric[]> {
-    const params: any = {};
+    const params: unknown = {};
     if (metricType) params.metricType = metricType;
     if (timeRange) {
       params.start = timeRange.start;
@@ -231,7 +231,7 @@ class AnalyticsService {
     }
     if (limit) params.limit = limit;
 
-    const response = await apiClient.get('/analytics/system/performance', { params });
+    const _response = await apiClient.get('/analytics/system/performance', { params });
     return response.data;
   }
 

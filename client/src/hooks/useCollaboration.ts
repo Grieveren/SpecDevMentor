@@ -52,7 +52,7 @@ export interface UseCollaborationOptions {
   token: string;
   onDocumentChange?: (change: DocumentChange) => void;
   onContentUpdate?: (content: string) => void;
-  onError?: (error: string) => void;
+  onError?: (_error: string) => void;
 }
 
 export const useCollaboration = ({
@@ -87,7 +87,7 @@ export const useCollaboration = ({
 
     // Connection event handlers
     socket.on('connect', () => {
-      console.log('Socket connected:', socket.id);
+      // // // console.log('Socket connected:', socket.id);
       setState(prev => ({ ...prev, isConnected: true, error: undefined }));
       
       // Join document room
@@ -96,7 +96,7 @@ export const useCollaboration = ({
     });
 
     socket.on('disconnect', (reason) => {
-      console.log('Socket disconnected:', reason);
+      // // // console.log('Socket disconnected:', reason);
       setState(prev => ({
         ...prev,
         isConnected: false,
@@ -122,7 +122,7 @@ export const useCollaboration = ({
       activeUsers: CollaborationUser[];
       user: CollaborationUser;
     }) => {
-      console.log('Joined document successfully');
+      // // // console.log('Joined document successfully');
       setState(prev => ({
         ...prev,
         isJoining: false,
@@ -137,7 +137,7 @@ export const useCollaboration = ({
     });
 
     socket.on('user-joined', (user: CollaborationUser) => {
-      console.log('User joined:', user.name);
+      // // // console.log('User joined:', user.name);
       setState(prev => ({
         ...prev,
         collaborators: [...prev.collaborators, user],
@@ -145,7 +145,7 @@ export const useCollaboration = ({
     });
 
     socket.on('user-left', (userId: string) => {
-      console.log('User left:', userId);
+      // // // console.log('User left:', userId);
       setState(prev => ({
         ...prev,
         collaborators: prev.collaborators.filter(u => u.id !== userId),
@@ -156,7 +156,7 @@ export const useCollaboration = ({
     });
 
     socket.on('document-change', (change: DocumentChange) => {
-      console.log('Document change received:', change);
+      // // // console.log('Document change received:', change);
       if (onDocumentChange) {
         onDocumentChange(change);
       }
@@ -176,7 +176,7 @@ export const useCollaboration = ({
     socket.on('error', (error: { message: string }) => {
       console.error('Socket error:', error);
       const errorMessage = error.message || 'Connection error';
-      setState(prev => ({ ...prev, error: errorMessage, isJoining: false }));
+      setState(prev => ({ ...prev, _error: errorMessage, isJoining: false }));
       
       if (onError) {
         onError(errorMessage);
@@ -186,7 +186,7 @@ export const useCollaboration = ({
     socket.on('connect_error', (error) => {
       console.error('Connection error:', error);
       const errorMessage = 'Failed to connect to collaboration server';
-      setState(prev => ({ ...prev, error: errorMessage, isJoining: false }));
+      setState(prev => ({ ...prev, _error: errorMessage, isJoining: false }));
       
       if (onError) {
         onError(errorMessage);
@@ -204,7 +204,7 @@ export const useCollaboration = ({
   // Send document change
   const sendDocumentChange = useCallback((change: Omit<DocumentChange, 'id' | 'timestamp' | 'author'>) => {
     if (!socketRef.current?.connected) {
-      console.warn('Socket not connected, cannot send document change');
+      // // // console.warn('Socket not connected, cannot send document change');
       return;
     }
 

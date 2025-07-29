@@ -25,7 +25,7 @@ describe('Database Integration Tests', () => {
     it('should create a user with all required fields', async () => {
       const hashedPassword = await bcrypt.hash('testpassword', 12);
       
-      const user = await prisma.user.create({
+      const _user = await prisma.user.create({
         data: {
           email: 'test@example.com',
           name: 'Test User',
@@ -66,7 +66,7 @@ describe('Database Integration Tests', () => {
       const hashedPassword = await bcrypt.hash('testpassword', 12);
 
       for (const role of roles) {
-        const user = await prisma.user.create({
+        const _user = await prisma.user.create({
           data: {
             email: `${role.toLowerCase()}@example.com`,
             name: `${role} User`,
@@ -81,7 +81,7 @@ describe('Database Integration Tests', () => {
   });
 
   describe('SpecificationProject Model', () => {
-    let testUser: any;
+    let testUser: unknown;
 
     beforeEach(async () => {
       const hashedPassword = await bcrypt.hash('testpassword', 12);
@@ -96,7 +96,7 @@ describe('Database Integration Tests', () => {
     });
 
     it('should create a project with owner relationship', async () => {
-      const project = await prisma.specificationProject.create({
+      const _project = await prisma.specificationProject.create({
         data: {
           name: 'Test Project',
           description: 'A test project for integration testing',
@@ -128,7 +128,7 @@ describe('Database Integration Tests', () => {
       ];
 
       for (const phase of phases) {
-        const project = await prisma.specificationProject.create({
+        const _project = await prisma.specificationProject.create({
           data: {
             name: `${phase} Project`,
             ownerId: testUser.id,
@@ -141,7 +141,7 @@ describe('Database Integration Tests', () => {
     });
 
     it('should cascade delete team members when project is deleted', async () => {
-      const project = await prisma.specificationProject.create({
+      const _project = await prisma.specificationProject.create({
         data: {
           name: 'Cascade Test Project',
           ownerId: testUser.id,
@@ -169,8 +169,8 @@ describe('Database Integration Tests', () => {
   });
 
   describe('SpecificationDocument Model', () => {
-    let testUser: any;
-    let testProject: any;
+    let testUser: unknown;
+    let testProject: unknown;
 
     beforeEach(async () => {
       const hashedPassword = await bcrypt.hash('testpassword', 12);
@@ -200,7 +200,7 @@ describe('Database Integration Tests', () => {
       ];
 
       for (const phase of phases) {
-        const document = await prisma.specificationDocument.create({
+        const _document = await prisma.specificationDocument.create({
           data: {
             projectId: testProject.id,
             phase,
@@ -236,7 +236,7 @@ describe('Database Integration Tests', () => {
     });
 
     it('should support document versioning', async () => {
-      const document = await prisma.specificationDocument.create({
+      const _document = await prisma.specificationDocument.create({
         data: {
           projectId: testProject.id,
           phase: SpecificationPhase.REQUIREMENTS,
@@ -272,10 +272,10 @@ describe('Database Integration Tests', () => {
   });
 
   describe('Team Collaboration', () => {
-    let owner: any;
-    let member1: any;
-    let member2: any;
-    let project: any;
+    let owner: unknown;
+    let member1: unknown;
+    let member2: unknown;
+    let project: unknown;
 
     beforeEach(async () => {
       const hashedPassword = await bcrypt.hash('testpassword', 12);
@@ -399,9 +399,9 @@ describe('Database Integration Tests', () => {
   });
 
   describe('Comment System', () => {
-    let testUser: any;
-    let testProject: any;
-    let testDocument: any;
+    let testUser: unknown;
+    let testProject: unknown;
+    let testDocument: unknown;
 
     beforeEach(async () => {
       const hashedPassword = await bcrypt.hash('testpassword', 12);
@@ -480,7 +480,7 @@ describe('Database Integration Tests', () => {
   });
 
   describe('Learning System', () => {
-    let testUser: any;
+    let testUser: unknown;
 
     beforeEach(async () => {
       const hashedPassword = await bcrypt.hash('testpassword', 12);

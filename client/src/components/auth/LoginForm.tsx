@@ -32,20 +32,20 @@ export const LoginForm: React.FC<LoginFormProps> = ({
     resolver: zodResolver(loginSchema),
   });
 
-  const onSubmit = async (data: LoginFormData) => {
+  const onSubmit = async (_data: LoginFormData) => {
     setIsSubmitting(true);
     
     try {
       await login(data);
       onSuccess?.();
-    } catch (error: any) {
+    } catch (_error: unknown) {
       // Handle specific error cases
       if (error.code === 'INVALID_CREDENTIALS') {
         setError('email', { message: 'Invalid email or password' });
         setError('password', { message: 'Invalid email or password' });
       } else if (error.details) {
         // Handle validation errors from server
-        error.details.forEach((detail: any) => {
+        error.details.forEach((detail: unknown) => {
           setError(detail.field as keyof LoginFormData, {
             message: detail.message,
           });

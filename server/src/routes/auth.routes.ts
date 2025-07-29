@@ -57,7 +57,7 @@ export const createAuthRoutes = (redis: Redis) => {
   const authMiddleware = new AuthMiddleware(authService);
 
   // Register endpoint
-  router.post('/register', registerRateLimit, async (req: Request, res: Response) => {
+  router.post('/register', registerRateLimit, async (_req: Request, _res: Response) => {
     try {
       // Validate request body
       const { error, value } = registerSchema.validate(req.body);
@@ -72,7 +72,7 @@ export const createAuthRoutes = (redis: Redis) => {
         return;
       }
 
-      const result = await authService.register(value);
+      const _result = await authService.register(value);
 
       res.status(201).json({
         success: true,
@@ -101,7 +101,7 @@ export const createAuthRoutes = (redis: Redis) => {
   });
 
   // Login endpoint
-  router.post('/login', loginRateLimit, async (req: Request, res: Response) => {
+  router.post('/login', loginRateLimit, async (_req: Request, _res: Response) => {
     try {
       // Validate request body
       const { error, value } = loginSchema.validate(req.body);
@@ -116,7 +116,7 @@ export const createAuthRoutes = (redis: Redis) => {
         return;
       }
 
-      const result = await authService.login(value);
+      const _result = await authService.login(value);
 
       res.json({
         success: true,
@@ -145,7 +145,7 @@ export const createAuthRoutes = (redis: Redis) => {
   });
 
   // Refresh token endpoint
-  router.post('/refresh', async (req: Request, res: Response) => {
+  router.post('/refresh', async (_req: Request, _res: Response) => {
     try {
       const { error, value } = refreshTokenSchema.validate(req.body);
       if (error) {
@@ -185,7 +185,7 @@ export const createAuthRoutes = (redis: Redis) => {
   });
 
   // Logout endpoint
-  router.post('/logout', authMiddleware.authenticate, async (req: Request, res: Response) => {
+  router.post('/logout', authMiddleware.authenticate, async (_req: Request, _res: Response) => {
     try {
       const refreshToken = req.body.refreshToken;
       
@@ -214,7 +214,7 @@ export const createAuthRoutes = (redis: Redis) => {
   });
 
   // Request password reset
-  router.post('/forgot-password', authRateLimit(3, 60 * 60 * 1000), async (req: Request, res: Response) => {
+  router.post('/forgot-password', authRateLimit(3, 60 * 60 * 1000), async (_req: Request, _res: Response) => {
     try {
       const { error, value } = resetPasswordRequestSchema.validate(req.body);
       if (error) {
@@ -247,7 +247,7 @@ export const createAuthRoutes = (redis: Redis) => {
   });
 
   // Reset password
-  router.post('/reset-password', async (req: Request, res: Response) => {
+  router.post('/reset-password', async (_req: Request, _res: Response) => {
     try {
       const { error, value } = resetPasswordSchema.validate(req.body);
       if (error) {
@@ -286,7 +286,7 @@ export const createAuthRoutes = (redis: Redis) => {
   });
 
   // Change password (authenticated)
-  router.post('/change-password', authMiddleware.authenticate, async (req: Request, res: Response) => {
+  router.post('/change-password', authMiddleware.authenticate, async (_req: Request, _res: Response) => {
     try {
       const { error, value } = changePasswordSchema.validate(req.body);
       if (error) {
@@ -325,7 +325,7 @@ export const createAuthRoutes = (redis: Redis) => {
   });
 
   // Verify email
-  router.get('/verify-email/:token', async (req: Request, res: Response) => {
+  router.get('/verify-email/:token', async (_req: Request, _res: Response) => {
     try {
       const token = req.params.token;
       
@@ -362,9 +362,9 @@ export const createAuthRoutes = (redis: Redis) => {
   });
 
   // Get current user profile
-  router.get('/me', authMiddleware.authenticate, async (req: Request, res: Response) => {
+  router.get('/me', authMiddleware.authenticate, async (_req: Request, _res: Response) => {
     try {
-      const user = await authService.getUserById(req.user!.userId);
+      const _user = await authService.getUserById(req.user!.userId);
       
       if (!user) {
         res.status(404).json({
@@ -389,7 +389,7 @@ export const createAuthRoutes = (redis: Redis) => {
   });
 
   // Validate token endpoint (for client-side token validation)
-  router.post('/validate', async (req: Request, res: Response) => {
+  router.post('/validate', async (_req: Request, _res: Response) => {
     try {
       const token = req.body.token || req.headers.authorization?.substring(7);
       

@@ -30,16 +30,16 @@ export const PasswordResetForm: React.FC<PasswordResetFormProps> = ({
     resolver: zodResolver(forgotPasswordSchema),
   });
 
-  const onSubmit = async (data: ForgotPasswordFormData) => {
+  const onSubmit = async (_data: ForgotPasswordFormData) => {
     setIsSubmitting(true);
     
     try {
       await requestPasswordReset(data.email);
       setIsSuccess(true);
       onSuccess?.();
-    } catch (error: any) {
+    } catch (_error: unknown) {
       if (error.details) {
-        error.details.forEach((detail: any) => {
+        error.details.forEach((detail: unknown) => {
           setError(detail.field as keyof ForgotPasswordFormData, {
             message: detail.message,
           });

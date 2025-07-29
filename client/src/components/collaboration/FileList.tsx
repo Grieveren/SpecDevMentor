@@ -59,7 +59,7 @@ export const FileList: React.FC<FileListProps> = ({
       setError(null);
       const documentFiles = await fileUploadService.getDocumentFiles(documentId);
       setFiles(documentFiles);
-    } catch (err: any) {
+    } catch (err: unknown) {
       setError(err.response?.data?.message || 'Failed to load files');
     } finally {
       setLoading(false);
@@ -69,7 +69,7 @@ export const FileList: React.FC<FileListProps> = ({
   const handleDownload = async (file: FileAttachment) => {
     try {
       await fileUploadService.downloadFile(file.id, file.originalName);
-    } catch (err: any) {
+    } catch (err: unknown) {
       setError(err.response?.data?.message || 'Failed to download file');
     }
   };
@@ -83,7 +83,7 @@ export const FileList: React.FC<FileListProps> = ({
       await fileUploadService.deleteFile(file.id);
       setFiles(prev => prev.filter(f => f.id !== file.id));
       onFileDeleted?.(file.id);
-    } catch (err: any) {
+    } catch (err: unknown) {
       setError(err.response?.data?.message || 'Failed to delete file');
     }
   };
@@ -100,7 +100,7 @@ export const FileList: React.FC<FileListProps> = ({
       
       setFiles(prev => prev.map(f => f.id === file.id ? updatedFile : f));
       onFileUpdated?.(updatedFile);
-    } catch (err: any) {
+    } catch (err: unknown) {
       setError(err.response?.data?.message || 'Failed to update file version');
     }
   };

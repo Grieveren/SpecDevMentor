@@ -139,7 +139,7 @@ export class SearchService {
     query: string,
     options: SearchOptions
   ): Promise<SearchResult[]> {
-    const whereClause: any = {
+    const whereClause: unknown = {
       OR: [
         { ownerId: userId },
         { team: { some: { userId, status: 'ACTIVE' } } },
@@ -222,7 +222,7 @@ export class SearchService {
     query: string,
     options: SearchOptions
   ): Promise<SearchResult[]> {
-    const whereClause: any = {
+    const whereClause: unknown = {
       project: {
         OR: [
           { ownerId: userId },
@@ -292,7 +292,7 @@ export class SearchService {
     query: string,
     options: SearchOptions
   ): Promise<SearchResult[]> {
-    const whereClause: any = {
+    const whereClause: unknown = {
       OR: [
         { isPublic: true },
         { authorId: userId },
@@ -358,7 +358,7 @@ export class SearchService {
   ): Promise<SearchResult[]> {
     if (!query) return []; // Only search comments when there's a query
 
-    const whereClause: any = {
+    const whereClause: unknown = {
       content: { contains: query, mode: 'insensitive' },
       thread: {
         document: {
@@ -428,7 +428,7 @@ export class SearchService {
       filtered = filtered.filter(result => {
         if (result.type === 'project') {
           return result.metadata.owner.id === options.teamMemberId ||
-                 result.metadata.team?.some((member: any) => member.user.id === options.teamMemberId);
+                 result.metadata.team?.some((member: unknown) => member.user.id === options.teamMemberId);
         }
         return result.metadata.author?.id === options.teamMemberId;
       });

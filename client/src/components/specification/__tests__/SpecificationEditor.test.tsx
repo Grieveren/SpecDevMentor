@@ -47,7 +47,7 @@ describe('SpecificationEditor', () => {
   });
 
   it('should toggle between edit and preview modes', async () => {
-    const user = userEvent.setup();
+    const _user = userEvent.setup();
     render(<SpecificationEditor {...defaultProps} />);
     
     // Should start in edit mode
@@ -70,7 +70,7 @@ describe('SpecificationEditor', () => {
   });
 
   it('should call onSave when content changes', async () => {
-    const user = userEvent.setup();
+    const _user = userEvent.setup();
     const mockOnSave = vi.fn().mockResolvedValue(undefined);
     
     render(<SpecificationEditor {...defaultProps} onSave={mockOnSave} />);
@@ -86,7 +86,7 @@ describe('SpecificationEditor', () => {
   });
 
   it('should show unsaved changes indicator', async () => {
-    const user = userEvent.setup();
+    const _user = userEvent.setup();
     render(<SpecificationEditor {...defaultProps} />);
     
     const textarea = screen.getByRole('textbox');
@@ -96,7 +96,7 @@ describe('SpecificationEditor', () => {
   });
 
   it('should show saving indicator during save', async () => {
-    const user = userEvent.setup();
+    const _user = userEvent.setup();
     const mockOnSave = vi.fn().mockImplementation(() => new Promise(resolve => setTimeout(resolve, 100)));
     
     render(<SpecificationEditor {...defaultProps} onSave={mockOnSave} />);
@@ -176,7 +176,7 @@ describe('SpecificationEditor', () => {
   });
 
   it('should call onRequestReview when button is clicked', async () => {
-    const user = userEvent.setup();
+    const _user = userEvent.setup();
     const mockOnRequestReview = vi.fn().mockResolvedValue(undefined);
     
     render(
@@ -214,7 +214,7 @@ describe('SpecificationEditor', () => {
   });
 
   it('should insert markdown formatting when toolbar buttons are clicked', async () => {
-    const user = userEvent.setup();
+    const _user = userEvent.setup();
     render(<SpecificationEditor {...defaultProps} />);
     
     const textarea = screen.getByRole('textbox') as HTMLTextAreaElement;

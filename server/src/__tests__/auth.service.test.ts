@@ -102,7 +102,7 @@ describe('AuthService', () => {
       
       mockPrisma.refreshToken.create.mockResolvedValue({});
 
-      const result = await authService.register(registerData);
+      const _result = await authService.register(registerData);
 
       expect(result.user).toEqual(expect.objectContaining({
         id: 'user-1',
@@ -153,7 +153,7 @@ describe('AuthService', () => {
         .mockReturnValueOnce('refresh-token');
       mockPrisma.refreshToken.create.mockResolvedValue({});
 
-      const result = await authService.login(loginData);
+      const _result = await authService.login(loginData);
 
       expect(result.user).toEqual(expect.objectContaining({
         id: 'user-1',
@@ -204,7 +204,7 @@ describe('AuthService', () => {
 
       vi.mocked(jwt.verify).mockReturnValue(mockPayload);
 
-      const result = await authService.verifyToken('valid-token');
+      const _result = await authService.verifyToken('valid-token');
 
       expect(result).toEqual(mockPayload);
       expect(jwt.verify).toHaveBeenCalledWith('valid-token', 'test-jwt-secret', {
@@ -268,7 +268,7 @@ describe('AuthService', () => {
         .mockReturnValueOnce('new-refresh-token');
       mockPrisma.refreshToken.create.mockResolvedValue({});
 
-      const result = await authService.refreshTokens('refresh-token');
+      const _result = await authService.refreshTokens('refresh-token');
 
       expect(result).toEqual({
         accessToken: 'new-access-token',

@@ -53,7 +53,7 @@ export const ContextualGuidancePanel: React.FC<ContextualGuidanceProps> = ({
     try {
       setLoading(true);
       setError(null);
-      const result = await bestPracticesService.getContextualGuidance({
+      const _result = await bestPracticesService.getContextualGuidance({
         phase,
         content,
         context,

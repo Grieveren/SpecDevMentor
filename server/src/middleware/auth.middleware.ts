@@ -19,7 +19,7 @@ export class AuthMiddleware {
   constructor(private authService: AuthService) {}
 
   // Middleware to authenticate JWT tokens
-  authenticate = async (req: Request, res: Response, next: NextFunction): Promise<void> => {
+  authenticate = async (_req: Request, _res: Response, _next: NextFunction): Promise<void> => {
     try {
       const authHeader = req.headers.authorization;
 
@@ -57,7 +57,7 @@ export class AuthMiddleware {
   };
 
   // Optional authentication - doesn't fail if no token provided
-  optionalAuthenticate = async (req: Request, res: Response, next: NextFunction): Promise<void> => {
+  optionalAuthenticate = async (_req: Request, _res: Response, _next: NextFunction): Promise<void> => {
     try {
       const authHeader = req.headers.authorization;
 
@@ -68,7 +68,7 @@ export class AuthMiddleware {
           req.user = payload;
         } catch (error) {
           // Ignore authentication errors for optional auth
-          console.warn('Optional authentication failed:', error);
+          // // console.warn('Optional authentication failed:', error);
         }
       }
 
@@ -83,7 +83,7 @@ export class AuthMiddleware {
   requireRole = (roles: UserRole | UserRole[]) => {
     const requiredRoles = Array.isArray(roles) ? roles : [roles];
 
-    return (req: AuthenticatedRequest, res: Response, next: NextFunction): void => {
+    return (_req: AuthenticatedRequest, _res: Response, _next: NextFunction): void => {
       if (!req.user) {
         res.status(401).json({
           error: 'Authentication required',
@@ -113,8 +113,8 @@ export class AuthMiddleware {
   requireTeamLead = this.requireRole([UserRole.TEAM_LEAD, UserRole.ADMIN]);
 
   // Middleware to check if user owns resource or has admin privileges
-  requireOwnershipOrAdmin = (getResourceUserId: (req: Request) => string | Promise<string>) => {
-    return async (req: AuthenticatedRequest, res: Response, next: NextFunction): Promise<void> => {
+  requireOwnershipOrAdmin = (getResourceUserId: (_req: Request) => string | Promise<string>) => {
+    return async (_req: AuthenticatedRequest, _res: Response, _next: NextFunction): Promise<void> => {
       try {
         if (!req.user) {
           res.status(401).json({
@@ -152,7 +152,7 @@ export class AuthMiddleware {
   };
 
   // Middleware to validate email verification
-  requireVerifiedEmail = (req: AuthenticatedRequest, res: Response, next: NextFunction): void => {
+  requireVerifiedEmail = (_req: AuthenticatedRequest, _res: Response, _next: NextFunction): void => {
     if (!req.user) {
       res.status(401).json({
         error: 'Authentication required',
@@ -174,7 +174,7 @@ export const createAuthRateLimit = () => {
   const attempts = new Map<string, { count: number; resetTime: number }>();
 
   return (maxAttempts: number, windowMs: number) => {
-    return (req: Request, res: Response, next: NextFunction): void => {
+    return (_req: Request, _res: Response, _next: NextFunction): void => {
       const key = req.ip + ':' + (req.body.email || 'unknown');
       const now = Date.now();
       const windowStart = now - windowMs;

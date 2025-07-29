@@ -44,9 +44,9 @@ vi.mock('nodemailer', () => ({
 
 describe('NotificationService', () => {
   let notificationService: NotificationService;
-  let mockPrisma: any;
-  let mockRedis: any;
-  let mockIo: any;
+  let mockPrisma: unknown;
+  let mockRedis: unknown;
+  let mockIo: unknown;
 
   beforeEach(() => {
     mockPrisma = {
@@ -245,7 +245,7 @@ describe('NotificationService', () => {
       mockPrisma.notification.findMany.mockResolvedValue(mockNotifications);
       mockPrisma.notification.count.mockResolvedValue(1);
 
-      const result = await notificationService.getUserNotifications('user1', {
+      const _result = await notificationService.getUserNotifications('user1', {
         page: 1,
         limit: 10,
       });

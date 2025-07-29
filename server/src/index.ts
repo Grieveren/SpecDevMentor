@@ -134,7 +134,7 @@ async function setupServices() {
       res.json(stats);
     });
     
-    console.log('✅ Services and routes initialized successfully');
+    // // console.log('✅ Services and routes initialized successfully');
     return { redis, collaborationService, emailProcessor };
   } catch (error) {
     console.error('❌ Failed to initialize services:', error);
@@ -164,16 +164,16 @@ async function startServer() {
     const { redis, collaborationService, emailProcessor } = await setupServices();
     
     server.listen(PORT, () => {
-      console.log(`🚀 Server running on port ${PORT}`);
-      console.log(`📊 Health check: http://localhost:${PORT}/health`);
-      console.log(`🌍 Environment: ${process.env.NODE_ENV || 'development'}`);
-      console.log(`🔐 Auth endpoints: http://localhost:${PORT}/api/auth`);
-      console.log(`🤝 WebSocket collaboration enabled`);
+      // // console.log(`🚀 Server running on port ${PORT}`);
+      // // console.log(`📊 Health check: http://localhost:${PORT}/health`);
+      // // console.log(`🌍 Environment: ${process.env.NODE_ENV || 'development'}`);
+      // // console.log(`🔐 Auth endpoints: http://localhost:${PORT}/api/auth`);
+      // // console.log(`🤝 WebSocket collaboration enabled`);
     });
 
     // Graceful shutdown
     process.on('SIGTERM', async () => {
-      console.log('🛑 SIGTERM received, shutting down gracefully');
+      // // console.log('🛑 SIGTERM received, shutting down gracefully');
       emailProcessor.stop();
       server.close(() => {
         redis.disconnect();
@@ -183,7 +183,7 @@ async function startServer() {
     });
 
     process.on('SIGINT', async () => {
-      console.log('🛑 SIGINT received, shutting down gracefully');
+      // // console.log('🛑 SIGINT received, shutting down gracefully');
       emailProcessor.stop();
       server.close(() => {
         redis.disconnect();

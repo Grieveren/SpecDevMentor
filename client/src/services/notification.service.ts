@@ -64,7 +64,7 @@ export class NotificationService {
     if (options.limit) params.append('limit', options.limit.toString());
     if (options.unreadOnly) params.append('unreadOnly', 'true');
 
-    const response = await apiClient.get(`/notifications?${params.toString()}`);
+    const _response = await apiClient.get(`/notifications?${params.toString()}`);
     return response.data.data;
   }
 
@@ -72,7 +72,7 @@ export class NotificationService {
    * Get unread notification count
    */
   async getUnreadCount(): Promise<number> {
-    const response = await apiClient.get('/notifications/unread-count');
+    const _response = await apiClient.get('/notifications/unread-count');
     return response.data.data.count;
   }
 
@@ -94,7 +94,7 @@ export class NotificationService {
    * Get notification settings
    */
   async getSettings(): Promise<NotificationSettings> {
-    const response = await apiClient.get('/notifications/settings');
+    const _response = await apiClient.get('/notifications/settings');
     return response.data.data;
   }
 

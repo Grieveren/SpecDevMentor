@@ -8,9 +8,9 @@ import {
 } from '../types/code-execution';
 
 class CodeExecutionService {
-  async executeCode(request: CodeExecutionRequest): Promise<ExecutionResult> {
+  async executeCode(_request: CodeExecutionRequest): Promise<ExecutionResult> {
     try {
-      const response = await apiService.post('/code-execution/execute', request);
+      const _response = await apiService.post('/code-execution/execute', request);
       return response.data;
     } catch (error) {
       console.error('Code execution failed:', error);
@@ -26,7 +26,7 @@ class CodeExecutionService {
     specifications: SpecificationDocument[]
   ): Promise<ComplianceResult> {
     try {
-      const response = await apiService.post('/code-execution/validate-compliance', {
+      const _response = await apiService.post('/code-execution/validate-compliance', {
         code,
         language,
         specifications,
@@ -42,7 +42,7 @@ class CodeExecutionService {
 
   async getSupportedLanguages(): Promise<SupportedLanguage[]> {
     try {
-      const response = await apiService.get('/code-execution/languages');
+      const _response = await apiService.get('/code-execution/languages');
       return response.data.languages;
     } catch (error) {
       console.error('Failed to fetch supported languages:', error);
@@ -57,7 +57,7 @@ class CodeExecutionService {
     timestamp: string;
   }> {
     try {
-      const response = await apiService.get('/code-execution/status');
+      const _response = await apiService.get('/code-execution/status');
       return response.data;
     } catch (error) {
       console.error('Failed to fetch system status:', error);

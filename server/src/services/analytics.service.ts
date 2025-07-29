@@ -2,8 +2,8 @@ import { PrismaClient, ActivityType, SpecificationPhase, UserRole } from '@prism
 import { Redis } from 'ioredis';
 
 interface AnalyticsService {
-  trackUserActivity(data: TrackActivityData): Promise<void>;
-  trackWorkflowProgress(data: WorkflowProgressData): Promise<void>;
+  trackUserActivity(_data: TrackActivityData): Promise<void>;
+  trackWorkflowProgress(_data: WorkflowProgressData): Promise<void>;
   calculateTeamPerformanceMetrics(projectId: string, period: string): Promise<TeamPerformanceMetrics>;
   calculateSkillDevelopment(userId: string): Promise<SkillDevelopmentMetrics[]>;
   getProjectAnalytics(projectId: string, timeRange?: TimeRange): Promise<ProjectAnalytics>;
@@ -159,7 +159,7 @@ export class AnalyticsServiceImpl implements AnalyticsService {
     private redis: Redis
   ) {}
 
-  async trackUserActivity(data: TrackActivityData): Promise<void> {
+  async trackUserActivity(_data: TrackActivityData): Promise<void> {
     try {
       await this.prisma.userActivity.create({
         data: {
@@ -183,7 +183,7 @@ export class AnalyticsServiceImpl implements AnalyticsService {
     }
   }
 
-  async trackWorkflowProgress(data: WorkflowProgressData): Promise<void> {
+  async trackWorkflowProgress(_data: WorkflowProgressData): Promise<void> {
     try {
       const existingMetric = await this.prisma.workflowMetrics.findUnique({
         where: {
@@ -196,7 +196,7 @@ export class AnalyticsServiceImpl implements AnalyticsService {
       });
 
       if (existingMetric) {
-        const updateData: any = {};
+        const updateData: unknown = {};
 
         switch (data.action) {
           case 'completed':
@@ -424,7 +424,7 @@ export class AnalyticsServiceImpl implements AnalyticsService {
   }
 
   async getTeamAnalytics(projectId: string, timeRange?: TimeRange): Promise<TeamAnalytics> {
-    const project = await this.prisma.specificationProject.findUnique({
+    const _project = await this.prisma.specificationProject.findUnique({
       where: { id: projectId },
       include: {
         team: {
@@ -507,7 +507,7 @@ export class AnalyticsServiceImpl implements AnalyticsService {
   }
 
   async getUserAnalytics(userId: string, timeRange?: TimeRange): Promise<UserAnalytics> {
-    const user = await this.prisma.user.findUnique({
+    const _user = await this.prisma.user.findUnique({
       where: { id: userId },
       include: {
         ownedProjects: true,
@@ -601,7 +601,7 @@ export class AnalyticsServiceImpl implements AnalyticsService {
     const averageScore = user.userProgress.length
       ? user.userProgress.reduce((sum, p) => {
           const results = Array.isArray(p.exerciseResults) ? p.exerciseResults as any[] : [];
-          const scores = results.map((r: any) => r.score || 0);
+          const scores = results.map((r: unknown) => r.score || 0);
           return sum + (scores.length ? scores.reduce((s, score) => s + score, 0) / scores.length : 0);
         }, 0) / user.userProgress.length
       : 0;
@@ -643,7 +643,7 @@ export class AnalyticsServiceImpl implements AnalyticsService {
   }
 
   // Private helper methods
-  private async updateRealTimeMetrics(data: TrackActivityData): Promise<void> {
+  private async updateRealTimeMetrics(_data: TrackActivityData): Promise<void> {
     const key = `analytics:realtime:${data.action}`;
     await this.redis.incr(key);
     await this.redis.expire(key, 3600); // Expire after 1 hour
@@ -898,7 +898,7 @@ export class AnalyticsServiceImpl implements AnalyticsService {
       .map(([hour]) => parseInt(hour));
   }
 
-  private isReviewRelevantToSkill(review: any, skillArea: string): boolean {
+  private isReviewRelevantToSkill(review: unknown, skillArea: string): boolean {
     // Map skill areas to document phases or review content
     const skillPhaseMap: Record<string, SpecificationPhase[]> = {
       requirements: ['REQUIREMENTS'],
@@ -911,7 +911,7 @@ export class AnalyticsServiceImpl implements AnalyticsService {
     return skillPhaseMap[skillArea]?.includes(review.document.phase) || false;
   }
 
-  private isModuleRelevantToSkill(module: any, skillArea: string): boolean {
+  private isModuleRelevantToSkill(module: unknown, skillArea: string): boolean {
     // Check if module phase matches skill area or if module content is relevant
     if (module.phase && skillArea === module.phase.toLowerCase()) {
       return true;

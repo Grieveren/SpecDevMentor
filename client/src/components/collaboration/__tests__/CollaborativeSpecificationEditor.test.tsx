@@ -118,7 +118,7 @@ describe('CollaborativeSpecificationEditor', () => {
 
   describe('Multi-user Editing Scenarios', () => {
     it('should handle remote document changes', async () => {
-      const user = userEvent.setup();
+      const _user = userEvent.setup();
       let onDocumentChange: Function;
 
       mockUseCollaboration.mockImplementation(({ onDocumentChange: callback }) => {
@@ -148,7 +148,7 @@ describe('CollaborativeSpecificationEditor', () => {
     });
 
     it('should send document changes to collaboration service', async () => {
-      const user = userEvent.setup();
+      const _user = userEvent.setup();
       render(<CollaborativeSpecificationEditor {...defaultProps} />);
 
       const textarea = screen.getByRole('textbox') as HTMLTextAreaElement;
@@ -163,7 +163,7 @@ describe('CollaborativeSpecificationEditor', () => {
     });
 
     it('should track cursor position and send updates', async () => {
-      const user = userEvent.setup();
+      const _user = userEvent.setup();
       render(<CollaborativeSpecificationEditor {...defaultProps} />);
 
       const textarea = screen.getByRole('textbox') as HTMLTextAreaElement;
@@ -202,7 +202,7 @@ describe('CollaborativeSpecificationEditor', () => {
     });
 
     it('should handle concurrent editing with operational transformation', async () => {
-      const user = userEvent.setup();
+      const _user = userEvent.setup();
       let onDocumentChange: Function;
 
       mockUseCollaboration.mockImplementation(({ onDocumentChange: callback }) => {
@@ -241,7 +241,7 @@ describe('CollaborativeSpecificationEditor', () => {
 
   describe('Collaborative Comments', () => {
     it('should toggle comments panel', async () => {
-      const user = userEvent.setup();
+      const _user = userEvent.setup();
       render(<CollaborativeSpecificationEditor {...defaultProps} />);
 
       const commentsButton = screen.getByText('Comments');
@@ -252,7 +252,7 @@ describe('CollaborativeSpecificationEditor', () => {
     });
 
     it('should handle comment creation', async () => {
-      const user = userEvent.setup();
+      const _user = userEvent.setup();
       render(<CollaborativeSpecificationEditor {...defaultProps} />);
 
       // Open comments panel
@@ -311,7 +311,7 @@ describe('CollaborativeSpecificationEditor', () => {
     });
 
     it('should insert templates when toolbar buttons are clicked', async () => {
-      const user = userEvent.setup();
+      const _user = userEvent.setup();
       render(<CollaborativeSpecificationEditor {...defaultProps} />);
 
       const textarea = screen.getByRole('textbox') as HTMLTextAreaElement;
@@ -328,7 +328,7 @@ describe('CollaborativeSpecificationEditor', () => {
 
   describe('Auto-save with Collaboration', () => {
     it('should auto-save changes while maintaining collaboration', async () => {
-      const user = userEvent.setup();
+      const _user = userEvent.setup();
       const onSave = vi.fn().mockResolvedValue(undefined);
 
       render(
@@ -353,7 +353,7 @@ describe('CollaborativeSpecificationEditor', () => {
     });
 
     it('should show unsaved changes indicator', async () => {
-      const user = userEvent.setup();
+      const _user = userEvent.setup();
       render(<CollaborativeSpecificationEditor {...defaultProps} />);
 
       const textarea = screen.getByRole('textbox') as HTMLTextAreaElement;
@@ -368,7 +368,7 @@ describe('CollaborativeSpecificationEditor', () => {
 
   describe('Accessibility', () => {
     it('should be keyboard navigable', async () => {
-      const user = userEvent.setup();
+      const _user = userEvent.setup();
       render(<CollaborativeSpecificationEditor {...defaultProps} />);
 
       // Tab through interactive elements
@@ -406,7 +406,7 @@ describe('CollaborativeSpecificationEditor', () => {
     });
 
     it('should handle save errors during collaboration', async () => {
-      const user = userEvent.setup();
+      const _user = userEvent.setup();
       const onSave = vi.fn().mockRejectedValue(new Error('Save failed'));
 
       render(

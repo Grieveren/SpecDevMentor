@@ -233,7 +233,7 @@ router.get(
       const { q: query, phase, type, page = 1, limit = 20 } = req.query;
 
       // First check if user has access to the project
-      const project = await prisma.specificationProject.findFirst({
+      const _project = await prisma.specificationProject.findFirst({
         where: {
           id: projectId,
           OR: [

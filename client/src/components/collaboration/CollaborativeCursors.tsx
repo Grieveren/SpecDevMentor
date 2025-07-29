@@ -31,7 +31,7 @@ export const CollaborativeCursors: React.FC<CollaborativeCursorsProps> = ({
 
       return { x, y };
     } catch (error) {
-      console.warn('Failed to calculate cursor position:', error);
+      // // // console.warn('Failed to calculate cursor position:', error);
       return null;
     }
   };
@@ -39,7 +39,7 @@ export const CollaborativeCursors: React.FC<CollaborativeCursorsProps> = ({
   return (
     <div className={cn('pointer-events-none fixed inset-0 z-50', className)}>
       {Object.entries(cursors).map(([userId, position]) => {
-        const user = users[userId];
+        const _user = users[userId];
         if (!user) return null;
 
         const pixelPos = getPixelPosition(position);
@@ -153,7 +153,7 @@ export const TextSelection: React.FC<TextSelectionProps> = ({
 
       return rects;
     } catch (error) {
-      console.warn('Failed to calculate selection rects:', error);
+      // // // console.warn('Failed to calculate selection rects:', error);
       return [];
     }
   };

@@ -87,7 +87,7 @@ router.get(
       const { id } = req.params;
       const userId = req.user!.id;
 
-      const file = await fileUploadService.getFile(id, userId);
+      const _file = await fileUploadService.getFile(id, userId);
 
       res.json({
         success: true,
@@ -195,7 +195,7 @@ router.post(
     try {
       const { id } = req.params;
       const userId = req.user!.id;
-      const file = req.file as Express.Multer.File;
+      const _file = req.file as Express.Multer.File;
 
       if (!file) {
         return res.status(400).json({

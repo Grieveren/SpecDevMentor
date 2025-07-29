@@ -80,7 +80,7 @@ export const WorkflowNavigation: React.FC<WorkflowNavigationProps> = ({
         try {
           phaseValidations[phase] = await workflowService.validatePhaseCompletion(projectId, phase);
         } catch (err) {
-          console.warn(`Failed to validate phase ${phase}:`, err);
+          // // // console.warn(`Failed to validate phase ${phase}:`, err);
           phaseValidations[phase] = {
             isValid: false,
             errors: ['Validation failed'],

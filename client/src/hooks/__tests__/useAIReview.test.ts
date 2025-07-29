@@ -94,7 +94,7 @@ describe('useAIReview', () => {
   });
 
   it('should handle request review error', async () => {
-    const error = new Error('Review failed');
+    const _error = new Error('Review failed');
     mockAiReviewService.requestReview.mockRejectedValue(error);
     const consoleSpy = vi.spyOn(console, 'error').mockImplementation(() => {});
 
@@ -113,7 +113,7 @@ describe('useAIReview', () => {
   });
 
   it('should set loading state during request review', async () => {
-    let resolveReview: (value: AIReviewResult) => void;
+    let resolveReview: (_value: AIReviewResult) => void;
     const reviewPromise = new Promise<AIReviewResult>((resolve) => {
       resolveReview = resolve;
     });
@@ -171,7 +171,7 @@ describe('useAIReview', () => {
   });
 
   it('should handle apply suggestion error', async () => {
-    const error = new Error('Apply failed');
+    const _error = new Error('Apply failed');
     mockAiReviewService.applySuggestion.mockRejectedValue(error);
 
     const { result } = renderHook(() => useAIReview(defaultOptions));
@@ -228,7 +228,7 @@ describe('useAIReview', () => {
   });
 
   it('should handle rollback suggestion error', async () => {
-    const error = new Error('Rollback failed');
+    const _error = new Error('Rollback failed');
     mockAiReviewService.rollbackSuggestion.mockRejectedValue(error);
 
     const { result } = renderHook(() => useAIReview(defaultOptions));
@@ -303,7 +303,7 @@ describe('useAIReview', () => {
   });
 
   it('should handle refresh review error', async () => {
-    const error = new Error('Refresh failed');
+    const _error = new Error('Refresh failed');
     mockAiReviewService.getReview.mockRejectedValue(error);
     const consoleSpy = vi.spyOn(console, 'error').mockImplementation(() => {});
 

@@ -15,7 +15,7 @@ const redis = new Redis(process.env.REDIS_URL || 'redis://localhost:6379');
 const healthService = new HealthService(prisma, redis);
 
 // Basic health check (for load balancers)
-router.get('/health', async (_req: Request, res: Response) => {
+router.get('/health', async (_req: Request, _res: Response) => {
   try {
     const health = await healthService.getHealth();
     res.json(health);
@@ -30,7 +30,7 @@ router.get('/health', async (_req: Request, res: Response) => {
 });
 
 // Detailed health check (for monitoring systems)
-router.get('/health/detailed', async (_req: Request, res: Response) => {
+router.get('/health/detailed', async (_req: Request, _res: Response) => {
   try {
     const health = await healthService.getDetailedHealth();
     
@@ -49,7 +49,7 @@ router.get('/health/detailed', async (_req: Request, res: Response) => {
 });
 
 // Readiness probe (for Kubernetes)
-router.get('/health/ready', async (_req: Request, res: Response) => {
+router.get('/health/ready', async (_req: Request, _res: Response) => {
   try {
     const isReady = await healthService.checkStartup();
     
@@ -75,7 +75,7 @@ router.get('/health/ready', async (_req: Request, res: Response) => {
 });
 
 // Liveness probe (for Kubernetes)
-router.get('/health/live', async (_req: Request, res: Response) => {
+router.get('/health/live', async (_req: Request, _res: Response) => {
   // Simple liveness check - if we can respond, we're alive
   res.json({
     status: 'alive',
@@ -87,7 +87,7 @@ router.get('/health/live', async (_req: Request, res: Response) => {
 // Error tracking endpoints (protected)
 router.get('/errors/stats',
   authMiddleware,
-  async (req: Request, res: Response) => {
+  async (_req: Request, _res: Response) => {
     try {
       const timeRange = req.query.timeRange ? {
         start: new Date(req.query.start as string),
@@ -105,9 +105,9 @@ router.get('/errors/stats',
 
 router.get('/errors/:errorId',
   authMiddleware,
-  async (req: Request, res: Response) => {
+  async (_req: Request, _res: Response) => {
     try {
-      const error = errorTracker.getError(req.params.errorId);
+      const _error = errorTracker.getError(req.params.errorId);
       
       if (!error) {
         return res.status(404).json({ error: 'Error not found' });
@@ -123,7 +123,7 @@ router.get('/errors/:errorId',
 
 router.get('/errors/fingerprint/:fingerprint',
   authMiddleware,
-  async (req: Request, res: Response) => {
+  async (_req: Request, _res: Response) => {
     try {
       const errors = errorTracker.getErrorsByFingerprint(req.params.fingerprint);
       res.json(errors);
@@ -137,7 +137,7 @@ router.get('/errors/fingerprint/:fingerprint',
 // Alert management endpoints (protected)
 router.get('/alerts/stats',
   authMiddleware,
-  async (req: Request, res: Response) => {
+  async (_req: Request, _res: Response) => {
     try {
       const timeRange = req.query.timeRange ? {
         start: new Date(req.query.start as string),
@@ -155,7 +155,7 @@ router.get('/alerts/stats',
 
 router.get('/alerts/active',
   authMiddleware,
-  async (_req: Request, res: Response) => {
+  async (_req: Request, _res: Response) => {
     try {
       const alerts = alertingService.getActiveAlerts();
       res.json(alerts);
@@ -168,7 +168,7 @@ router.get('/alerts/active',
 
 router.get('/alerts/:alertId',
   authMiddleware,
-  async (req: Request, res: Response) => {
+  async (_req: Request, _res: Response) => {
     try {
       const alert = alertingService.getAlert(req.params.alertId);
       
@@ -186,7 +186,7 @@ router.get('/alerts/:alertId',
 
 router.post('/alerts/:alertId/acknowledge',
   authMiddleware,
-  async (req: Request, res: Response) => {
+  async (_req: Request, _res: Response) => {
     try {
       const userId = (req as any).user.id;
       const success = await alertingService.acknowledgeAlert(req.params.alertId, userId);
@@ -205,7 +205,7 @@ router.post('/alerts/:alertId/acknowledge',
 
 router.post('/alerts/:alertId/resolve',
   authMiddleware,
-  async (req: Request, res: Response) => {
+  async (_req: Request, _res: Response) => {
     try {
       const userId = (req as any).user.id;
       const success = await alertingService.resolveAlert(req.params.alertId, userId);
@@ -225,7 +225,7 @@ router.post('/alerts/:alertId/resolve',
 // Alert rules management
 router.get('/alerts/rules',
   authMiddleware,
-  async (_req: Request, res: Response) => {
+  async (_req: Request, _res: Response) => {
     try {
       const rules = alertingService.getRules();
       res.json(rules);
@@ -238,7 +238,7 @@ router.get('/alerts/rules',
 
 router.post('/alerts/rules',
   authMiddleware,
-  async (req: Request, res: Response) => {
+  async (_req: Request, _res: Response) => {
     try {
       const rule = req.body;
       
@@ -263,7 +263,7 @@ router.post('/alerts/rules',
 
 router.delete('/alerts/rules/:ruleId',
   authMiddleware,
-  async (req: Request, res: Response) => {
+  async (_req: Request, _res: Response) => {
     try {
       const success = alertingService.removeRule(req.params.ruleId);
       
@@ -282,7 +282,7 @@ router.delete('/alerts/rules/:ruleId',
 // System metrics endpoint
 router.get('/metrics',
   authMiddleware,
-  async (_req: Request, res: Response) => {
+  async (_req: Request, _res: Response) => {
     try {
       const memUsage = process.memoryUsage();
       const cpuUsage = process.cpuUsage();
@@ -319,7 +319,7 @@ router.get('/metrics',
 // Real-time monitoring via Server-Sent Events
 router.get('/events',
   authMiddleware,
-  async (req: Request, res: Response) => {
+  async (_req: Request, _res: Response) => {
     // Set up SSE
     res.writeHead(200, {
       'Content-Type': 'text/event-stream',
@@ -328,7 +328,7 @@ router.get('/events',
       'Access-Control-Allow-Origin': '*',
     });
 
-    const sendEvent = (data: any) => {
+    const sendEvent = (_data: unknown) => {
       res.write(`data: ${JSON.stringify(data)}\n\n`);
     };
 
@@ -341,11 +341,11 @@ router.get('/events',
     }
 
     // Listen for alerts
-    const alertHandler = (alert: any) => {
+    const alertHandler = (alert: unknown) => {
       sendEvent({ type: 'alert', data: alert });
     };
 
-    const errorHandler = (error: any) => {
+    const errorHandler = (_error: unknown) => {
       sendEvent({ type: 'error', data: error });
     };
 

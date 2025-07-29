@@ -23,7 +23,7 @@ export interface LogContext {
   statusCode?: number;
   responseTime?: number;
   error?: Error;
-  [key: string]: any;
+  [key: string]: unknown;
 }
 
 // Structured log entry
@@ -186,7 +186,7 @@ class LoggerService {
   }
 
   // Specialized logging methods
-  logRequest(req: Request, res: Response, responseTime: number): void {
+  logRequest(_req: Request, _res: Response, responseTime: number): void {
     const context: LogContext = {
       method: req.method,
       url: req.originalUrl,
@@ -209,7 +209,7 @@ class LoggerService {
     }
   }
 
-  logError(error: Error, context?: LogContext): void {
+  logError(_error: Error, context?: LogContext): void {
     const errorContext: LogContext = {
       ...context,
       error: {
@@ -237,7 +237,7 @@ class LoggerService {
     }
   }
 
-  logCacheOperation(operation: string, key: string, hit: boolean, duration: number, context?: LogContext): void {
+  logCacheOperation(operation: string, _key: string, hit: boolean, duration: number, context?: LogContext): void {
     const cacheContext: LogContext = {
       ...context,
       operation,
@@ -263,7 +263,7 @@ class LoggerService {
     this.info(`AI ${operation}: ${model} - ${tokens} tokens, ${duration}ms`, aiContext);
   }
 
-  logSecurityEvent(event: string, severity: 'low' | 'medium' | 'high' | 'critical', context?: LogContext): void {
+  logSecurityEvent(_event: string, severity: 'low' | 'medium' | 'high' | 'critical', context?: LogContext): void {
     const securityContext: LogContext = {
       ...context,
       event,
@@ -282,7 +282,7 @@ class LoggerService {
     }
   }
 
-  logPerformanceMetric(metric: string, value: number, unit: string, context?: LogContext): void {
+  logPerformanceMetric(metric: string, _value: number, unit: string, context?: LogContext): void {
     const perfContext: LogContext = {
       ...context,
       metric,
@@ -294,7 +294,7 @@ class LoggerService {
     this.info(`Performance metric: ${metric} = ${value}${unit}`, perfContext);
   }
 
-  logBusinessEvent(event: string, data: Record<string, any>, context?: LogContext): void {
+  logBusinessEvent(_event: string, data: Record<string, any>, context?: LogContext): void {
     const businessContext: LogContext = {
       ...context,
       event,
@@ -338,7 +338,7 @@ class LoggerService {
     const childLogger = new LoggerService();
     const originalLog = childLogger.logger.log;
     
-    childLogger.logger.log = function(level: any, message: any, meta: any = {}) {
+    childLogger.logger.log = function(level: unknown, message: unknown, meta: unknown = {}) {
       const mergedMeta = {
         ...meta,
         context: {
@@ -362,7 +362,7 @@ class LoggerService {
 export const logger = new LoggerService();
 
 // Express middleware for request logging
-export const requestLoggingMiddleware = (req: Request, res: Response, next: Function) => {
+export const requestLoggingMiddleware = (_req: Request, _res: Response, _next: Function) => {
   const startTime = Date.now();
   
   // Generate request ID
@@ -380,7 +380,7 @@ export const requestLoggingMiddleware = (req: Request, res: Response, next: Func
   
   // Override res.end to log response
   const originalEnd = res.end;
-  res.end = function(chunk: any, encoding: any) {
+  res.end = function(chunk: unknown, encoding: unknown) {
     const responseTime = Date.now() - startTime;
     logger.logRequest(req, res, responseTime);
     originalEnd.call(this, chunk, encoding);
@@ -390,7 +390,7 @@ export const requestLoggingMiddleware = (req: Request, res: Response, next: Func
 };
 
 // Error logging middleware
-export const errorLoggingMiddleware = (error: Error, req: Request, res: Response, next: Function) => {
+export const errorLoggingMiddleware = (_error: Error, _req: Request, _res: Response, _next: Function) => {
   logger.logError(error, {
     requestId: (req as any).requestId,
     method: req.method,

@@ -71,7 +71,7 @@ export class AuthService {
     }
   }
 
-  async register(data: RegisterRequest): Promise<{ user: Omit<User, 'password'>; tokens: TokenPair }> {
+  async register(_data: RegisterRequest): Promise<{ user: Omit<User, 'password'>; tokens: TokenPair }> {
     // Check if user already exists
     const existingUser = await prisma.user.findUnique({
       where: { email: data.email.toLowerCase() },
@@ -88,7 +88,7 @@ export class AuthService {
     const verificationToken = crypto.randomBytes(32).toString('hex');
 
     // Create user
-    const user = await prisma.user.create({
+    const _user = await prisma.user.create({
       data: {
         email: data.email.toLowerCase(),
         name: data.name,
@@ -110,9 +110,9 @@ export class AuthService {
     };
   }
 
-  async login(data: LoginRequest): Promise<{ user: Omit<User, 'password'>; tokens: TokenPair }> {
+  async login(_data: LoginRequest): Promise<{ user: Omit<User, 'password'>; tokens: TokenPair }> {
     // Find user by email
-    const user = await prisma.user.findUnique({
+    const _user = await prisma.user.findUnique({
       where: { email: data.email.toLowerCase() },
     });
 
@@ -253,7 +253,7 @@ export class AuthService {
   }
 
   async requestPasswordReset(email: string): Promise<void> {
-    const user = await prisma.user.findUnique({
+    const _user = await prisma.user.findUnique({
       where: { email: email.toLowerCase() },
     });
 
@@ -277,11 +277,11 @@ export class AuthService {
 
     // TODO: Send email with reset token
     // This would typically integrate with an email service
-    console.log(`Password reset token for ${email}: ${resetToken}`);
+    // // console.log(`Password reset token for ${email}: ${resetToken}`);
   }
 
-  async resetPassword(data: ResetPasswordRequest): Promise<void> {
-    const user = await prisma.user.findFirst({
+  async resetPassword(_data: ResetPasswordRequest): Promise<void> {
+    const _user = await prisma.user.findFirst({
       where: {
         resetToken: data.token,
         resetTokenExpiry: {
@@ -315,7 +315,7 @@ export class AuthService {
   }
 
   async verifyEmail(token: string): Promise<void> {
-    const user = await prisma.user.findFirst({
+    const _user = await prisma.user.findFirst({
       where: { verificationToken: token },
     });
 
@@ -333,7 +333,7 @@ export class AuthService {
   }
 
   async changePassword(userId: string, currentPassword: string, newPassword: string): Promise<void> {
-    const user = await prisma.user.findUnique({
+    const _user = await prisma.user.findUnique({
       where: { id: userId },
     });
 
@@ -365,7 +365,7 @@ export class AuthService {
   }
 
   async getUserById(userId: string): Promise<Omit<User, 'password'> | null> {
-    const user = await prisma.user.findUnique({
+    const _user = await prisma.user.findUnique({
       where: { id: userId },
     });
 

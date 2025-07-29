@@ -61,7 +61,7 @@ class ErrorTrackingService extends EventEmitter {
   }
 
   // Track an error
-  captureError(error: Error, context: Partial<ErrorReport['context']> = {}): string {
+  captureError(_error: Error, context: Partial<ErrorReport['context']> = {}): string {
     const errorId = this.generateErrorId();
     const fingerprint = this.generateFingerprint(error);
     const severity = this.determineSeverity(error);
@@ -116,7 +116,7 @@ class ErrorTrackingService extends EventEmitter {
   }
 
   // Capture error from Express request
-  captureRequestError(error: Error, req: Request): string {
+  captureRequestError(_error: Error, _req: Request): string {
     return this.captureError(error, {
       userId: (req as any).user?.id,
       requestId: (req as any).requestId,
@@ -221,7 +221,7 @@ class ErrorTrackingService extends EventEmitter {
     return `err_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`;
   }
 
-  private generateFingerprint(error: Error): string {
+  private generateFingerprint(_error: Error): string {
     // Create a unique fingerprint based on error type and stack trace
     const stackLines = error.stack?.split('\n').slice(0, 3) || [];
     const fingerprint = `${error.name}:${error.message}:${stackLines.join('|')}`;
@@ -237,7 +237,7 @@ class ErrorTrackingService extends EventEmitter {
     return Math.abs(hash).toString(36);
   }
 
-  private determineSeverity(error: Error): 'low' | 'medium' | 'high' | 'critical' {
+  private determineSeverity(_error: Error): 'low' | 'medium' | 'high' | 'critical' {
     // Determine severity based on error type and message
     const errorName = error.name.toLowerCase();
     const errorMessage = error.message.toLowerCase();
@@ -278,7 +278,7 @@ class ErrorTrackingService extends EventEmitter {
     return 'low';
   }
 
-  private generateTags(error: Error, context: Partial<ErrorReport['context']>): string[] {
+  private generateTags(_error: Error, context: Partial<ErrorReport['context']>): string[] {
     const tags: string[] = [];
 
     // Add error type tag
@@ -353,7 +353,7 @@ class ErrorTrackingService extends EventEmitter {
 export const errorTracker = new ErrorTrackingService();
 
 // Express middleware for error tracking
-export const errorTrackingMiddleware = (error: Error, req: any, res: any, next: any) => {
+export const errorTrackingMiddleware = (_error: Error, _req: unknown, _res: unknown, _next: unknown) => {
   const errorId = errorTracker.captureRequestError(error, req);
   
   // Add error ID to response for debugging

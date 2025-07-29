@@ -19,7 +19,7 @@ interface ProjectAnalyticsViewProps {
 
 export const ProjectAnalyticsView: React.FC<ProjectAnalyticsViewProps> = ({
   analytics,
-  timeRange,
+  timeRange: _timeRange,
   className = '',
 }) => {
   const formatTime = (seconds: number): string => {
@@ -32,7 +32,7 @@ export const ProjectAnalyticsView: React.FC<ProjectAnalyticsViewProps> = ({
     return `${minutes}m`;
   };
 
-  const getPhaseCompletionRate = () => {
+  const _getPhaseCompletionRate = () => {
     const completedPhases = analytics.phaseMetrics.filter(p => p.completionRate === 100).length;
     return (completedPhases / analytics.phaseMetrics.length) * 100;
   };

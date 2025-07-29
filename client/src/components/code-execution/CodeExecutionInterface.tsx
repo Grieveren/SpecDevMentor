@@ -61,7 +61,7 @@ export const CodeExecutionInterface: React.FC<CodeExecutionInterfaceProps> = ({
     });
 
     try {
-      const result = await codeExecutionService.executeCode({
+      const _result = await codeExecutionService.executeCode({
         code,
         language,
         input: input || undefined,
@@ -94,7 +94,7 @@ export const CodeExecutionInterface: React.FC<CodeExecutionInterfaceProps> = ({
     });
 
     try {
-      const result = await codeExecutionService.validateCompliance(
+      const _result = await codeExecutionService.validateCompliance(
         code,
         language,
         specifications

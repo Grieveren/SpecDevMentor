@@ -43,14 +43,14 @@ export const CreateProjectModal: React.FC<CreateProjectModalProps> = ({
       });
       
       onSuccess();
-    } catch (err: any) {
+    } catch (err: unknown) {
       setError(err.message || 'Failed to create project');
     } finally {
       setLoading(false);
     }
   };
 
-  const handleInputChange = (field: keyof CreateProjectRequest, value: string) => {
+  const handleInputChange = (field: keyof CreateProjectRequest, _value: string) => {
     setFormData(prev => ({ ...prev, [field]: value }));
     if (error) setError(null);
   };

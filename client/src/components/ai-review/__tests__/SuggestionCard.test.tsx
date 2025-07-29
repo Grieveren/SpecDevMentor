@@ -7,7 +7,7 @@ import { AISuggestion } from '../../../services/ai-review.service';
 
 // Mock the DiffVisualization component
 vi.mock('../DiffVisualization', () => ({
-  DiffVisualization: ({ originalText, suggestedText }: any) => (
+  DiffVisualization: ({ originalText, suggestedText }: unknown) => (
     <div data-testid="diff-visualization">
       <div>Original: {originalText}</div>
       <div>Suggested: {suggestedText}</div>
@@ -89,7 +89,7 @@ describe('SuggestionCard', () => {
   });
 
   it('should call onApply when apply button is clicked', async () => {
-    const user = userEvent.setup();
+    const _user = userEvent.setup();
     render(<SuggestionCard {...defaultProps} />);
 
     await user.click(screen.getByTitle('Apply suggestion'));
@@ -97,7 +97,7 @@ describe('SuggestionCard', () => {
   });
 
   it('should call onDismiss when dismiss button is clicked', async () => {
-    const user = userEvent.setup();
+    const _user = userEvent.setup();
     render(<SuggestionCard {...defaultProps} />);
 
     await user.click(screen.getByTitle('Dismiss suggestion'));
@@ -105,7 +105,7 @@ describe('SuggestionCard', () => {
   });
 
   it('should call onRollback when rollback button is clicked', async () => {
-    const user = userEvent.setup();
+    const _user = userEvent.setup();
     render(<SuggestionCard {...defaultProps} isApplied={true} />);
 
     await user.click(screen.getByTitle('Rollback suggestion'));
@@ -113,7 +113,7 @@ describe('SuggestionCard', () => {
   });
 
   it('should expand and collapse details', async () => {
-    const user = userEvent.setup();
+    const _user = userEvent.setup();
     render(<SuggestionCard {...defaultProps} />);
 
     // Details should be collapsed initially
@@ -150,7 +150,7 @@ describe('SuggestionCard', () => {
   });
 
   it('should show loading state when applying suggestion', async () => {
-    const user = userEvent.setup();
+    const _user = userEvent.setup();
     const slowOnApply = vi.fn(() => new Promise(resolve => setTimeout(resolve, 100)));
     
     render(<SuggestionCard {...defaultProps} onApply={slowOnApply} />);
@@ -167,7 +167,7 @@ describe('SuggestionCard', () => {
   });
 
   it('should show loading state when rolling back suggestion', async () => {
-    const user = userEvent.setup();
+    const _user = userEvent.setup();
     const slowOnRollback = vi.fn(() => new Promise(resolve => setTimeout(resolve, 100)));
     
     render(<SuggestionCard {...defaultProps} isApplied={true} onRollback={slowOnRollback} />);
@@ -207,7 +207,7 @@ describe('SuggestionCard', () => {
   });
 
   it('should handle error in apply action gracefully', async () => {
-    const user = userEvent.setup();
+    const _user = userEvent.setup();
     const errorOnApply = vi.fn().mockRejectedValue(new Error('Apply failed'));
     const consoleSpy = vi.spyOn(console, 'error').mockImplementation(() => {});
     
@@ -223,7 +223,7 @@ describe('SuggestionCard', () => {
   });
 
   it('should handle error in rollback action gracefully', async () => {
-    const user = userEvent.setup();
+    const _user = userEvent.setup();
     const errorOnRollback = vi.fn().mockRejectedValue(new Error('Rollback failed'));
     const consoleSpy = vi.spyOn(console, 'error').mockImplementation(() => {});
     

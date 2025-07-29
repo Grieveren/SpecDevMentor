@@ -35,8 +35,8 @@ export interface ExerciseResult {
 
 interface ExerciseInterfaceProps {
   exercise: Exercise;
-  onSubmit: (response: any) => Promise<ExerciseResult>;
-  onComplete: (result: ExerciseResult) => void;
+  onSubmit: (_response: unknown) => Promise<ExerciseResult>;
+  onComplete: (_result: ExerciseResult) => void;
   previousResult?: ExerciseResult;
 }
 
@@ -119,7 +119,7 @@ export const ExerciseInterface: React.FC<ExerciseInterfaceProps> = ({
         const options = exercise.metadata?.options || [];
         return (
           <div className="space-y-3">
-            {options.map((option: any, index: number) => (
+            {options.map((option: unknown, _index: number) => (
               <label key={index} className="flex items-center p-3 border rounded-lg hover:bg-gray-50 cursor-pointer">
                 <input
                   type="radio"

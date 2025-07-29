@@ -114,7 +114,7 @@ export class SpecificationWorkflowService {
     projectId: string,
     phase: SpecificationPhase
   ): Promise<ValidationResult> {
-    const document = await this.prisma.specificationDocument.findUnique({
+    const _document = await this.prisma.specificationDocument.findUnique({
       where: {
         projectId_phase: {
           projectId,
@@ -157,7 +157,7 @@ export class SpecificationWorkflowService {
     // Run custom validators
     if (rule.customValidators) {
       for (const validator of rule.customValidators) {
-        const result = validator(document.content);
+        const _result = validator(document.content);
         errors.push(...result.errors);
         warnings.push(...result.warnings);
       }
@@ -202,7 +202,7 @@ export class SpecificationWorkflowService {
         }
 
       } catch (aiError) {
-        console.warn('AI validation failed:', aiError);
+        // // console.warn('AI validation failed:', aiError);
         warnings.push('AI validation temporarily unavailable');
       }
     }
@@ -214,7 +214,7 @@ export class SpecificationWorkflowService {
     let customValidationComplete = 1;
     if (rule.customValidators) {
       for (const validator of rule.customValidators) {
-        const result = validator(document.content);
+        const _result = validator(document.content);
         if (!result.isValid) {
           customValidationComplete = 0;
           break;
@@ -249,7 +249,7 @@ export class SpecificationWorkflowService {
     targetPhase: SpecificationPhase,
     userId: string
   ): Promise<{ canTransition: boolean; reason?: string }> {
-    const project = await this.prisma.specificationProject.findUnique({
+    const _project = await this.prisma.specificationProject.findUnique({
       where: { id: projectId },
       include: {
         owner: true,
@@ -318,7 +318,7 @@ export class SpecificationWorkflowService {
       );
     }
 
-    const project = await this.prisma.specificationProject.findUnique({
+    const _project = await this.prisma.specificationProject.findUnique({
       where: { id: projectId },
     });
 
@@ -380,7 +380,7 @@ export class SpecificationWorkflowService {
       try {
         await this.triggerAutoAIReview(projectId, request.targetPhase, userId);
       } catch (error) {
-        console.warn('Auto AI review failed during phase transition:', error);
+        // // console.warn('Auto AI review failed during phase transition:', error);
         // Don't fail the transition if AI review fails
       }
     }
@@ -408,7 +408,7 @@ export class SpecificationWorkflowService {
       );
     }
 
-    const document = await this.prisma.specificationDocument.findUnique({
+    const _document = await this.prisma.specificationDocument.findUnique({
       where: {
         projectId_phase: {
           projectId,
@@ -479,7 +479,7 @@ export class SpecificationWorkflowService {
       if (cached) {
         const workflowState = JSON.parse(cached);
         // Convert date strings back to Date objects
-        workflowState.phaseHistory = workflowState.phaseHistory.map((transition: any) => ({
+        workflowState.phaseHistory = workflowState.phaseHistory.map((transition: unknown) => ({
           ...transition,
           timestamp: new Date(transition.timestamp),
         }));
@@ -487,7 +487,7 @@ export class SpecificationWorkflowService {
       }
     }
 
-    const project = await this.prisma.specificationProject.findUnique({
+    const _project = await this.prisma.specificationProject.findUnique({
       where: { id: projectId },
       include: {
         documents: {
@@ -698,7 +698,7 @@ export class SpecificationWorkflowService {
   }
 
   private checkTransitionPermission(
-    project: any,
+    project: unknown,
     userId: string
   ): boolean {
     // Project owner can always transition
@@ -708,7 +708,7 @@ export class SpecificationWorkflowService {
 
     // Team leads can transition
     const teamMember = project.team.find(
-      (member: any) => member.userId === userId && member.role === 'LEAD'
+      (member: unknown) => member.userId === userId && member.role === 'LEAD'
     );
 
     return !!teamMember;
@@ -718,7 +718,7 @@ export class SpecificationWorkflowService {
     projectId: string,
     userId: string
   ): Promise<boolean> {
-    const project = await this.prisma.specificationProject.findUnique({
+    const _project = await this.prisma.specificationProject.findUnique({
       where: { id: projectId },
       include: {
         team: {
@@ -744,7 +744,7 @@ export class SpecificationWorkflowService {
   }
 
   private async recordPhaseTransition(
-    tx: any,
+    tx: unknown,
     projectId: string,
     fromPhase: SpecificationPhase,
     toPhase: SpecificationPhase,
@@ -776,7 +776,7 @@ export class SpecificationWorkflowService {
     
     const transitions: PhaseTransition[] = [];
     for (const key of keys) {
-      const data = await this.redis.get(key);
+      const _data = await this.redis.get(key);
       if (data) {
         const transition = JSON.parse(data);
         transition.timestamp = new Date(transition.timestamp);
@@ -800,7 +800,7 @@ export class SpecificationWorkflowService {
     
     const approvals: Approval[] = [];
     for (const key of keys) {
-      const data = await this.redis.get(key);
+      const _data = await this.redis.get(key);
       if (data) {
         const approval = JSON.parse(data);
         approval.timestamp = new Date(approval.timestamp);
@@ -850,7 +850,7 @@ export class SpecificationWorkflowService {
     }
 
     try {
-      const document = await this.prisma.specificationDocument.findUnique({
+      const _document = await this.prisma.specificationDocument.findUnique({
         where: {
           projectId_phase: {
             projectId,

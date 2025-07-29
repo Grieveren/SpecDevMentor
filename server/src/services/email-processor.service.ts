@@ -16,11 +16,11 @@ export class EmailProcessorService {
    */
   start(intervalMs: number = 30000): void {
     if (this.intervalId) {
-      console.warn('Email processor is already running');
+      // // console.warn('Email processor is already running');
       return;
     }
 
-    console.log(`Starting email processor with ${intervalMs}ms interval`);
+    // // console.log(`Starting email processor with ${intervalMs}ms interval`);
     
     this.intervalId = setInterval(async () => {
       if (!this.isProcessing) {
@@ -39,7 +39,7 @@ export class EmailProcessorService {
     if (this.intervalId) {
       clearInterval(this.intervalId);
       this.intervalId = undefined;
-      console.log('Email processor stopped');
+      // // console.log('Email processor stopped');
     }
   }
 

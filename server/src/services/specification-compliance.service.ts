@@ -750,7 +750,7 @@ ${originalCode}
 try {
   ${testCase.input ? `const input = ${JSON.stringify(testCase.input)};` : ''}
   // Test code would be generated based on the test case
-  console.log('Test passed');
+  // // console.log('Test passed');
 } catch (error) {
   console.error('Test failed:', error.message);
 }
@@ -774,7 +774,7 @@ except Exception as error:
     }
   }
 
-  private evaluateTestResult(executionResult: any, testCase: TestCase): boolean {
+  private evaluateTestResult(executionResult: unknown, testCase: TestCase): boolean {
     if (!executionResult.success) {
       return false;
     }

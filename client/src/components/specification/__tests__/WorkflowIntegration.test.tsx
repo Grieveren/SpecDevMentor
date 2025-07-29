@@ -178,7 +178,7 @@ describe('Workflow Integration Tests', () => {
     });
 
     it('should handle phase change when accessible phase is clicked', async () => {
-      const user = userEvent.setup();
+      const _user = userEvent.setup();
       const mockOnPhaseChange = vi.fn();
 
       render(
@@ -225,7 +225,7 @@ describe('Workflow Integration Tests', () => {
     });
 
     it('should handle approval request', async () => {
-      const user = userEvent.setup();
+      const _user = userEvent.setup();
       const mockOnRequestApproval = vi.fn();
 
       const completeValidationResult = {
@@ -263,7 +263,7 @@ describe('Workflow Integration Tests', () => {
     });
 
     it('should show proceed button when phase is approved and can progress', async () => {
-      const user = userEvent.setup();
+      const _user = userEvent.setup();
       const mockOnTransitionPhase = vi.fn();
 
       const approvedWorkflowState = {
@@ -368,7 +368,7 @@ describe('Workflow Integration Tests', () => {
     });
 
     it('should handle sidebar collapse and expand', async () => {
-      const user = userEvent.setup();
+      const _user = userEvent.setup();
 
       render(
         <SpecificationLayout
@@ -427,7 +427,7 @@ describe('Workflow Integration Tests', () => {
     });
 
     it('should handle navigation clicks', async () => {
-      const user = userEvent.setup();
+      const _user = userEvent.setup();
       const mockOnNavigateToProject = vi.fn();
       const mockOnNavigateToPhase = vi.fn();
 
@@ -454,11 +454,11 @@ describe('Workflow Integration Tests', () => {
 
   describe('Complete Workflow Progression', () => {
     it('should handle end-to-end workflow from requirements to implementation', async () => {
-      const user = userEvent.setup();
+      const _user = userEvent.setup();
       
       // Start with requirements phase
       let currentPhase = SpecificationPhase.REQUIREMENTS;
-      let documentStatuses = { ...mockDocumentStatuses };
+      const documentStatuses = { ...mockDocumentStatuses };
       
       const mockOnPhaseChange = vi.fn().mockImplementation((phase) => {
         currentPhase = phase;
@@ -565,7 +565,7 @@ describe('Workflow Integration Tests', () => {
     });
 
     it('should prevent unauthorized phase transitions', async () => {
-      const user = userEvent.setup();
+      const _user = userEvent.setup();
 
       // Mock validation that prevents transition
       const invalidValidationResult = {
@@ -756,7 +756,7 @@ describe('Workflow Integration Tests', () => {
     });
 
     it('should support keyboard navigation', async () => {
-      const user = userEvent.setup();
+      const _user = userEvent.setup();
       const mockOnPhaseChange = vi.fn();
 
       render(

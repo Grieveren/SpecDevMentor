@@ -8,7 +8,7 @@ describe('ErrorTrackingService', () => {
 
   describe('captureError', () => {
     it('should capture and store error', () => {
-      const error = new Error('Test error');
+      const _error = new Error('Test error');
       const context = {
         userId: 'user123',
         method: 'GET',
@@ -67,7 +67,7 @@ describe('ErrorTrackingService', () => {
     });
 
     it('should emit error event when error is captured', (done) => {
-      const error = new Error('Test error');
+      const _error = new Error('Test error');
 
       errorTracker.once('error', (errorReport) => {
         expect(errorReport.error.message).toBe('Test error');
@@ -78,7 +78,7 @@ describe('ErrorTrackingService', () => {
     });
 
     it('should emit criticalError event for critical errors', (done) => {
-      const error = new Error('Database connection failed');
+      const _error = new Error('Database connection failed');
       error.name = 'DatabaseError';
 
       errorTracker.once('criticalError', (errorReport) => {
@@ -95,7 +95,7 @@ describe('ErrorTrackingService', () => {
       errorTracker.addBreadcrumb('User logged in', 'auth', 'info', { userId: 'user123' });
       errorTracker.addBreadcrumb('API request made', 'api', 'info', { endpoint: '/api/test' });
 
-      const error = new Error('Test error');
+      const _error = new Error('Test error');
       const errorId = errorTracker.captureError(error);
       const storedError = errorTracker.getError(errorId);
 
@@ -112,7 +112,7 @@ describe('ErrorTrackingService', () => {
         errorTracker.addBreadcrumb(`Breadcrumb ${i}`, 'test', 'info');
       }
 
-      const error = new Error('Test error');
+      const _error = new Error('Test error');
       const errorId = errorTracker.captureError(error);
       const storedError = errorTracker.getError(errorId);
 
@@ -199,7 +199,7 @@ describe('ErrorTrackingService', () => {
 
   describe('captureRequestError', () => {
     it('should capture error with request context', () => {
-      const error = new Error('Request error');
+      const _error = new Error('Request error');
       const mockReq = {
         user: { id: 'user123' },
         requestId: 'req123',

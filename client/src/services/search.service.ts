@@ -69,7 +69,7 @@ export class SearchService {
       }
     });
 
-    const response = await apiClient.get(`/search?${params.toString()}`);
+    const _response = await apiClient.get(`/search?${params.toString()}`);
     return response.data.data;
   }
 
@@ -79,7 +79,7 @@ export class SearchService {
   async getSuggestions(query: string): Promise<string[]> {
     if (!query || query.length < 2) return [];
 
-    const response = await apiClient.get('/search/suggestions', {
+    const _response = await apiClient.get('/search/suggestions', {
       params: { q: query },
     });
     return response.data.data.suggestions;
@@ -93,7 +93,7 @@ export class SearchService {
     page = 1,
     limit = 20
   ): Promise<SearchResponse> {
-    const response = await apiClient.post('/search/advanced', filters, {
+    const _response = await apiClient.post('/search/advanced', filters, {
       params: { page, limit },
     });
     return response.data.data;
@@ -120,7 +120,7 @@ export class SearchService {
       }
     });
 
-    const response = await apiClient.get(
+    const _response = await apiClient.get(
       `/search/project/${projectId}?${params.toString()}`
     );
     return response.data.data;
@@ -130,7 +130,7 @@ export class SearchService {
    * Get search analytics (admin only)
    */
   async getAnalytics(): Promise<SearchAnalytics> {
-    const response = await apiClient.get('/search/analytics');
+    const _response = await apiClient.get('/search/analytics');
     return response.data.data;
   }
 

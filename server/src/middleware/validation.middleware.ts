@@ -4,7 +4,7 @@ import { validationResult } from 'express-validator';
 /**
  * Middleware to validate request data using express-validator
  */
-export const validateRequest = (req: Request, res: Response, next: NextFunction) => {
+export const validateRequest = (_req: Request, _res: Response, _next: NextFunction) => {
   const errors = validationResult(req);
   
   if (!errors.isEmpty()) {

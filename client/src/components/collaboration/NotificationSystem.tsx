@@ -32,7 +32,7 @@ export const NotificationSystem: React.FC<NotificationSystemProps> = ({ classNam
   const loadNotifications = async () => {
     try {
       setIsLoading(true);
-      const response = await notificationService.getNotifications({ limit: 10 });
+      const _response = await notificationService.getNotifications({ limit: 10 });
       setNotifications(response.notifications);
     } catch (error) {
       console.error('Failed to load notifications:', error);

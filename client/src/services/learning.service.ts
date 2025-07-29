@@ -102,22 +102,22 @@ class LearningService {
     if (filters?.difficulty) params.append('difficulty', filters.difficulty);
     if (filters?.search) params.append('search', filters.search);
 
-    const response = await apiClient.get(`/learning/modules?${params.toString()}`);
+    const _response = await apiClient.get(`/learning/modules?${params.toString()}`);
     return response.data.data;
   }
 
   async getModule(id: string): Promise<LearningModule> {
-    const response = await apiClient.get(`/learning/modules/${id}`);
+    const _response = await apiClient.get(`/learning/modules/${id}`);
     return response.data.data;
   }
 
   async createModule(data: Omit<LearningModule, 'id' | 'createdAt' | 'updatedAt'>): Promise<LearningModule> {
-    const response = await apiClient.post('/learning/modules', data);
+    const _response = await apiClient.post('/learning/modules', data);
     return response.data.data;
   }
 
   async updateModule(id: string, data: Partial<LearningModule>): Promise<LearningModule> {
-    const response = await apiClient.put(`/learning/modules/${id}`, data);
+    const _response = await apiClient.put(`/learning/modules/${id}`, data);
     return response.data.data;
   }
 
@@ -128,7 +128,7 @@ class LearningService {
   // Progress Tracking
   async getUserProgress(moduleId?: string): Promise<UserProgress[]> {
     const params = moduleId ? `?moduleId=${moduleId}` : '';
-    const response = await apiClient.get(`/learning/progress${params}`);
+    const _response = await apiClient.get(`/learning/progress${params}`);
     return response.data.data;
   }
 
@@ -139,34 +139,34 @@ class LearningService {
     skillAssessments?: SkillAssessment[];
     status?: 'NOT_STARTED' | 'IN_PROGRESS' | 'COMPLETED' | 'SKIPPED';
   }): Promise<UserProgress> {
-    const response = await apiClient.post('/learning/progress', data);
+    const _response = await apiClient.post('/learning/progress', data);
     return response.data.data;
   }
 
   // Prerequisites
   async validatePrerequisites(moduleId: string): Promise<PrerequisiteValidation> {
-    const response = await apiClient.get(`/learning/modules/${moduleId}/prerequisites`);
+    const _response = await apiClient.get(`/learning/modules/${moduleId}/prerequisites`);
     return response.data.data;
   }
 
   async getRecommendations(): Promise<LearningModule[]> {
-    const response = await apiClient.get('/learning/recommendations');
+    const _response = await apiClient.get('/learning/recommendations');
     return response.data.data;
   }
 
   // Content Delivery
   async getLessonContent(moduleId: string, lessonId: string): Promise<LessonContent> {
-    const response = await apiClient.get(`/learning/modules/${moduleId}/lessons/${lessonId}`);
+    const _response = await apiClient.get(`/learning/modules/${moduleId}/lessons/${lessonId}`);
     return response.data.data;
   }
 
   async getExercise(moduleId: string, exerciseId: string): Promise<Exercise> {
-    const response = await apiClient.get(`/learning/modules/${moduleId}/exercises/${exerciseId}`);
+    const _response = await apiClient.get(`/learning/modules/${moduleId}/exercises/${exerciseId}`);
     return response.data.data;
   }
 
   // Exercise Submission
-  async submitExercise(moduleId: string, exerciseId: string, response: any): Promise<ExerciseResult> {
+  async submitExercise(moduleId: string, exerciseId: string, _response: unknown): Promise<ExerciseResult> {
     const submitResponse = await apiClient.post(`/learning/modules/${moduleId}/exercises/${exerciseId}/submit`, {
       response,
       submittedAt: new Date().toISOString(),
@@ -176,7 +176,7 @@ class LearningService {
 
   // Skill Assessment
   async assessSkill(moduleId: string, skillId: string, responses: Record<string, any>): Promise<SkillAssessment> {
-    const response = await apiClient.post(`/learning/modules/${moduleId}/assess/${skillId}`, {
+    const _response = await apiClient.post(`/learning/modules/${moduleId}/assess/${skillId}`, {
       responses,
     });
     return response.data.data;
@@ -184,7 +184,7 @@ class LearningService {
 
   // Achievement System
   async getAchievements(): Promise<Achievement[]> {
-    const response = await apiClient.get('/learning/achievements');
+    const _response = await apiClient.get('/learning/achievements');
     return response.data.data;
   }
 
@@ -195,14 +195,14 @@ class LearningService {
   // Learning Path
   async getLearningPath(phase?: string): Promise<LearningModule[]> {
     const params = phase ? `?phase=${phase}` : '';
-    const response = await apiClient.get(`/learning/path${params}`);
+    const _response = await apiClient.get(`/learning/path${params}`);
     return response.data.data;
   }
 
   // Analytics
   async getLearningAnalytics(timeframe?: 'week' | 'month' | 'year'): Promise<LearningAnalytics> {
     const params = timeframe ? `?timeframe=${timeframe}` : '';
-    const response = await apiClient.get(`/learning/analytics${params}`);
+    const _response = await apiClient.get(`/learning/analytics${params}`);
     return response.data.data;
   }
 }

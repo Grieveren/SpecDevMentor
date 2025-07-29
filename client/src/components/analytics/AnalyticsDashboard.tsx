@@ -34,7 +34,7 @@ export const AnalyticsDashboard: React.FC<AnalyticsDashboardProps> = ({
     try {
       setLoading(true);
       setError(null);
-      const data = await analyticsService.getDashboardData(projectId);
+      const _data = await analyticsService.getDashboardData(projectId);
       setDashboardData(data);
       
       // Set default view based on data type

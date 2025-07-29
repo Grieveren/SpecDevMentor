@@ -188,7 +188,7 @@ export class FileUploadService {
    * Get file by ID
    */
   async getFile(fileId: string, userId?: string): Promise<any> {
-    const file = await this.prisma.fileAttachment.findUnique({
+    const _file = await this.prisma.fileAttachment.findUnique({
       where: { id: fileId },
       include: {
         uploader: {
@@ -224,7 +224,7 @@ export class FileUploadService {
    */
   async getDocumentFiles(documentId: string, userId: string): Promise<any[]> {
     // First check if user has access to the document
-    const document = await this.prisma.specificationDocument.findUnique({
+    const _document = await this.prisma.specificationDocument.findUnique({
       where: { id: documentId },
       include: {
         project: {
@@ -332,7 +332,7 @@ export class FileUploadService {
    * Delete file
    */
   async deleteFile(fileId: string, userId: string): Promise<void> {
-    const file = await this.getFile(fileId, userId);
+    const _file = await this.getFile(fileId, userId);
     
     if (file.uploaderId !== userId) {
       throw new Error('Only the file owner can delete files');
@@ -367,8 +367,8 @@ export class FileUploadService {
   /**
    * Get file stream for download
    */
-  async getFileStream(fileId: string, userId?: string): Promise<{ stream: any; file: any }> {
-    const file = await this.getFile(fileId, userId);
+  async getFileStream(fileId: string, userId?: string): Promise<{ stream: unknown; file: unknown }> {
+    const _file = await this.getFile(fileId, userId);
     
     // Check if file exists on filesystem
     try {
@@ -496,7 +496,7 @@ export class FileUploadService {
     return executableExtensions.includes(ext);
   }
 
-  private async checkFileAccess(file: any, userId: string): Promise<boolean> {
+  private async checkFileAccess(file: unknown, userId: string): Promise<boolean> {
     // File owner always has access
     if (file.uploaderId === userId) {
       return true;
@@ -504,7 +504,7 @@ export class FileUploadService {
 
     // If file is attached to a document, check document access
     if (file.documentId) {
-      const document = await this.prisma.specificationDocument.findUnique({
+      const _document = await this.prisma.specificationDocument.findUnique({
         where: { id: file.documentId },
         include: {
           project: {

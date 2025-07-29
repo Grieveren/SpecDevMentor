@@ -11,7 +11,7 @@ vi.mock('../services/ai.service');
 describe('Workflow-AI Integration', () => {
   let prisma: PrismaClient;
   let redis: Redis;
-  let aiService: any;
+  let aiService: unknown;
   let workflowService: SpecificationWorkflowService;
 
   const mockProject = {
@@ -133,7 +133,7 @@ This is a test requirements document.
       (aiService.reviewSpecification as any).mockResolvedValue(mockAIReview);
 
       // Execute
-      const result = await workflowService.validatePhaseCompletion(
+      const _result = await workflowService.validatePhaseCompletion(
         'project-1',
         SpecificationPhase.REQUIREMENTS
       );
@@ -164,7 +164,7 @@ This is a test requirements document.
       (aiService.reviewSpecification as any).mockRejectedValue(new Error('AI service unavailable'));
 
       // Execute
-      const result = await workflowService.validatePhaseCompletion(
+      const _result = await workflowService.validatePhaseCompletion(
         'project-1',
         SpecificationPhase.REQUIREMENTS
       );
@@ -182,7 +182,7 @@ This is a test requirements document.
       (aiService.reviewSpecification as any).mockResolvedValue(lowScoreAIReview);
 
       // Execute
-      const result = await workflowService.validatePhaseCompletion(
+      const _result = await workflowService.validatePhaseCompletion(
         'project-1',
         SpecificationPhase.REQUIREMENTS
       );
@@ -202,7 +202,7 @@ This is a test requirements document.
       (prisma.auditLog.create as any).mockResolvedValue({});
 
       // Execute
-      const result = await workflowService.triggerAutoAIReview(
+      const _result = await workflowService.triggerAutoAIReview(
         'project-1',
         SpecificationPhase.REQUIREMENTS,
         'user-1'
@@ -256,7 +256,7 @@ This is a test requirements document.
       (prisma.auditLog.create as any).mockResolvedValue({});
 
       // Execute
-      const result = await workflowService.triggerAutoAIReview(
+      const _result = await workflowService.triggerAutoAIReview(
         'project-1',
         SpecificationPhase.REQUIREMENTS,
         'user-1'
@@ -287,7 +287,7 @@ This is a test requirements document.
       (prisma.specificationDocument.findUnique as any).mockResolvedValue(null);
 
       // Execute
-      const result = await workflowService.triggerAutoAIReview(
+      const _result = await workflowService.triggerAutoAIReview(
         'project-1',
         SpecificationPhase.REQUIREMENTS,
         'user-1'
@@ -305,7 +305,7 @@ This is a test requirements document.
       (aiService.reviewSpecification as any).mockResolvedValue(mockAIReview);
 
       // Execute
-      const result = await workflowService.getPhaseAIValidation(
+      const _result = await workflowService.getPhaseAIValidation(
         'project-1',
         SpecificationPhase.REQUIREMENTS
       );
@@ -338,7 +338,7 @@ This is a test requirements document.
       (aiService.reviewSpecification as any).mockResolvedValue(highSeverityReview);
 
       // Execute
-      const result = await workflowService.getPhaseAIValidation(
+      const _result = await workflowService.getPhaseAIValidation(
         'project-1',
         SpecificationPhase.REQUIREMENTS
       );
@@ -356,7 +356,7 @@ This is a test requirements document.
       const serviceWithoutAI = new SpecificationWorkflowService(prisma, redis);
 
       // Execute
-      const result = await serviceWithoutAI.getPhaseAIValidation(
+      const _result = await serviceWithoutAI.getPhaseAIValidation(
         'project-1',
         SpecificationPhase.REQUIREMENTS
       );
