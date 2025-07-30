@@ -93,6 +93,9 @@ EOF
         print_success ".env file already exists"
     fi
     
+    # Ensure server directory exists
+    mkdir -p server
+    
     # Server .env file
     if [ ! -f server/.env ]; then
         if [ -f server/.env.example ]; then
@@ -100,6 +103,7 @@ EOF
             print_success "Created server/.env from server/.env.example"
         else
             print_warning "server/.env.example not found, creating basic server/.env file"
+            mkdir -p server
             cat > server/.env << EOF
 NODE_ENV=production
 PORT=3001

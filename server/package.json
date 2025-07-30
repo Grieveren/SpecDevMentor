@@ -5,8 +5,8 @@
   "type": "module",
   "main": "dist/index.js",
   "scripts": {
-    "dev": "tsx watch src/index.ts",
-    "build": "tsc",
+    "dev": "tsx watch --clear-screen=false src/index-simple.ts",
+    "build": "tsc --noEmit false",
     "start": "node dist/index.js",
     "test": "vitest run",
     "test:watch": "vitest",

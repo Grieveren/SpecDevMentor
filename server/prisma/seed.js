@@ -1,11 +1,14 @@
-import { PrismaClient, UserRole, SpecificationPhase, DocumentStatus, ProjectStatus } from '@prisma/client';
+import {
+  PrismaClient,
+  UserRole,
+  SpecificationPhase,
+  DocumentStatus,
+  ProjectStatus,
+} from '@prisma/client';
 import bcrypt from 'bcryptjs';
-
 const prisma = new PrismaClient();
-
 async function main() {
   console.log('🌱 Seeding database...');
-
   // Create admin user
   const adminPassword = await bcrypt.hash('admin123', 12);
   const adminUser = await prisma.user.upsert({
@@ -19,7 +22,6 @@ async function main() {
       isVerified: true,
     },
   });
-
   // Create developer user
   const devPassword = await bcrypt.hash('dev123', 12);
   const devUser = await prisma.user.upsert({
@@ -33,7 +35,6 @@ async function main() {
       isVerified: true,
     },
   });
-
   // Create team lead user
   const teamLeadPassword = await bcrypt.hash('lead123', 12);
   const teamLeadUser = await prisma.user.upsert({
@@ -47,7 +48,6 @@ async function main() {
       isVerified: true,
     },
   });
-
   // Create sample learning modules
   const requirementsModule = await prisma.learningModule.upsert({
     where: { id: 'requirements-basics' },
@@ -55,7 +55,8 @@ async function main() {
     create: {
       id: 'requirements-basics',
       title: 'Requirements Engineering Basics',
-      description: 'Learn the fundamentals of writing clear, testable requirements using EARS format and user stories.',
+      description:
+        'Learn the fundamentals of writing clear, testable requirements using EARS format and user stories.',
       phase: SpecificationPhase.REQUIREMENTS,
       difficulty: 'BEGINNER',
       prerequisites: [],
@@ -95,14 +96,14 @@ async function main() {
       isPublished: true,
     },
   });
-
   const designModule = await prisma.learningModule.upsert({
     where: { id: 'design-fundamentals' },
     update: {},
     create: {
       id: 'design-fundamentals',
       title: 'Design Document Fundamentals',
-      description: 'Learn to create comprehensive technical design documents that bridge requirements and implementation.',
+      description:
+        'Learn to create comprehensive technical design documents that bridge requirements and implementation.',
       phase: SpecificationPhase.DESIGN,
       difficulty: 'INTERMEDIATE',
       prerequisites: ['requirements-basics'],
@@ -136,12 +137,12 @@ async function main() {
       isPublished: true,
     },
   });
-
   // Create sample projects
   const sampleProject = await prisma.specificationProject.create({
     data: {
       name: 'E-commerce Platform',
-      description: 'A comprehensive e-commerce platform with user management, product catalog, and order processing.',
+      description:
+        'A comprehensive e-commerce platform with user management, product catalog, and order processing.',
       ownerId: adminUser.id,
       currentPhase: SpecificationPhase.REQUIREMENTS,
       status: ProjectStatus.ACTIVE,
@@ -276,12 +277,12 @@ interface Product {
       },
     },
   });
-
   // Create another sample project
   const blogProject = await prisma.specificationProject.create({
     data: {
       name: 'Personal Blog Platform',
-      description: 'A simple blog platform for creating and sharing articles with commenting system.',
+      description:
+        'A simple blog platform for creating and sharing articles with commenting system.',
       ownerId: devUser.id,
       currentPhase: SpecificationPhase.REQUIREMENTS,
       status: ProjectStatus.ACTIVE,
@@ -339,7 +340,6 @@ Simple blog platform with clean architecture and focus on content creation.
       },
     },
   });
-
   // Create user progress records
   await prisma.userProgress.create({
     data: {
@@ -350,7 +350,6 @@ Simple blog platform with clean architecture and focus on content creation.
       lastAccessed: new Date(),
     },
   });
-
   console.log('✅ Database seeded successfully');
   console.log(`👤 Admin user: admin@codementor-ai.com / admin123`);
   console.log(`👤 Developer user: developer@codementor-ai.com / dev123`);
@@ -358,9 +357,8 @@ Simple blog platform with clean architecture and focus on content creation.
   console.log(`📁 Created ${2} sample projects`);
   console.log(`📚 Created ${2} learning modules`);
 }
-
 main()
-  .catch((e) => {
+  .catch(e => {
     console.error(e);
     process.exit(1);
   })
