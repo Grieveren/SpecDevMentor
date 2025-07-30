@@ -11,6 +11,9 @@
   "scripts": {
     "dev": "concurrently \"pnpm --filter client dev\" \"pnpm --filter server dev\"",
     "build": "pnpm --filter client build && pnpm --filter server build",
+    "start": "./scripts/start-production-local.sh",
+    "stop": "./scripts/stop-production-local.sh",
+    "reset": "./scripts/reset-local-environment.sh",
     "test": "pnpm --recursive test",
     "test:watch": "pnpm --recursive test:watch",
     "test:e2e": "playwright test",
@@ -29,6 +32,7 @@
     "test:smoke": "playwright test e2e/smoke.spec.ts",
     "test:performance": "playwright test e2e/performance.spec.ts",
     "test:compliance": "playwright test e2e/compliance.spec.ts",
+    "test:uat": "echo 'See UAT_TESTING_GUIDE.md for comprehensive testing scenarios'",
     "lint": "pnpm --recursive lint",
     "lint:fix": "pnpm --recursive lint:fix",
     "format": "prettier --write \"**/*.{ts,tsx,js,jsx,json,md}\"",
@@ -38,9 +42,14 @@
     "docker:up": "docker-compose up -d",
     "docker:down": "docker-compose down",
     "docker:logs": "docker-compose logs -f",
+    "docker:full": "docker-compose --profile full-stack up -d",
+    "docker:monitoring": "docker-compose --profile monitoring up -d",
     "db:migrate": "pnpm --filter server db:migrate",
     "db:seed": "pnpm --filter server db:seed",
     "db:reset": "pnpm --filter server db:reset",
+    "db:backup": "./scripts/backup-database.sh",
+    "health": "curl -f http://localhost:3001/health || echo 'Server not running'",
+    "logs": "tail -f logs/server.log logs/client.log",
     "prepare": "husky install"
   },
   "devDependencies": {
