@@ -1,28 +1,25 @@
-import { Router, Request, Response, NextFunction } from 'express';
-import { body, param, query, validationResult } from 'express-validator';
 import { PrismaClient } from '@prisma/client';
+import { NextFunction, Request, Response, Router } from 'express';
+import { body, param, query, validationResult } from 'express-validator';
 import Redis from 'ioredis';
-import { 
-  ProjectService, 
-  CreateProjectRequest, 
-  UpdateProjectRequest, 
-  AddTeamMemberRequest,
-  ProjectError 
-} from '../services/project.service.js';
 import { AuthService, AuthenticationError } from '../services/auth.service.js';
+import {
+  AddTeamMemberRequest,
+  CreateProjectRequest,
+  ProjectError,
+  ProjectService,
+  UpdateProjectRequest,
+} from '../services/project.service.js';
+import {
+  ApiError,
+  ApiResponse,
+  AuthenticatedRequest,
+  AuthenticatedRouteHandler,
+  ErrorMiddleware,
+  Middleware,
+} from '../types/express.js';
 
 const router = Router();
-
-// Simple auth middleware for project routes
-export interface AuthenticatedRequest extends Request {
-  user: {
-    id: string;
-    userId: string;
-    email: string;
-    role: string;
-    jti: string;
-  };
-}
 
 // Initialize services
 const prisma = new PrismaClient();
@@ -31,29 +28,37 @@ const projectService = new ProjectService(prisma, redis);
 const authService = new AuthService(redis);
 
 // Validation middleware
-const validateRequest = (_req: Request, _res: Response, _next: NextFunction) => {
+const validateRequest: Middleware = (req: Request, res: Response, next: NextFunction): void => {
   const errors = validationResult(req);
   if (!errors.isEmpty()) {
-    return res.status(400).json({
+    const errorResponse: ApiError = {
       success: false,
       message: 'Validation failed',
-      errors: errors.array(),
-    });
+      code: 'VALIDATION_ERROR',
+      details: errors.array(),
+    };
+    res.status(400).json(errorResponse);
+    return;
   }
   next();
 };
 
 // Auth middleware
-const authMiddleware = async (_req: Request, _res: Response, _next: NextFunction): Promise<void> => {
+const authMiddleware: Middleware = async (
+  req: Request,
+  res: Response,
+  next: NextFunction
+): Promise<void> => {
   try {
     const authHeader = req.headers.authorization;
 
     if (!authHeader || !authHeader.startsWith('Bearer ')) {
-      res.status(401).json({
+      const errorResponse: ApiError = {
         success: false,
         message: 'Authentication required',
         code: 'MISSING_TOKEN',
-      });
+      };
+      res.status(401).json(errorResponse);
       return;
     }
 
@@ -63,88 +68,131 @@ const authMiddleware = async (_req: Request, _res: Response, _next: NextFunction
     next();
   } catch (error) {
     if (error instanceof AuthenticationError) {
-      res.status(401).json({
+      const errorResponse: ApiError = {
         success: false,
         message: error.message,
         code: error.code,
-      });
+      };
+      res.status(401).json(errorResponse);
       return;
     }
-    res.status(500).json({
+
+    const errorResponse: ApiError = {
       success: false,
       message: 'Authentication check failed',
       code: 'AUTH_ERROR',
-    });
+    };
+    res.status(500).json(errorResponse);
   }
 };
 
 // Error handling middleware for project operations
-const handleProjectError = (_error: unknown, _req: Request, _res: Response, _next: NextFunction) => {
+const handleProjectError: ErrorMiddleware = (
+  error: unknown,
+  req: Request,
+  res: Response,
+  next: NextFunction
+): void => {
   if (error instanceof ProjectError) {
-    return res.status(error.statusCode).json({
+    const errorResponse: ApiError = {
       success: false,
       message: error.message,
       code: error.code,
-    });
+    };
+    res.status(error.statusCode).json(errorResponse);
+    return;
   }
 
   console.error('Project operation error:', error);
-  res.status(500).json({
+  const errorResponse: ApiError = {
     success: false,
     message: 'Internal server error',
     code: 'INTERNAL_ERROR',
-  });
+  };
+  res.status(500).json(errorResponse);
 };
 
 // GET /api/projects - Get projects for authenticated user
+const getProjectsHandler: AuthenticatedRouteHandler = async (
+  req: Request,
+  res: Response,
+  next: NextFunction
+): Promise<void> => {
+  try {
+    const authReq = req as AuthenticatedRequest;
+    const { page = '1', limit = '10', search, status, phase, ownerId } = req.query;
+
+    const result = await projectService.getProjectsForUser(
+      authReq.user.id,
+      {
+        search: search as string,
+        status: status as any,
+        phase: phase as any,
+        ownerId: ownerId as string,
+      },
+      {
+        page: parseInt(page as string),
+        limit: parseInt(limit as string),
+      }
+    );
+
+    const response: ApiResponse = {
+      success: true,
+      data: result,
+    };
+
+    res.json(response);
+  } catch (error) {
+    next(error);
+  }
+};
+
 router.get(
   '/',
   authMiddleware,
   [
     query('page').optional().isInt({ min: 1 }).withMessage('Page must be a positive integer'),
-    query('limit').optional().isInt({ min: 1, max: 100 }).withMessage('Limit must be between 1 and 100'),
+    query('limit')
+      .optional()
+      .isInt({ min: 1, max: 100 })
+      .withMessage('Limit must be between 1 and 100'),
     query('search').optional().isString().trim().isLength({ max: 100 }),
     query('status').optional().isIn(['ACTIVE', 'COMPLETED', 'ARCHIVED', 'SUSPENDED']),
     query('phase').optional().isIn(['REQUIREMENTS', 'DESIGN', 'TASKS', 'IMPLEMENTATION']),
     query('ownerId').optional().isString(),
   ],
   validateRequest,
-  async (_req: AuthenticatedRequest, _res: Response, _next: NextFunction) => {
-    try {
-      const {
-        page = '1',
-        limit = '10',
-        search,
-        status,
-        phase,
-        ownerId,
-      } = req.query;
-
-      const _result = await projectService.getProjectsForUser(
-        req.user.id,
-        {
-          search: search as string,
-          status: status as any,
-          phase: phase as any,
-          ownerId: ownerId as string,
-        },
-        {
-          page: parseInt(page as string),
-          limit: parseInt(limit as string),
-        }
-      );
-
-      res.json({
-        success: true,
-        data: result,
-      });
-    } catch (error) {
-      next(error);
-    }
-  }
+  getProjectsHandler
 );
 
 // POST /api/projects - Create new project
+const createProjectHandler: AuthenticatedRouteHandler = async (
+  req: Request,
+  res: Response,
+  next: NextFunction
+): Promise<void> => {
+  try {
+    const authReq = req as AuthenticatedRequest;
+    const projectData: CreateProjectRequest = {
+      name: req.body.name,
+      description: req.body.description,
+      teamMemberIds: req.body.teamMemberIds,
+    };
+
+    const project = await projectService.createProject(projectData, authReq.user.id);
+
+    const response: ApiResponse = {
+      success: true,
+      data: project,
+      message: 'Project created successfully',
+    };
+
+    res.status(201).json(response);
+  } catch (error) {
+    next(error);
+  }
+};
+
 router.post(
   '/',
   authMiddleware,
@@ -160,60 +208,72 @@ router.post(
       .trim()
       .isLength({ max: 500 })
       .withMessage('Description must be less than 500 characters'),
-    body('teamMemberIds')
-      .optional()
-      .isArray()
-      .withMessage('Team member IDs must be an array'),
+    body('teamMemberIds').optional().isArray().withMessage('Team member IDs must be an array'),
     body('teamMemberIds.*')
       .optional()
       .isString()
       .withMessage('Each team member ID must be a string'),
   ],
   validateRequest,
-  async (_req: AuthenticatedRequest, _res: Response, _next: NextFunction) => {
-    try {
-      const projectData: CreateProjectRequest = {
-        name: req.body.name,
-        description: req.body.description,
-        teamMemberIds: req.body.teamMemberIds,
-      };
-
-      const _project = await projectService.createProject(projectData, req.user.id);
-
-      res.status(201).json({
-        success: true,
-        data: project,
-        message: 'Project created successfully',
-      });
-    } catch (error) {
-      next(error);
-    }
-  }
+  createProjectHandler
 );
 
 // GET /api/projects/:id - Get specific project
+const getProjectByIdHandler: AuthenticatedRouteHandler = async (
+  req: Request,
+  res: Response,
+  next: NextFunction
+): Promise<void> => {
+  try {
+    const authReq = req as AuthenticatedRequest;
+    const project = await projectService.getProjectById(req.params.id, authReq.user.id);
+
+    const response: ApiResponse = {
+      success: true,
+      data: project,
+    };
+    res.json(response);
+  } catch (error) {
+    next(error);
+  }
+};
+
 router.get(
   '/:id',
   authMiddleware,
-  [
-    param('id').isString().withMessage('Project ID is required'),
-  ],
+  [param('id').isString().withMessage('Project ID is required')],
   validateRequest,
-  async (_req: AuthenticatedRequest, _res: Response, _next: NextFunction) => {
-    try {
-      const _project = await projectService.getProjectById(req.params.id, req.user.id);
-
-      res.json({
-        success: true,
-        data: project,
-      });
-    } catch (error) {
-      next(error);
-    }
-  }
+  getProjectByIdHandler
 );
 
 // PUT /api/projects/:id - Update project
+const updateProjectHandler: AuthenticatedRouteHandler = async (
+  req: Request,
+  res: Response,
+  next: NextFunction
+): Promise<void> => {
+  try {
+    const authReq = req as AuthenticatedRequest;
+    const updateData: UpdateProjectRequest = {
+      name: req.body.name,
+      description: req.body.description,
+      currentPhase: req.body.currentPhase,
+      status: req.body.status,
+    };
+
+    const project = await projectService.updateProject(req.params.id, updateData, authReq.user.id);
+
+    const response: ApiResponse = {
+      success: true,
+      data: project,
+      message: 'Project updated successfully',
+    };
+    res.json(response);
+  } catch (error) {
+    next(error);
+  }
+};
+
 router.put(
   '/:id',
   authMiddleware,
@@ -241,51 +301,62 @@ router.put(
       .withMessage('Invalid status'),
   ],
   validateRequest,
-  async (_req: AuthenticatedRequest, _res: Response, _next: NextFunction) => {
-    try {
-      const updateData: UpdateProjectRequest = {
-        name: req.body.name,
-        description: req.body.description,
-        currentPhase: req.body.currentPhase,
-        status: req.body.status,
-      };
-
-      const _project = await projectService.updateProject(req.params.id, updateData, req.user.id);
-
-      res.json({
-        success: true,
-        data: project,
-        message: 'Project updated successfully',
-      });
-    } catch (error) {
-      next(error);
-    }
-  }
+  updateProjectHandler
 );
 
 // DELETE /api/projects/:id - Delete project
+const deleteProjectHandler: AuthenticatedRouteHandler = async (
+  req: Request,
+  res: Response,
+  next: NextFunction
+): Promise<void> => {
+  try {
+    const authReq = req as AuthenticatedRequest;
+    await projectService.deleteProject(req.params.id, authReq.user.id);
+
+    const response: ApiResponse = {
+      success: true,
+      message: 'Project deleted successfully',
+    };
+    res.json(response);
+  } catch (error) {
+    next(error);
+  }
+};
+
 router.delete(
   '/:id',
   authMiddleware,
-  [
-    param('id').isString().withMessage('Project ID is required'),
-  ],
+  [param('id').isString().withMessage('Project ID is required')],
   validateRequest,
-  async (_req: AuthenticatedRequest, _res: Response, _next: NextFunction) => {
-    try {
-      await projectService.deleteProject(req.params.id, req.user.id);
-
-      res.json({
-        success: true,
-        message: 'Project deleted successfully',
-      });
-    } catch (error) {
-      next(error);
-    }
-  }
+  deleteProjectHandler
 );
 
 // POST /api/projects/:id/team - Add team member
+const addTeamMemberHandler: AuthenticatedRouteHandler = async (
+  req: Request,
+  res: Response,
+  next: NextFunction
+): Promise<void> => {
+  try {
+    const authReq = req as AuthenticatedRequest;
+    const teamMemberData: AddTeamMemberRequest = {
+      userId: req.body.userId,
+      role: req.body.role,
+    };
+
+    await projectService.addTeamMember(req.params.id, teamMemberData, authReq.user.id);
+
+    const response: ApiResponse = {
+      success: true,
+      message: 'Team member added successfully',
+    };
+    res.json(response);
+  } catch (error) {
+    next(error);
+  }
+};
+
 router.post(
   '/:id/team',
   authMiddleware,
@@ -297,26 +368,29 @@ router.post(
       .withMessage('Role must be MEMBER, LEAD, or ADMIN'),
   ],
   validateRequest,
-  async (_req: AuthenticatedRequest, _res: Response, _next: NextFunction) => {
-    try {
-      const teamMemberData: AddTeamMemberRequest = {
-        userId: req.body.userId,
-        role: req.body.role,
-      };
-
-      await projectService.addTeamMember(req.params.id, teamMemberData, req.user.id);
-
-      res.json({
-        success: true,
-        message: 'Team member added successfully',
-      });
-    } catch (error) {
-      next(error);
-    }
-  }
+  addTeamMemberHandler
 );
 
 // DELETE /api/projects/:id/team/:memberId - Remove team member
+const removeTeamMemberHandler: AuthenticatedRouteHandler = async (
+  req: Request,
+  res: Response,
+  next: NextFunction
+): Promise<void> => {
+  try {
+    const authReq = req as AuthenticatedRequest;
+    await projectService.removeTeamMember(req.params.id, req.params.memberId, authReq.user.id);
+
+    const response: ApiResponse = {
+      success: true,
+      message: 'Team member removed successfully',
+    };
+    res.json(response);
+  } catch (error) {
+    next(error);
+  }
+};
+
 router.delete(
   '/:id/team/:memberId',
   authMiddleware,
@@ -325,40 +399,35 @@ router.delete(
     param('memberId').isString().withMessage('Member ID is required'),
   ],
   validateRequest,
-  async (_req: AuthenticatedRequest, _res: Response, _next: NextFunction) => {
-    try {
-      await projectService.removeTeamMember(req.params.id, req.params.memberId, req.user.id);
-
-      res.json({
-        success: true,
-        message: 'Team member removed successfully',
-      });
-    } catch (error) {
-      next(error);
-    }
-  }
+  removeTeamMemberHandler
 );
 
 // GET /api/projects/:id/analytics - Get project analytics
+const getProjectAnalyticsHandler: AuthenticatedRouteHandler = async (
+  req: Request,
+  res: Response,
+  next: NextFunction
+): Promise<void> => {
+  try {
+    const authReq = req as AuthenticatedRequest;
+    const analytics = await projectService.getProjectAnalytics(req.params.id, authReq.user.id);
+
+    const response: ApiResponse = {
+      success: true,
+      data: analytics,
+    };
+    res.json(response);
+  } catch (error) {
+    next(error);
+  }
+};
+
 router.get(
   '/:id/analytics',
   authMiddleware,
-  [
-    param('id').isString().withMessage('Project ID is required'),
-  ],
+  [param('id').isString().withMessage('Project ID is required')],
   validateRequest,
-  async (_req: AuthenticatedRequest, _res: Response, _next: NextFunction) => {
-    try {
-      const analytics = await projectService.getProjectAnalytics(req.params.id, req.user.id);
-
-      res.json({
-        success: true,
-        data: analytics,
-      });
-    } catch (error) {
-      next(error);
-    }
-  }
+  getProjectAnalyticsHandler
 );
 
 // Apply error handling middleware

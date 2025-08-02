@@ -1,10 +1,8 @@
-import { Router, Request, Response } from 'express';
 import { PrismaClient } from '@prisma/client';
+import { Response, Router } from 'express';
 import { Redis } from 'ioredis';
-import { AnalyticsService } from '../services/analytics.service';
-import { authMiddleware } from '../middleware/auth.middleware';
-import { validationMiddleware } from '../middleware/validation.middleware';
 import Joi from 'joi';
+import { AnalyticsService } from '../services/analytics.service.js';
 
 const router = Router();
 const prisma = new PrismaClient();
@@ -42,41 +40,70 @@ const periodSchema = Joi.object({
 });
 
 // Middleware to check if user has analytics access
-const requireAnalyticsAccess = async (_req: unknown, _res: Response, _next: unknown) => {
-  const _user = req.user;
-  
-  if (!user) {
-    return res.status(401).json({ error: 'Authentication required' });
-  }
+const requireAnalyticsAccess: Middleware = async (
+  req: Request,
+  res: Response,
+  next: NextFunction
+): Promise<void> => {
+  try {
+    const authReq = req as AuthenticatedRequest;
+    const user = authReq.user;
 
-  // Team leads and admins can access analytics
-  if (user.role === 'TEAM_LEAD' || user.role === 'ADMIN') {
-    return next();
-  }
-
-  // For project-specific analytics, check if user is project owner or team member
-  const projectId = req.params.projectId || req.query.projectId;
-  if (projectId) {
-    const _project = await prisma.specificationProject.findFirst({
-      where: {
-        id: projectId,
-        OR: [
-          { ownerId: user.id },
-          { team: { some: { userId: user.id, status: 'ACTIVE' } } },
-        ],
-      },
-    });
-
-    if (project) {
-      return next();
+    if (!user) {
+      const errorResponse: ApiError = {
+        success: false,
+        message: 'Authentication required',
+        code: 'MISSING_AUTH',
+      };
+      res.status(401).json(errorResponse);
+      return;
     }
-  }
 
-  return res.status(403).json({ error: 'Insufficient permissions for analytics access' });
+    // Team leads and admins can access analytics
+    if (user.role === 'TEAM_LEAD' || user.role === 'ADMIN') {
+      next();
+      return;
+    }
+
+    // For project-specific analytics, check if user is project owner or team member
+    const projectId = req.params.projectId || (req.query.projectId as string);
+    if (projectId) {
+      const project = await prisma.specificationProject.findFirst({
+        where: {
+          id: projectId,
+          OR: [
+            { ownerId: user.userId },
+            { team: { some: { userId: user.userId, status: 'ACTIVE' } } },
+          ],
+        },
+      });
+
+      if (project) {
+        next();
+        return;
+      }
+    }
+
+    const errorResponse: ApiError = {
+      success: false,
+      message: 'Insufficient permissions for analytics access',
+      code: 'ACCESS_DENIED',
+    };
+    res.status(403).json(errorResponse);
+  } catch (error) {
+    console.error('Analytics access check error:', error);
+    const errorResponse: ApiError = {
+      success: false,
+      message: 'Permission check failed',
+      code: 'PERMISSION_ERROR',
+    };
+    res.status(500).json(errorResponse);
+  }
 };
 
 // Track user activity
-router.post('/activity', 
+router.post(
+  '/activity',
   authMiddleware,
   validationMiddleware(trackActivitySchema),
   async (_req: unknown, _res: Response) => {
@@ -107,7 +134,8 @@ router.post('/activity',
 );
 
 // Track workflow progress
-router.post('/workflow-progress',
+router.post(
+  '/workflow-progress',
   authMiddleware,
   validationMiddleware(workflowProgressSchema),
   async (_req: unknown, _res: Response) => {
@@ -126,7 +154,8 @@ router.post('/workflow-progress',
 );
 
 // Get project analytics
-router.get('/projects/:projectId',
+router.get(
+  '/projects/:projectId',
   authMiddleware,
   requireAnalyticsAccess,
   validationMiddleware(timeRangeSchema, 'query'),
@@ -147,7 +176,8 @@ router.get('/projects/:projectId',
 );
 
 // Get team analytics
-router.get('/teams/:projectId',
+router.get(
+  '/teams/:projectId',
   authMiddleware,
   requireAnalyticsAccess,
   validationMiddleware(timeRangeSchema, 'query'),
@@ -168,7 +198,8 @@ router.get('/teams/:projectId',
 );
 
 // Get user analytics
-router.get('/users/:userId?',
+router.get(
+  '/users/:userId?',
   authMiddleware,
   validationMiddleware(timeRangeSchema, 'query'),
   async (_req: unknown, _res: Response) => {
@@ -199,7 +230,8 @@ router.get('/users/:userId?',
 );
 
 // Calculate team performance metrics
-router.post('/teams/:projectId/performance',
+router.post(
+  '/teams/:projectId/performance',
   authMiddleware,
   requireAnalyticsAccess,
   validationMiddleware(periodSchema),
@@ -219,78 +251,73 @@ router.post('/teams/:projectId/performance',
 );
 
 // Calculate skill development metrics
-router.post('/users/:userId/skills',
-  authMiddleware,
-  async (_req: unknown, _res: Response) => {
-    try {
-      const requestedUserId = req.params.userId;
-      const currentUserId = req.user.id;
-      const currentUserRole = req.user.role;
+router.post('/users/:userId/skills', authMiddleware, async (_req: unknown, _res: Response) => {
+  try {
+    const requestedUserId = req.params.userId;
+    const currentUserId = req.user.id;
+    const currentUserRole = req.user.role;
 
-      // Users can only access their own skill metrics unless they're team leads or admins
-      let userId = currentUserId;
-      if (requestedUserId && requestedUserId !== currentUserId) {
-        if (currentUserRole !== 'TEAM_LEAD' && currentUserRole !== 'ADMIN') {
-          return res.status(403).json({ error: 'Cannot access other user skill metrics' });
-        }
-        userId = requestedUserId;
+    // Users can only access their own skill metrics unless they're team leads or admins
+    let userId = currentUserId;
+    if (requestedUserId && requestedUserId !== currentUserId) {
+      if (currentUserRole !== 'TEAM_LEAD' && currentUserRole !== 'ADMIN') {
+        return res.status(403).json({ error: 'Cannot access other user skill metrics' });
       }
-
-      const skillMetrics = await analyticsService.calculateSkillDevelopment(userId);
-
-      res.json(skillMetrics);
-    } catch (error) {
-      console.error('Error calculating skill development:', error);
-      res.status(500).json({ error: 'Failed to calculate skill development' });
+      userId = requestedUserId;
     }
+
+    const skillMetrics = await analyticsService.calculateSkillDevelopment(userId);
+
+    res.json(skillMetrics);
+  } catch (error) {
+    console.error('Error calculating skill development:', error);
+    res.status(500).json({ error: 'Failed to calculate skill development' });
   }
-);
+});
 
 // Get system performance metrics (admin only)
-router.get('/system/performance',
-  authMiddleware,
-  async (_req: unknown, _res: Response) => {
-    try {
-      const _user = req.user;
-      
-      if (user.role !== 'ADMIN') {
-        return res.status(403).json({ error: 'Admin access required' });
-      }
+router.get('/system/performance', authMiddleware, async (_req: unknown, _res: Response) => {
+  try {
+    const _user = req.user;
 
-      const { metricType, start, end, limit = 100 } = req.query;
-
-      const whereClause: unknown = {};
-      if (metricType) {
-        whereClause.metricType = metricType;
-      }
-      if (start || end) {
-        whereClause.timestamp = {};
-        if (start) whereClause.timestamp.gte = new Date(start);
-        if (end) whereClause.timestamp.lte = new Date(end);
-      }
-
-      const metrics = await prisma.systemPerformanceMetrics.findMany({
-        where: whereClause,
-        orderBy: { timestamp: 'desc' },
-        take: parseInt(limit as string),
-      });
-
-      res.json(metrics);
-    } catch (error) {
-      console.error('Error getting system performance metrics:', error);
-      res.status(500).json({ error: 'Failed to get system performance metrics' });
+    if (user.role !== 'ADMIN') {
+      return res.status(403).json({ error: 'Admin access required' });
     }
+
+    const { metricType, start, end, limit = 100 } = req.query;
+
+    const whereClause: unknown = {};
+    if (metricType) {
+      whereClause.metricType = metricType;
+    }
+    if (start || end) {
+      whereClause.timestamp = {};
+      if (start) whereClause.timestamp.gte = new Date(start);
+      if (end) whereClause.timestamp.lte = new Date(end);
+    }
+
+    const metrics = await prisma.systemPerformanceMetrics.findMany({
+      where: whereClause,
+      orderBy: { timestamp: 'desc' },
+      take: parseInt(limit as string),
+    });
+
+    res.json(metrics);
+  } catch (error) {
+    console.error('Error getting system performance metrics:', error);
+    res.status(500).json({ error: 'Failed to get system performance metrics' });
   }
-);
+});
 
 // Trigger metrics aggregation (admin only)
-router.post('/aggregate',
+router.post(
+  '/aggregate',
   authMiddleware,
   validationMiddleware(periodSchema),
   async (_req: unknown, _res: Response) => {
     try {
       const _user = req.user;
-      
+
       if (user.role !== 'ADMIN') {
         return res.status(403).json({ error: 'Admin access required' });
       }
@@ -308,7 +335,8 @@ router.post('/aggregate',
 );
 
 // Get analytics dashboard summary
-router.get('/dashboard/:projectId?',
+router.get(
+  '/dashboard/:projectId?',
   authMiddleware,
   requireAnalyticsAccess,
   async (_req: unknown, _res: Response) => {
@@ -334,7 +362,7 @@ router.get('/dashboard/:projectId?',
       } else {
         // User dashboard
         const userAnalytics = await analyticsService.getUserAnalytics(userId);
-        
+
         dashboardData = {
           type: 'user',
           userId,
@@ -351,31 +379,28 @@ router.get('/dashboard/:projectId?',
 );
 
 // Get real-time metrics from Redis
-router.get('/realtime',
-  authMiddleware,
-  async (_req: unknown, _res: Response) => {
-    try {
-      const _user = req.user;
-      
-      if (user.role !== 'TEAM_LEAD' && user.role !== 'ADMIN') {
-        return res.status(403).json({ error: 'Insufficient permissions' });
-      }
+router.get('/realtime', authMiddleware, async (_req: unknown, _res: Response) => {
+  try {
+    const _user = req.user;
 
-      const keys = await redis.keys('analytics:realtime:*');
-      const realTimeMetrics: Record<string, number> = {};
-
-      for (const key of keys) {
-        const value = await redis.get(key);
-        const metricName = key.replace('analytics:realtime:', '');
-        realTimeMetrics[metricName] = parseInt(value || '0');
-      }
-
-      res.json(realTimeMetrics);
-    } catch (error) {
-      console.error('Error getting real-time metrics:', error);
-      res.status(500).json({ error: 'Failed to get real-time metrics' });
+    if (user.role !== 'TEAM_LEAD' && user.role !== 'ADMIN') {
+      return res.status(403).json({ error: 'Insufficient permissions' });
     }
+
+    const keys = await redis.keys('analytics:realtime:*');
+    const realTimeMetrics: Record<string, number> = {};
+
+    for (const key of keys) {
+      const value = await redis.get(key);
+      const metricName = key.replace('analytics:realtime:', '');
+      realTimeMetrics[metricName] = parseInt(value || '0');
+    }
+
+    res.json(realTimeMetrics);
+  } catch (error) {
+    console.error('Error getting real-time metrics:', error);
+    res.status(500).json({ error: 'Failed to get real-time metrics' });
   }
-);
+});
 
 export default router;

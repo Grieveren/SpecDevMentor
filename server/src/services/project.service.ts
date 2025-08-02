@@ -1,5 +1,22 @@
-import { PrismaClient, SpecificationProject, SpecificationPhase, ProjectStatus, DocumentStatus, TeamMemberRole, TeamMemberStatus, Prisma } from '@prisma/client';
+import {
+  DocumentStatus,
+  Prisma,
+  PrismaClient,
+  ProjectStatus,
+  SpecificationPhase,
+  SpecificationProject,
+  TeamMemberRole,
+  TeamMemberStatus,
+} from '@prisma/client';
+import {
+  AuthorizationError,
+  ConflictError,
+  InternalServerError,
+  NotFoundError,
+  ValidationError,
+} from '@shared/types/errors';
 import Redis from 'ioredis';
+import { handleServiceError } from '../utils/error-handler';
 
 export interface CreateProjectRequest {
   name: string;
@@ -73,16 +90,7 @@ export interface AddTeamMemberRequest {
   role: TeamMemberRole;
 }
 
-export class ProjectError extends Error {
-  constructor(
-    message: string,
-    public code: string,
-    public statusCode: number = 400
-  ) {
-    super(message);
-    this.name = 'ProjectError';
-  }
-}
+// Remove ProjectError class as we're using shared error types
 
 export class ProjectService {
   constructor(
@@ -90,9 +98,10 @@ export class ProjectService {
     private redis?: Redis
   ) {}
 
-  async createProject(_data: CreateProjectRequest, ownerId: string): Promise<ProjectWithDetails> {
+  @handleServiceError
+  async createProject(data: CreateProjectRequest, ownerId: string): Promise<ProjectWithDetails> {
     try {
-      const _project = await this.prisma.$transaction(async (tx) => {
+      const project = await this.prisma.$transaction(async tx => {
         // Create project
         const newProject = await tx.specificationProject.create({
           data: {
@@ -113,13 +122,16 @@ export class ProjectService {
         ];
 
         await Promise.all(
-          phases.map((phase) =>
+          phases.map(phase =>
             tx.specificationDocument.create({
               data: {
                 projectId: newProject.id,
                 phase,
                 content: this.getInitialContent(phase),
-                status: phase === SpecificationPhase.REQUIREMENTS ? DocumentStatus.DRAFT : DocumentStatus.DRAFT,
+                status:
+                  phase === SpecificationPhase.REQUIREMENTS
+                    ? DocumentStatus.DRAFT
+                    : DocumentStatus.DRAFT,
               },
             })
           )
@@ -128,7 +140,7 @@ export class ProjectService {
         // Add team members if specified
         if (data.teamMemberIds?.length) {
           await tx.teamMember.createMany({
-            data: data.teamMemberIds.map((memberId) => ({
+            data: data.teamMemberIds.map(memberId => ({
               projectId: newProject.id,
               userId: memberId,
               role: TeamMemberRole.MEMBER,
@@ -148,13 +160,14 @@ export class ProjectService {
     } catch (error) {
       if (error instanceof Prisma.PrismaClientKnownRequestError) {
         if (error.code === 'P2002') {
-          throw new ProjectError('Project name must be unique', 'PROJECT_NAME_EXISTS', 409);
+          throw new ConflictError('Project name must be unique', 'PROJECT_NAME_EXISTS', data.name);
         }
       }
-      throw new ProjectError('Failed to create project', 'CREATE_FAILED', 500);
+      throw new InternalServerError('Failed to create project');
     }
   }
 
+  @handleServiceError
   async getProjectById(projectId: string, userId: string): Promise<ProjectWithDetails> {
     const cacheKey = `project:${projectId}:user:${userId}`;
 
@@ -166,13 +179,10 @@ export class ProjectService {
       }
     }
 
-    const _project = await this.prisma.specificationProject.findFirst({
+    const project = await this.prisma.specificationProject.findFirst({
       where: {
         id: projectId,
-        OR: [
-          { ownerId: userId },
-          { team: { some: { userId, status: TeamMemberStatus.ACTIVE } } },
-        ],
+        OR: [{ ownerId: userId }, { team: { some: { userId, status: TeamMemberStatus.ACTIVE } } }],
       },
       include: {
         owner: {
@@ -207,7 +217,7 @@ export class ProjectService {
     });
 
     if (!project) {
-      throw new ProjectError('Project not found or access denied', 'PROJECT_NOT_FOUND', 404);
+      throw new NotFoundError('Project not found or access denied', 'project', projectId);
     }
 
     // Cache result
@@ -218,6 +228,7 @@ export class ProjectService {
     return project as ProjectWithDetails;
   }
 
+  @handleServiceError
   async getProjectsForUser(
     userId: string,
     filters: ProjectFilters = {},
@@ -228,10 +239,7 @@ export class ProjectService {
     const skip = (page - 1) * limit;
 
     const where: Prisma.SpecificationProjectWhereInput = {
-      OR: [
-        { ownerId: userId },
-        { team: { some: { userId, status: TeamMemberStatus.ACTIVE } } },
-      ],
+      OR: [{ ownerId: userId }, { team: { some: { userId, status: TeamMemberStatus.ACTIVE } } }],
       ...(status && { status }),
       ...(phase && { currentPhase: phase }),
       ...(ownerId && { ownerId }),
@@ -293,6 +301,7 @@ export class ProjectService {
     };
   }
 
+  @handleServiceError
   async updateProject(
     projectId: string,
     data: UpdateProjectRequest,
@@ -300,15 +309,18 @@ export class ProjectService {
   ): Promise<ProjectWithDetails> {
     // Check if user has permission to update
     const existingProject = await this.getProjectById(projectId, userId);
-    
+
     if (existingProject.ownerId !== userId) {
       // Check if user is a team lead
       const teamMember = existingProject.team.find(
-        (member) => member.user.id === userId && member.role === TeamMemberRole.LEAD
+        member => member.user.id === userId && member.role === TeamMemberRole.LEAD
       );
-      
+
       if (!teamMember) {
-        throw new ProjectError('Insufficient permissions to update project', 'INSUFFICIENT_PERMISSIONS', 403);
+        throw new AuthorizationError(
+          'Insufficient permissions to update project',
+          'project:update'
+        );
       }
     }
 
@@ -331,18 +343,19 @@ export class ProjectService {
     } catch (error) {
       if (error instanceof Prisma.PrismaClientKnownRequestError) {
         if (error.code === 'P2002') {
-          throw new ProjectError('Project name must be unique', 'PROJECT_NAME_EXISTS', 409);
+          throw new ConflictError('Project name must be unique', 'PROJECT_NAME_EXISTS', data.name);
         }
       }
-      throw new ProjectError('Failed to update project', 'UPDATE_FAILED', 500);
+      throw new InternalServerError('Failed to update project');
     }
   }
 
+  @handleServiceError
   async deleteProject(projectId: string, userId: string): Promise<void> {
-    const _project = await this.getProjectById(projectId, userId);
-    
+    const project = await this.getProjectById(projectId, userId);
+
     if (project.ownerId !== userId) {
-      throw new ProjectError('Only project owner can delete the project', 'INSUFFICIENT_PERMISSIONS', 403);
+      throw new AuthorizationError('Only project owner can delete the project', 'project:delete');
     }
 
     try {
@@ -353,25 +366,29 @@ export class ProjectService {
       // Invalidate cache
       await this.invalidateProjectCache(userId);
     } catch (error) {
-      throw new ProjectError('Failed to delete project', 'DELETE_FAILED', 500);
+      throw new InternalServerError('Failed to delete project');
     }
   }
 
+  @handleServiceError
   async addTeamMember(
     projectId: string,
     data: AddTeamMemberRequest,
     userId: string
   ): Promise<void> {
-    const _project = await this.getProjectById(projectId, userId);
-    
+    const project = await this.getProjectById(projectId, userId);
+
     // Check permissions
     if (project.ownerId !== userId) {
       const teamMember = project.team.find(
-        (member) => member.user.id === userId && member.role === TeamMemberRole.LEAD
+        member => member.user.id === userId && member.role === TeamMemberRole.LEAD
       );
-      
+
       if (!teamMember) {
-        throw new ProjectError('Insufficient permissions to add team members', 'INSUFFICIENT_PERMISSIONS', 403);
+        throw new AuthorizationError(
+          'Insufficient permissions to add team members',
+          'project:manage_team'
+        );
       }
     }
 
@@ -387,7 +404,11 @@ export class ProjectService {
 
     if (existingMember) {
       if (existingMember.status === TeamMemberStatus.ACTIVE) {
-        throw new ProjectError('User is already a team member', 'ALREADY_TEAM_MEMBER', 409);
+        throw new ConflictError(
+          'User is already a team member',
+          'ALREADY_TEAM_MEMBER',
+          data.userId
+        );
       } else {
         // Reactivate existing member
         await this.prisma.teamMember.update({
@@ -415,23 +436,29 @@ export class ProjectService {
     await this.invalidateProjectCache(userId);
   }
 
+  @handleServiceError
   async removeTeamMember(projectId: string, memberId: string, userId: string): Promise<void> {
-    const _project = await this.getProjectById(projectId, userId);
-    
+    const project = await this.getProjectById(projectId, userId);
+
     // Check permissions
     if (project.ownerId !== userId) {
       const teamMember = project.team.find(
-        (member) => member.user.id === userId && member.role === TeamMemberRole.LEAD
+        member => member.user.id === userId && member.role === TeamMemberRole.LEAD
       );
-      
+
       if (!teamMember) {
-        throw new ProjectError('Insufficient permissions to remove team members', 'INSUFFICIENT_PERMISSIONS', 403);
+        throw new AuthorizationError(
+          'Insufficient permissions to remove team members',
+          'project:manage_team'
+        );
       }
     }
 
     // Cannot remove project owner
     if (memberId === project.ownerId) {
-      throw new ProjectError('Cannot remove project owner from team', 'CANNOT_REMOVE_OWNER', 400);
+      throw new ValidationError('Cannot remove project owner from team', {
+        memberId: ['Project owner cannot be removed'],
+      });
     }
 
     await this.prisma.teamMember.updateMany({
@@ -448,8 +475,9 @@ export class ProjectService {
     await this.invalidateProjectCache(userId);
   }
 
+  @handleServiceError
   async getProjectAnalytics(projectId: string, userId: string): Promise<any> {
-    const _project = await this.getProjectById(projectId, userId);
+    const project = await this.getProjectById(projectId, userId);
 
     const analytics = await this.prisma.$queryRaw`
       SELECT 

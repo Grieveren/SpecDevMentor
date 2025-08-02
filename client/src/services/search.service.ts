@@ -1,4 +1,4 @@
-import { apiClient } from './api.service';
+import { BaseService, typedApiClient } from './api.service';
 
 export interface SearchResult {
   id: string;
@@ -50,27 +50,35 @@ export interface SearchAnalytics {
   uniqueSearchers: number;
 }
 
-export class SearchService {
+export class SearchService extends BaseService {
+  constructor() {
+    super(typedApiClient);
+  }
+
   /**
    * Perform search across specifications
    */
   async search(options: SearchOptions = {}): Promise<SearchResponse> {
-    const params = new URLSearchParams();
+    try {
+      const params: Record<string, string> = {};
 
-    Object.entries(options).forEach(([key, value]) => {
-      if (value !== undefined && value !== null) {
-        if (Array.isArray(value)) {
-          params.append(key, value.join(','));
-        } else if (value instanceof Date) {
-          params.append(key, value.toISOString());
-        } else {
-          params.append(key, value.toString());
+      Object.entries(options).forEach(([key, value]) => {
+        if (value !== undefined && value !== null) {
+          if (Array.isArray(value)) {
+            params[key] = value.join(',');
+          } else if (value instanceof Date) {
+            params[key] = value.toISOString();
+          } else {
+            params[key] = value.toString();
+          }
         }
-      }
-    });
+      });
 
-    const _response = await apiClient.get(`/search?${params.toString()}`);
-    return response.data.data;
+      const response = await this.apiClient.get<SearchResponse>('/search', { params });
+      return this.validateResponse(response);
+    } catch (error) {
+      throw this.handleError(error);
+    }
   }
 
   /**
@@ -79,10 +87,14 @@ export class SearchService {
   async getSuggestions(query: string): Promise<string[]> {
     if (!query || query.length < 2) return [];
 
-    const _response = await apiClient.get('/search/suggestions', {
-      params: { q: query },
-    });
-    return response.data.data.suggestions;
+    try {
+      const response = await this.apiClient.get<{ suggestions: string[] }>('/search/suggestions', {
+        params: { q: query },
+      });
+      return this.validateResponse(response).suggestions;
+    } catch (error) {
+      throw this.handleError(error);
+    }
   }
 
   /**
@@ -93,10 +105,14 @@ export class SearchService {
     page = 1,
     limit = 20
   ): Promise<SearchResponse> {
-    const _response = await apiClient.post('/search/advanced', filters, {
-      params: { page, limit },
-    });
-    return response.data.data;
+    try {
+      const response = await this.apiClient.post<SearchResponse>('/search/advanced', filters, {
+        params: { page, limit },
+      });
+      return this.validateResponse(response);
+    } catch (error) {
+      throw this.handleError(error);
+    }
   }
 
   /**
@@ -112,26 +128,32 @@ export class SearchService {
       limit?: number;
     } = {}
   ): Promise<SearchResponse> {
-    const params = new URLSearchParams();
+    try {
+      const params: Record<string, string> = {};
 
-    Object.entries(options).forEach(([key, value]) => {
-      if (value !== undefined && value !== null) {
-        params.append(key, value.toString());
-      }
-    });
+      Object.entries(options).forEach(([key, value]) => {
+        if (value !== undefined && value !== null) {
+          params[key] = value.toString();
+        }
+      });
 
-    const _response = await apiClient.get(
-      `/search/project/${projectId}?${params.toString()}`
-    );
-    return response.data.data;
+      const response = await this.apiClient.get<SearchResponse>(`/search/project/${projectId}`, { params });
+      return this.validateResponse(response);
+    } catch (error) {
+      throw this.handleError(error);
+    }
   }
 
   /**
    * Get search analytics (admin only)
    */
   async getAnalytics(): Promise<SearchAnalytics> {
-    const _response = await apiClient.get('/search/analytics');
-    return response.data.data;
+    try {
+      const response = await this.apiClient.get<SearchAnalytics>('/search/analytics');
+      return this.validateResponse(response);
+    } catch (error) {
+      throw this.handleError(error);
+    }
   }
 
   /**

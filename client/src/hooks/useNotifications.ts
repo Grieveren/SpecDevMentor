@@ -1,6 +1,6 @@
-import { useState, useEffect, useCallback } from 'react';
-import { io, Socket } from 'socket.io-client';
-import { notificationService, Notification } from '../services/notification.service';
+import { useCallback, useEffect, useState } from 'react';
+import { Socket, io } from 'socket.io-client';
+import { Notification, notificationService } from '../services/notification.service';
 
 interface UseNotificationsReturn {
   notifications: Notification[];
@@ -24,7 +24,7 @@ export const useNotifications = (): UseNotificationsReturn => {
 
   // Initialize socket connection
   useEffect(() => {
-    const newSocket = io(process.env.REACT_APP_WS_URL || 'http://localhost:3001', {
+    const newSocket = io((import.meta.env.VITE_WS_URL as string) || 'http://localhost:3001', {
       auth: {
         token: localStorage.getItem('token'),
       },
@@ -41,35 +41,38 @@ export const useNotifications = (): UseNotificationsReturn => {
     });
 
     // Listen for real-time notifications
-    newSocket.on('notification', (notification: {
-      type: string;
-      title: string;
-      message: string;
-      data: Record<string, any>;
-      timestamp: string;
-    }) => {
-      // Add the new notification to the list
-      const newNotification: Notification = {
-        id: `temp-${Date.now()}`, // Temporary ID until we reload
-        type: notification.type as any,
-        title: notification.title,
-        message: notification.message,
-        data: notification.data,
-        isRead: false,
-        createdAt: notification.timestamp,
-      };
+    newSocket.on(
+      'notification',
+      (notification: {
+        type: string;
+        title: string;
+        message: string;
+        data: Record<string, any>;
+        timestamp: string;
+      }) => {
+        // Add the new notification to the list
+        const newNotification: Notification = {
+          id: `temp-${Date.now()}`, // Temporary ID until we reload
+          type: notification.type as unknown,
+          title: notification.title,
+          message: notification.message,
+          data: notification.data,
+          isRead: false,
+          createdAt: notification.timestamp,
+        };
 
-      setNotifications(prev => [newNotification, ...prev]);
-      setUnreadCount(prev => prev + 1);
+        setNotifications(prev => [newNotification, ...prev]);
+        setUnreadCount(prev => prev + 1);
 
-      // Show browser notification if permission is granted
-      if (Notification.permission === 'granted') {
-        new Notification(notification.title, {
-          body: notification.message,
-          icon: '/favicon.ico',
-        });
+        // Show browser notification if permission is granted
+        if (Notification.permission === 'granted') {
+          new Notification(notification.title, {
+            body: notification.message,
+            icon: '/favicon.ico',
+          });
+        }
       }
-    });
+    );
 
     setSocket(newSocket);
 
@@ -89,12 +92,12 @@ export const useNotifications = (): UseNotificationsReturn => {
   useEffect(() => {
     loadNotifications();
     loadUnreadCount();
-  }, []);
+  }, [loadNotifications, loadUnreadCount]);
 
-  const loadNotifications = async (page = 1, append = false) => {
+  const loadNotifications = useCallback(async (page = 1, append = false) => {
     try {
       setIsLoading(true);
-      const _response = await notificationService.getNotifications({
+      const response = await notificationService.getNotifications({
         page,
         limit: 20,
       });
@@ -112,27 +115,25 @@ export const useNotifications = (): UseNotificationsReturn => {
     } finally {
       setIsLoading(false);
     }
-  };
+  }, []);
 
-  const loadUnreadCount = async () => {
+  const loadUnreadCount = useCallback(async () => {
     try {
       const count = await notificationService.getUnreadCount();
       setUnreadCount(count);
     } catch (error) {
       console.error('Failed to load unread count:', error);
     }
-  };
+  }, []);
 
   const markAsRead = useCallback(async (id: string) => {
     try {
       await notificationService.markAsRead(id);
-      
+
       setNotifications(prev =>
-        prev.map(n =>
-          n.id === id ? { ...n, isRead: true, readAt: new Date().toISOString() } : n
-        )
+        prev.map(n => (n.id === id ? { ...n, isRead: true, readAt: new Date().toISOString() } : n))
       );
-      
+
       setUnreadCount(prev => Math.max(0, prev - 1));
     } catch (error) {
       console.error('Failed to mark notification as read:', error);
@@ -143,11 +144,11 @@ export const useNotifications = (): UseNotificationsReturn => {
   const markAllAsRead = useCallback(async () => {
     try {
       await notificationService.markAllAsRead();
-      
+
       setNotifications(prev =>
         prev.map(n => ({ ...n, isRead: true, readAt: new Date().toISOString() }))
       );
-      
+
       setUnreadCount(0);
     } catch (error) {
       console.error('Failed to mark all notifications as read:', error);
@@ -159,7 +160,7 @@ export const useNotifications = (): UseNotificationsReturn => {
     if (hasMore && !isLoading) {
       await loadNotifications(currentPage + 1, true);
     }
-  }, [currentPage, hasMore, isLoading]);
+  }, [currentPage, hasMore, isLoading, loadNotifications]);
 
   return {
     notifications,

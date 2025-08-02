@@ -1,7 +1,9 @@
 import { describe, it, expect, beforeAll, beforeEach, afterAll } from 'vitest';
+import type { MockedFunction } from 'vitest';
 import { PrismaClient, UserRole, SpecificationPhase, DocumentStatus, ProjectStatus } from '@prisma/client';
 import bcrypt from 'bcryptjs';
-import { ProjectService, CreateProjectRequest, UpdateProjectRequest, ProjectError } from '../services/project.service.js';
+import { ProjectService } from '../services/project.service.js';
+import type { CreateProjectRequest, UpdateProjectRequest, ProjectError } from '../services/project.service.js';
 
 // Test database
 const prisma = new PrismaClient({
@@ -75,7 +77,7 @@ describe('Project Service Tests', () => {
         teamMemberIds: [testUsers[1].id],
       };
 
-      const _project = await projectService.createProject(projectData, testUsers[0].id);
+      const project = await projectService.createProject(projectData, testUsers[0].id);
 
       expect(project).toMatchObject({
         name: 'Test Project',
@@ -104,7 +106,7 @@ describe('Project Service Tests', () => {
         description: 'A project without team members',
       };
 
-      const _project = await projectService.createProject(projectData, testUsers[0].id);
+      const project = await projectService.createProject(projectData, testUsers[0].id);
 
       expect(project.name).toBe('Solo Project');
       expect(project.team).toHaveLength(0);
@@ -142,7 +144,7 @@ describe('Project Service Tests', () => {
     });
 
     it('should return project for owner', async () => {
-      const _project = await projectService.getProjectById(testProject.id, testUsers[0].id);
+      const project = await projectService.getProjectById(testProject.id, testUsers[0].id);
 
       expect(project).toMatchObject({
         id: testProject.id,
@@ -169,7 +171,7 @@ describe('Project Service Tests', () => {
         },
       });
 
-      const _project = await projectService.getProjectById(testProject.id, testUsers[1].id);
+      const project = await projectService.getProjectById(testProject.id, testUsers[1].id);
 
       expect(project.id).toBe(testProject.id);
       expect(project.team).toHaveLength(1);
@@ -233,7 +235,7 @@ describe('Project Service Tests', () => {
     });
 
     it('should return projects for owner', async () => {
-      const _result = await projectService.getProjectsForUser(testUsers[0].id);
+      const result = await projectService.getProjectsForUser(testUsers[0].id);
 
       expect(result.projects).toHaveLength(2);
       expect(result.pagination).toMatchObject({
@@ -245,14 +247,14 @@ describe('Project Service Tests', () => {
     });
 
     it('should return projects where user is team member', async () => {
-      const _result = await projectService.getProjectsForUser(testUsers[1].id);
+      const result = await projectService.getProjectsForUser(testUsers[1].id);
 
       expect(result.projects).toHaveLength(1);
       expect(result.projects[0].name).toBe('Owner Project 1');
     });
 
     it('should support search filtering', async () => {
-      const _result = await projectService.getProjectsForUser(
+      const result = await projectService.getProjectsForUser(
         testUsers[0].id,
         { search: 'First' }
       );
@@ -262,7 +264,7 @@ describe('Project Service Tests', () => {
     });
 
     it('should support status filtering', async () => {
-      const _result = await projectService.getProjectsForUser(
+      const result = await projectService.getProjectsForUser(
         testUsers[0].id,
         { status: ProjectStatus.COMPLETED }
       );
@@ -272,7 +274,7 @@ describe('Project Service Tests', () => {
     });
 
     it('should support pagination', async () => {
-      const _result = await projectService.getProjectsForUser(
+      const result = await projectService.getProjectsForUser(
         testUsers[0].id,
         {},
         { page: 1, limit: 1 }
@@ -309,7 +311,7 @@ describe('Project Service Tests', () => {
         status: ProjectStatus.COMPLETED,
       };
 
-      const _project = await projectService.updateProject(testProject.id, updateData, testUsers[0].id);
+      const project = await projectService.updateProject(testProject.id, updateData, testUsers[0].id);
 
       expect(project).toMatchObject({
         name: 'Updated Project Name',
@@ -324,7 +326,7 @@ describe('Project Service Tests', () => {
         name: 'Partially Updated Name',
       };
 
-      const _project = await projectService.updateProject(testProject.id, updateData, testUsers[0].id);
+      const project = await projectService.updateProject(testProject.id, updateData, testUsers[0].id);
 
       expect(project.name).toBe('Partially Updated Name');
       expect(project.description).toBe('Project for update testing'); // Unchanged

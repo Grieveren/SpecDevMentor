@@ -1,4 +1,4 @@
-import { apiClient } from './api.service';
+import { BaseService, typedApiClient } from './api.service';
 
 export interface ProjectAnalytics {
   projectId: string;
@@ -159,34 +159,60 @@ export interface TimeRange {
   end: string;
 }
 
-class AnalyticsService {
-  // Activity tracking
-  async trackActivity(_data: TrackActivityRequest): Promise<void> {
-    await apiClient.post('/analytics/activity', data);
+class AnalyticsService extends BaseService {
+  constructor() {
+    super(typedApiClient);
   }
 
-  async trackWorkflowProgress(_data: TrackWorkflowProgressRequest): Promise<void> {
-    await apiClient.post('/analytics/workflow-progress', data);
+  // Activity tracking
+  async trackActivity(data: TrackActivityRequest): Promise<void> {
+    try {
+      const response = await this.apiClient.post<void>('/analytics/activity', data);
+      this.validateResponse(response);
+    } catch (error) {
+      throw this.handleError(error);
+    }
+  }
+
+  async trackWorkflowProgress(data: TrackWorkflowProgressRequest): Promise<void> {
+    try {
+      const response = await this.apiClient.post<void>('/analytics/workflow-progress', data);
+      this.validateResponse(response);
+    } catch (error) {
+      throw this.handleError(error);
+    }
   }
 
   // Analytics retrieval
   async getProjectAnalytics(projectId: string, timeRange?: TimeRange): Promise<ProjectAnalytics> {
-    const params = timeRange ? { start: timeRange.start, end: timeRange.end } : {};
-    const _response = await apiClient.get(`/analytics/projects/${projectId}`, { params });
-    return response.data;
+    try {
+      const params = timeRange ? { start: timeRange.start, end: timeRange.end } : {};
+      const response = await this.apiClient.get<ProjectAnalytics>(`/analytics/projects/${projectId}`, { params });
+      return this.validateResponse(response);
+    } catch (error) {
+      throw this.handleError(error);
+    }
   }
 
   async getTeamAnalytics(projectId: string, timeRange?: TimeRange): Promise<TeamAnalytics> {
-    const params = timeRange ? { start: timeRange.start, end: timeRange.end } : {};
-    const _response = await apiClient.get(`/analytics/teams/${projectId}`, { params });
-    return response.data;
+    try {
+      const params = timeRange ? { start: timeRange.start, end: timeRange.end } : {};
+      const response = await this.apiClient.get<TeamAnalytics>(`/analytics/teams/${projectId}`, { params });
+      return this.validateResponse(response);
+    } catch (error) {
+      throw this.handleError(error);
+    }
   }
 
   async getUserAnalytics(userId?: string, timeRange?: TimeRange): Promise<UserAnalytics> {
-    const params = timeRange ? { start: timeRange.start, end: timeRange.end } : {};
-    const endpoint = userId ? `/analytics/users/${userId}` : '/analytics/users';
-    const _response = await apiClient.get(endpoint, { params });
-    return response.data;
+    try {
+      const params = timeRange ? { start: timeRange.start, end: timeRange.end } : {};
+      const endpoint = userId ? `/analytics/users/${userId}` : '/analytics/users';
+      const response = await this.apiClient.get<UserAnalytics>(endpoint, { params });
+      return this.validateResponse(response);
+    } catch (error) {
+      throw this.handleError(error);
+    }
   }
 
   // Performance metrics
@@ -194,27 +220,43 @@ class AnalyticsService {
     projectId: string,
     period: 'daily' | 'weekly' | 'monthly'
   ): Promise<TeamPerformanceMetrics> {
-    const _response = await apiClient.post(`/analytics/teams/${projectId}/performance`, { period });
-    return response.data;
+    try {
+      const response = await this.apiClient.post<TeamPerformanceMetrics>(`/analytics/teams/${projectId}/performance`, { period });
+      return this.validateResponse(response);
+    } catch (error) {
+      throw this.handleError(error);
+    }
   }
 
   async calculateSkillDevelopment(userId?: string): Promise<SkillDevelopmentMetrics[]> {
-    const endpoint = userId ? `/analytics/users/${userId}/skills` : '/analytics/users/skills';
-    const _response = await apiClient.post(endpoint);
-    return response.data;
+    try {
+      const endpoint = userId ? `/analytics/users/${userId}/skills` : '/analytics/users/skills';
+      const response = await this.apiClient.post<SkillDevelopmentMetrics[]>(endpoint);
+      return this.validateResponse(response);
+    } catch (error) {
+      throw this.handleError(error);
+    }
   }
 
   // Dashboard data
   async getDashboardData(projectId?: string): Promise<DashboardData> {
-    const endpoint = projectId ? `/analytics/dashboard/${projectId}` : '/analytics/dashboard';
-    const _response = await apiClient.get(endpoint);
-    return response.data;
+    try {
+      const endpoint = projectId ? `/analytics/dashboard/${projectId}` : '/analytics/dashboard';
+      const response = await this.apiClient.get<DashboardData>(endpoint);
+      return this.validateResponse(response);
+    } catch (error) {
+      throw this.handleError(error);
+    }
   }
 
   // Real-time metrics
   async getRealTimeMetrics(): Promise<RealTimeMetrics> {
-    const _response = await apiClient.get('/analytics/realtime');
-    return response.data;
+    try {
+      const response = await this.apiClient.get<RealTimeMetrics>('/analytics/realtime');
+      return this.validateResponse(response);
+    } catch (error) {
+      throw this.handleError(error);
+    }
   }
 
   // System performance (admin only)
@@ -223,21 +265,30 @@ class AnalyticsService {
     timeRange?: TimeRange,
     limit?: number
   ): Promise<SystemPerformanceMetric[]> {
-    const params: unknown = {};
-    if (metricType) params.metricType = metricType;
-    if (timeRange) {
-      params.start = timeRange.start;
-      params.end = timeRange.end;
-    }
-    if (limit) params.limit = limit;
+    try {
+      const params: Record<string, string> = {};
+      if (metricType) params.metricType = metricType;
+      if (timeRange) {
+        params.start = timeRange.start;
+        params.end = timeRange.end;
+      }
+      if (limit) params.limit = limit.toString();
 
-    const _response = await apiClient.get('/analytics/system/performance', { params });
-    return response.data;
+      const response = await this.apiClient.get<SystemPerformanceMetric[]>('/analytics/system/performance', { params });
+      return this.validateResponse(response);
+    } catch (error) {
+      throw this.handleError(error);
+    }
   }
 
   // Aggregation trigger (admin only)
   async triggerMetricsAggregation(period: 'daily' | 'weekly' | 'monthly'): Promise<void> {
-    await apiClient.post('/analytics/aggregate', { period });
+    try {
+      const response = await this.apiClient.post<void>('/analytics/aggregate', { period });
+      this.validateResponse(response);
+    } catch (error) {
+      throw this.handleError(error);
+    }
   }
 }
 

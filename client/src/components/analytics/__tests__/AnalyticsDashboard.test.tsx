@@ -1,37 +1,62 @@
 import { describe, it, expect, vi, beforeEach } from 'vitest';
 import { render, screen, waitFor } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
+import type { MockedFunction } from 'vitest';
 import { AnalyticsDashboard } from '../AnalyticsDashboard';
+import type { AnalyticsDashboardProps } from '../AnalyticsDashboard';
 import { analyticsService } from '../../../services/analytics.service';
 
-// Mock the analytics service
+// Mock the analytics service with proper typing
+const mockGetDashboardData = vi.fn() as MockedFunction<typeof analyticsService.getDashboardData>;
+
 vi.mock('../../../services/analytics.service', () => ({
   analyticsService: {
-    getDashboardData: vi.fn(),
+    getDashboardData: mockGetDashboardData,
   },
 }));
 
-// Mock the child components
+// Mock the child components with proper prop types
+interface ProjectAnalyticsProps {
+  analytics: { projectId: string };
+}
+
+interface TeamAnalyticsProps {
+  analytics: { projectId: string };
+}
+
+interface UserAnalyticsProps {
+  analytics: { userId: string };
+}
+
+interface TimeRangeSelectorProps {
+  onChange: (range: { start: string; end: string }) => void;
+}
+
+interface MetricCardProps {
+  title: string;
+  value: string | number;
+}
+
 vi.mock('../ProjectAnalyticsView', () => ({
-  ProjectAnalyticsView: ({ analytics }: unknown) => (
+  ProjectAnalyticsView: ({ analytics }: ProjectAnalyticsProps) => (
     <div data-testid="project-analytics-view">Project Analytics: {analytics.projectId}</div>
   ),
 }));
 
 vi.mock('../TeamAnalyticsView', () => ({
-  TeamAnalyticsView: ({ analytics }: unknown) => (
+  TeamAnalyticsView: ({ analytics }: TeamAnalyticsProps) => (
     <div data-testid="team-analytics-view">Team Analytics: {analytics.projectId}</div>
   ),
 }));
 
 vi.mock('../UserAnalyticsView', () => ({
-  UserAnalyticsView: ({ analytics }: unknown) => (
+  UserAnalyticsView: ({ analytics }: UserAnalyticsProps) => (
     <div data-testid="user-analytics-view">User Analytics: {analytics.userId}</div>
   ),
 }));
 
 vi.mock('../TimeRangeSelector', () => ({
-  TimeRangeSelector: ({ onChange }: unknown) => (
+  TimeRangeSelector: ({ onChange }: TimeRangeSelectorProps) => (
     <button onClick={() => onChange({ start: '2024-01-01', end: '2024-01-31' })}>
       Time Range Selector
     </button>
@@ -39,7 +64,7 @@ vi.mock('../TimeRangeSelector', () => ({
 }));
 
 vi.mock('../MetricCard', () => ({
-  MetricCard: ({ title, value }: unknown) => (
+  MetricCard: ({ title, value }: MetricCardProps) => (
     <div data-testid="metric-card">
       {title}: {value}
     </div>
@@ -111,24 +136,27 @@ describe('AnalyticsDashboard', () => {
 
   beforeEach(() => {
     vi.clearAllMocks();
+    mockGetDashboardData.mockClear();
   });
 
   it('should render loading state initially', () => {
-    (analyticsService.getDashboardData as any).mockImplementation(
+    mockGetDashboardData.mockImplementation(
       () => new Promise(() => {}) // Never resolves
     );
 
-    render(<AnalyticsDashboard />);
+    const props: AnalyticsDashboardProps = {};
+    render(<AnalyticsDashboard {...props} />);
 
     expect(screen.getByRole('status')).toBeInTheDocument();
   });
 
   it('should render error state when data loading fails', async () => {
-    (analyticsService.getDashboardData as any).mockRejectedValue(
+    mockGetDashboardData.mockRejectedValue(
       new Error('Failed to load data')
     );
 
-    render(<AnalyticsDashboard />);
+    const props: AnalyticsDashboardProps = {};
+    render(<AnalyticsDashboard {...props} />);
 
     await waitFor(() => {
       expect(screen.getByText((content, element) => {
@@ -138,9 +166,10 @@ describe('AnalyticsDashboard', () => {
   });
 
   it('should render project dashboard overview', async () => {
-    (analyticsService.getDashboardData as any).mockResolvedValue(mockProjectDashboardData);
+    mockGetDashboardData.mockResolvedValue(mockProjectDashboardData);
 
-    render(<AnalyticsDashboard projectId="project-1" />);
+    const props: AnalyticsDashboardProps = { projectId: 'project-1' };
+    render(<AnalyticsDashboard {...props} />);
 
     await waitFor(() => {
       expect(screen.getByText('Analytics Dashboard')).toBeInTheDocument();
@@ -156,9 +185,10 @@ describe('AnalyticsDashboard', () => {
   });
 
   it('should render user dashboard overview', async () => {
-    (analyticsService.getDashboardData as any).mockResolvedValue(mockUserDashboardData);
+    mockGetDashboardData.mockResolvedValue(mockUserDashboardData);
 
-    render(<AnalyticsDashboard />);
+    const props: AnalyticsDashboardProps = {};
+    render(<AnalyticsDashboard {...props} />);
 
     await waitFor(() => {
       expect(screen.getByText('Analytics Dashboard')).toBeInTheDocument();
@@ -173,9 +203,10 @@ describe('AnalyticsDashboard', () => {
   });
 
   it('should navigate to project analytics view', async () => {
-    (analyticsService.getDashboardData as any).mockResolvedValue(mockProjectDashboardData);
+    mockGetDashboardData.mockResolvedValue(mockProjectDashboardData);
 
-    render(<AnalyticsDashboard projectId="project-1" />);
+    const props: AnalyticsDashboardProps = { projectId: 'project-1' };
+    render(<AnalyticsDashboard {...props} />);
 
     await waitFor(() => {
       expect(screen.getByTestId('project-analytics-view')).toBeInTheDocument();
@@ -185,25 +216,28 @@ describe('AnalyticsDashboard', () => {
   });
 
   it('should navigate to team analytics view', async () => {
-    (analyticsService.getDashboardData as any).mockResolvedValue(mockProjectDashboardData);
+    const user = userEvent.setup();
+    mockGetDashboardData.mockResolvedValue(mockProjectDashboardData);
 
-    render(<AnalyticsDashboard projectId="project-1" />);
+    const props: AnalyticsDashboardProps = { projectId: 'project-1' };
+    render(<AnalyticsDashboard {...props} />);
 
     await waitFor(() => {
       expect(screen.getByText('Team')).toBeInTheDocument();
     });
 
     const teamButton = screen.getByText('Team');
-    await userEvent.click(teamButton);
+    await user.click(teamButton);
 
     expect(screen.getByTestId('team-analytics-view')).toBeInTheDocument();
     expect(screen.getByText('Team Analytics: project-1')).toBeInTheDocument();
   });
 
   it('should navigate to user analytics view', async () => {
-    (analyticsService.getDashboardData as any).mockResolvedValue(mockUserDashboardData);
+    mockGetDashboardData.mockResolvedValue(mockUserDashboardData);
 
-    render(<AnalyticsDashboard />);
+    const props: AnalyticsDashboardProps = {};
+    render(<AnalyticsDashboard {...props} />);
 
     await waitFor(() => {
       expect(screen.getByTestId('user-analytics-view')).toBeInTheDocument();
@@ -213,27 +247,30 @@ describe('AnalyticsDashboard', () => {
   });
 
   it('should handle time range changes', async () => {
-    (analyticsService.getDashboardData as any).mockResolvedValue(mockProjectDashboardData);
+    const user = userEvent.setup();
+    mockGetDashboardData.mockResolvedValue(mockProjectDashboardData);
 
-    render(<AnalyticsDashboard projectId="project-1" />);
+    const props: AnalyticsDashboardProps = { projectId: 'project-1' };
+    render(<AnalyticsDashboard {...props} />);
 
     await waitFor(() => {
       expect(screen.getByText('Time Range Selector')).toBeInTheDocument();
     });
 
     const timeRangeButton = screen.getByText('Time Range Selector');
-    await userEvent.click(timeRangeButton);
+    await user.click(timeRangeButton);
 
     // Should trigger a reload with new time range
     await waitFor(() => {
-      expect(analyticsService.getDashboardData).toHaveBeenCalledTimes(2);
+      expect(mockGetDashboardData).toHaveBeenCalledTimes(2);
     });
   });
 
   it('should show navigation tabs when not in overview', async () => {
-    (analyticsService.getDashboardData as any).mockResolvedValue(mockProjectDashboardData);
+    mockGetDashboardData.mockResolvedValue(mockProjectDashboardData);
 
-    render(<AnalyticsDashboard projectId="project-1" />);
+    const props: AnalyticsDashboardProps = { projectId: 'project-1' };
+    render(<AnalyticsDashboard {...props} />);
 
     await waitFor(() => {
       expect(screen.getByTestId('project-analytics-view')).toBeInTheDocument();
@@ -246,9 +283,10 @@ describe('AnalyticsDashboard', () => {
   });
 
   it('should handle empty dashboard data', async () => {
-    (analyticsService.getDashboardData as any).mockResolvedValue(null);
+    mockGetDashboardData.mockResolvedValue(null);
 
-    render(<AnalyticsDashboard />);
+    const props: AnalyticsDashboardProps = {};
+    render(<AnalyticsDashboard {...props} />);
 
     await waitFor(() => {
       expect(screen.getByText((content, element) => {
@@ -258,11 +296,13 @@ describe('AnalyticsDashboard', () => {
   });
 
   it('should retry loading data when retry button is clicked', async () => {
-    (analyticsService.getDashboardData as any)
+    const user = userEvent.setup();
+    mockGetDashboardData
       .mockRejectedValueOnce(new Error('Network error'))
       .mockResolvedValueOnce(mockUserDashboardData);
 
-    render(<AnalyticsDashboard />);
+    const props: AnalyticsDashboardProps = {};
+    render(<AnalyticsDashboard {...props} />);
 
     await waitFor(() => {
       expect(screen.getAllByText((content, element) => {
@@ -271,12 +311,12 @@ describe('AnalyticsDashboard', () => {
     });
 
     const retryButton = screen.getByText('Retry');
-    await userEvent.click(retryButton);
+    await user.click(retryButton);
 
     await waitFor(() => {
       expect(screen.getByText('Analytics Dashboard')).toBeInTheDocument();
     });
 
-    expect(analyticsService.getDashboardData).toHaveBeenCalledTimes(2);
+    expect(mockGetDashboardData).toHaveBeenCalledTimes(2);
   });
 });

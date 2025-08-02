@@ -8,6 +8,7 @@ interface ProtectedRouteProps {
   requiredRoles?: UserRole[];
   fallbackPath?: string;
   requireVerification?: boolean;
+  className?: string;
 }
 
 export const ProtectedRoute: React.FC<ProtectedRouteProps> = ({
@@ -38,38 +39,20 @@ export const ProtectedRoute: React.FC<ProtectedRouteProps> = ({
 
   // Redirect to login if not authenticated
   if (!isAuthenticated || !user) {
-    return (
-      <Navigate
-        to={fallbackPath}
-        state={{ from: location }}
-        replace
-      />
-    );
+    return <Navigate to={fallbackPath} state={{ from: location }} replace />;
   }
 
   // Check email verification requirement
   if (requireVerification && !user.isVerified) {
-    return (
-      <Navigate
-        to="/verify-email"
-        state={{ from: location }}
-        replace
-      />
-    );
+    return <Navigate to="/verify-email" state={{ from: location }} replace />;
   }
 
   // Check role requirements
   if (requiredRoles && requiredRoles.length > 0) {
     const hasRequiredRole = requiredRoles.includes(user.role);
-    
+
     if (!hasRequiredRole) {
-      return (
-        <Navigate
-          to="/unauthorized"
-          state={{ from: location, requiredRoles }}
-          replace
-        />
-      );
+      return <Navigate to="/unauthorized" state={{ from: location, requiredRoles }} replace />;
     }
   }
 
@@ -77,11 +60,11 @@ export const ProtectedRoute: React.FC<ProtectedRouteProps> = ({
 };
 
 // Higher-order component for role-based access
-export const withRoleProtection = (
-  Component: React.ComponentType,
+export const withRoleProtection = <P extends object>(
+  Component: React.ComponentType<P>,
   requiredRoles: UserRole[]
 ) => {
-  return (props: unknown) => (
+  return (props: P) => (
     <ProtectedRoute requiredRoles={requiredRoles}>
       <Component {...props} />
     </ProtectedRoute>
@@ -90,19 +73,13 @@ export const withRoleProtection = (
 
 // Specific role protection components
 export const AdminRoute: React.FC<{ children: React.ReactNode }> = ({ children }) => (
-  <ProtectedRoute requiredRoles={[UserRole.ADMIN]}>
-    {children}
-  </ProtectedRoute>
+  <ProtectedRoute requiredRoles={[UserRole.ADMIN]}>{children}</ProtectedRoute>
 );
 
 export const TeamLeadRoute: React.FC<{ children: React.ReactNode }> = ({ children }) => (
-  <ProtectedRoute requiredRoles={[UserRole.TEAM_LEAD, UserRole.ADMIN]}>
-    {children}
-  </ProtectedRoute>
+  <ProtectedRoute requiredRoles={[UserRole.TEAM_LEAD, UserRole.ADMIN]}>{children}</ProtectedRoute>
 );
 
 export const VerifiedRoute: React.FC<{ children: React.ReactNode }> = ({ children }) => (
-  <ProtectedRoute requireVerification>
-    {children}
-  </ProtectedRoute>
+  <ProtectedRoute requireVerification>{children}</ProtectedRoute>
 );

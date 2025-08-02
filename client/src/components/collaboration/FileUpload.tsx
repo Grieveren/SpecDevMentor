@@ -6,7 +6,7 @@ import { fileUploadService, FileAttachment, UploadProgress } from '../../service
 interface FileUploadProps {
   documentId?: string;
   onUploadComplete?: (files: FileAttachment[]) => void;
-  onUploadError?: (_error: string) => void;
+  onUploadError?: (error: string) => void;
   maxFiles?: number;
   maxFileSize?: number;
   allowedTypes?: string[];
@@ -73,8 +73,9 @@ export const FileUpload: React.FC<FileUploadProps> = ({
 
       onUploadComplete?.(uploadedFiles);
       setUploadProgress([]);
-    } catch (_error: unknown) {
-      onUploadError?.(error.response?.data?.message || 'Upload failed');
+    } catch (error: unknown) {
+      const uploadError = error as { response?: { data?: { message?: string } } };
+      onUploadError?.(uploadError.response?.data?.message || 'Upload failed');
       setUploadProgress([]);
     } finally {
       setIsUploading(false);

@@ -1,19 +1,24 @@
 import { renderHook, act } from '@testing-library/react';
 import { vi } from 'vitest';
+import type { MockedFunction } from 'vitest';
 import { useAIReview } from '../useAIReview';
-import { aiReviewService, AIReviewResult, AISuggestion } from '../../services/ai-review.service';
+import { aiReviewService } from '../../services/ai-review.service';
+import type { AIReviewResult, AISuggestion } from '../../services/ai-review.service';
 
-// Mock the AI review service
+// Mock the AI review service with proper typing
+const mockRequestReview = vi.fn() as MockedFunction<typeof aiReviewService.requestReview>;
+const mockApplySuggestion = vi.fn() as MockedFunction<typeof aiReviewService.applySuggestion>;
+const mockRollbackSuggestion = vi.fn() as MockedFunction<typeof aiReviewService.rollbackSuggestion>;
+const mockGetReview = vi.fn() as MockedFunction<typeof aiReviewService.getReview>;
+
 vi.mock('../../services/ai-review.service', () => ({
   aiReviewService: {
-    requestReview: vi.fn(),
-    applySuggestion: vi.fn(),
-    rollbackSuggestion: vi.fn(),
-    getReview: vi.fn(),
+    requestReview: mockRequestReview,
+    applySuggestion: mockApplySuggestion,
+    rollbackSuggestion: mockRollbackSuggestion,
+    getReview: mockGetReview,
   },
 }));
-
-const mockAiReviewService = aiReviewService as any;
 
 const mockSuggestion: AISuggestion = {
   id: 'suggestion-1',
@@ -62,6 +67,10 @@ describe('useAIReview', () => {
 
   beforeEach(() => {
     vi.clearAllMocks();
+    mockRequestReview.mockClear();
+    mockApplySuggestion.mockClear();
+    mockRollbackSuggestion.mockClear();
+    mockGetReview.mockClear();
   });
 
   it('should initialize with default state', () => {
@@ -73,7 +82,7 @@ describe('useAIReview', () => {
   });
 
   it('should request review successfully', async () => {
-    mockAiReviewService.requestReview.mockResolvedValue(mockReview);
+    mockRequestReview.mockResolvedValue(mockReview);
 
     const { result } = renderHook(() => useAIReview(defaultOptions));
 
@@ -81,7 +90,7 @@ describe('useAIReview', () => {
       await result.current.requestReview('Test content');
     });
 
-    expect(mockAiReviewService.requestReview).toHaveBeenCalledWith({
+    expect(mockRequestReview).toHaveBeenCalledWith({
       documentId: 'doc-1',
       phase: 'requirements',
       content: 'Test content',
@@ -94,8 +103,8 @@ describe('useAIReview', () => {
   });
 
   it('should handle request review error', async () => {
-    const _error = new Error('Review failed');
-    mockAiReviewService.requestReview.mockRejectedValue(error);
+    const error = new Error('Review failed');
+    mockRequestReview.mockRejectedValue(error);
     const consoleSpy = vi.spyOn(console, 'error').mockImplementation(() => {});
 
     const { result } = renderHook(() => useAIReview(defaultOptions));
@@ -113,11 +122,11 @@ describe('useAIReview', () => {
   });
 
   it('should set loading state during request review', async () => {
-    let resolveReview: (_value: AIReviewResult) => void;
+    let resolveReview: (value: AIReviewResult) => void;
     const reviewPromise = new Promise<AIReviewResult>((resolve) => {
       resolveReview = resolve;
     });
-    mockAiReviewService.requestReview.mockReturnValue(reviewPromise);
+    mockRequestReview.mockReturnValue(reviewPromise);
 
     const { result } = renderHook(() => useAIReview(defaultOptions));
 
@@ -141,18 +150,13 @@ describe('useAIReview', () => {
       modifiedContent: 'Modified content',
       appliedSuggestion: mockSuggestion,
     };
-    mockAiReviewService.applySuggestion.mockResolvedValue(appliedResult);
+    mockApplySuggestion.mockResolvedValue(appliedResult);
 
     const { result } = renderHook(() => useAIReview(defaultOptions));
-
-    // Set initial review
-    act(() => {
-      result.current.requestReview = vi.fn();
-    });
     
     // Manually set the current review for testing
     await act(async () => {
-      mockAiReviewService.requestReview.mockResolvedValue(mockReview);
+      mockRequestReview.mockResolvedValue(mockReview);
       await result.current.requestReview('Test content');
     });
 
@@ -160,7 +164,7 @@ describe('useAIReview', () => {
       return await result.current.applySuggestion(mockSuggestion, 'Document content');
     });
 
-    expect(mockAiReviewService.applySuggestion).toHaveBeenCalledWith({
+    expect(mockApplySuggestion).toHaveBeenCalledWith({
       reviewId: 'review-1',
       suggestionId: 'suggestion-1',
       documentContent: 'Document content',
@@ -171,14 +175,14 @@ describe('useAIReview', () => {
   });
 
   it('should handle apply suggestion error', async () => {
-    const _error = new Error('Apply failed');
-    mockAiReviewService.applySuggestion.mockRejectedValue(error);
+    const error = new Error('Apply failed');
+    mockApplySuggestion.mockRejectedValue(error);
 
     const { result } = renderHook(() => useAIReview(defaultOptions));
 
     // Set initial review
     await act(async () => {
-      mockAiReviewService.requestReview.mockResolvedValue(mockReview);
+      mockRequestReview.mockResolvedValue(mockReview);
       await result.current.requestReview('Test content');
     });
 
@@ -199,7 +203,7 @@ describe('useAIReview', () => {
       originalContent: 'Original content',
       rolledBackSuggestion: mockSuggestion,
     };
-    mockAiReviewService.rollbackSuggestion.mockResolvedValue(rollbackResult);
+    mockRollbackSuggestion.mockResolvedValue(rollbackResult);
 
     const { result } = renderHook(() => useAIReview(defaultOptions));
 
@@ -210,7 +214,7 @@ describe('useAIReview', () => {
     };
 
     await act(async () => {
-      mockAiReviewService.requestReview.mockResolvedValue(reviewWithApplied);
+      mockRequestReview.mockResolvedValue(reviewWithApplied);
       await result.current.requestReview('Test content');
     });
 
@@ -218,7 +222,7 @@ describe('useAIReview', () => {
       return await result.current.rollbackSuggestion('suggestion-1');
     });
 
-    expect(mockAiReviewService.rollbackSuggestion).toHaveBeenCalledWith({
+    expect(mockRollbackSuggestion).toHaveBeenCalledWith({
       reviewId: 'review-1',
       suggestionId: 'suggestion-1',
     });
@@ -228,14 +232,14 @@ describe('useAIReview', () => {
   });
 
   it('should handle rollback suggestion error', async () => {
-    const _error = new Error('Rollback failed');
-    mockAiReviewService.rollbackSuggestion.mockRejectedValue(error);
+    const error = new Error('Rollback failed');
+    mockRollbackSuggestion.mockRejectedValue(error);
 
     const { result } = renderHook(() => useAIReview(defaultOptions));
 
     // Set initial review
     await act(async () => {
-      mockAiReviewService.requestReview.mockResolvedValue(mockReview);
+      mockRequestReview.mockResolvedValue(mockReview);
       await result.current.requestReview('Test content');
     });
 
@@ -284,13 +288,13 @@ describe('useAIReview', () => {
 
   it('should refresh review successfully', async () => {
     const refreshedReview = { ...mockReview, overallScore: 90 };
-    mockAiReviewService.getReview.mockResolvedValue(refreshedReview);
+    mockGetReview.mockResolvedValue(refreshedReview);
 
     const { result } = renderHook(() => useAIReview(defaultOptions));
 
     // Set initial review
     await act(async () => {
-      mockAiReviewService.requestReview.mockResolvedValue(mockReview);
+      mockRequestReview.mockResolvedValue(mockReview);
       await result.current.requestReview('Test content');
     });
 
@@ -298,20 +302,20 @@ describe('useAIReview', () => {
       await result.current.refreshReview();
     });
 
-    expect(mockAiReviewService.getReview).toHaveBeenCalledWith('review-1');
+    expect(mockGetReview).toHaveBeenCalledWith('review-1');
     expect(result.current.currentReview?.overallScore).toBe(90);
   });
 
   it('should handle refresh review error', async () => {
-    const _error = new Error('Refresh failed');
-    mockAiReviewService.getReview.mockRejectedValue(error);
+    const error = new Error('Refresh failed');
+    mockGetReview.mockRejectedValue(error);
     const consoleSpy = vi.spyOn(console, 'error').mockImplementation(() => {});
 
     const { result } = renderHook(() => useAIReview(defaultOptions));
 
     // Set initial review
     await act(async () => {
-      mockAiReviewService.requestReview.mockResolvedValue(mockReview);
+      mockRequestReview.mockResolvedValue(mockReview);
       await result.current.requestReview('Test content');
     });
 
@@ -332,7 +336,7 @@ describe('useAIReview', () => {
       await result.current.refreshReview();
     });
 
-    expect(mockAiReviewService.getReview).not.toHaveBeenCalled();
+    expect(mockGetReview).not.toHaveBeenCalled();
   });
 
   it('should throw error when applying suggestion without current review', async () => {
@@ -364,7 +368,7 @@ describe('useAIReview', () => {
 
     // Set initial review and dismiss a suggestion
     await act(async () => {
-      mockAiReviewService.requestReview.mockResolvedValue(mockReview);
+      mockRequestReview.mockResolvedValue(mockReview);
       await result.current.requestReview('Test content');
     });
 

@@ -1,33 +1,32 @@
-import { Request, Response, NextFunction } from 'express';
-import { AuthService, AuthenticationError, JWTPayload } from '../services/auth.service.js';
 import { UserRole } from '@prisma/client';
-
-// Extend Express Request type to include user
-declare global {
-  namespace Express {
-    interface Request {
-      user?: JWTPayload;
-    }
-  }
-}
-
-export interface AuthenticatedRequest extends Request {
-  user: JWTPayload;
-}
+import { NextFunction, Request, Response } from 'express';
+import { AuthService, AuthenticationError } from '../services/auth.service.js';
+import {
+  ApiError,
+  AuthMiddleware as AuthMiddlewareType,
+  AuthenticatedRequest,
+  RateLimitConfig,
+} from '../types/express.js';
 
 export class AuthMiddleware {
   constructor(private authService: AuthService) {}
 
   // Middleware to authenticate JWT tokens
-  authenticate = async (_req: Request, _res: Response, _next: NextFunction): Promise<void> => {
+  authenticate: AuthMiddlewareType = async (
+    req: Request,
+    res: Response,
+    next: NextFunction
+  ): Promise<void> => {
     try {
       const authHeader = req.headers.authorization;
 
       if (!authHeader || !authHeader.startsWith('Bearer ')) {
-        res.status(401).json({
-          error: 'Authentication required',
+        const errorResponse: ApiError = {
+          success: false,
+          message: 'Authentication required',
           code: 'MISSING_TOKEN',
-        });
+        };
+        res.status(401).json(errorResponse);
         return;
       }
 
@@ -39,25 +38,33 @@ export class AuthMiddleware {
         next();
       } catch (error) {
         if (error instanceof AuthenticationError) {
-          res.status(401).json({
-            error: error.message,
+          const errorResponse: ApiError = {
+            success: false,
+            message: error.message,
             code: error.code,
-          });
+          };
+          res.status(401).json(errorResponse);
           return;
         }
         throw error;
       }
     } catch (error) {
       console.error('Authentication middleware error:', error);
-      res.status(500).json({
-        error: 'Authentication check failed',
+      const errorResponse: ApiError = {
+        success: false,
+        message: 'Authentication check failed',
         code: 'AUTH_ERROR',
-      });
+      };
+      res.status(500).json(errorResponse);
     }
   };
 
   // Optional authentication - doesn't fail if no token provided
-  optionalAuthenticate = async (_req: Request, _res: Response, _next: NextFunction): Promise<void> => {
+  optionalAuthenticate: AuthMiddlewareType = async (
+    req: Request,
+    res: Response,
+    next: NextFunction
+  ): Promise<void> => {
     try {
       const authHeader = req.headers.authorization;
 
@@ -68,7 +75,7 @@ export class AuthMiddleware {
           req.user = payload;
         } catch (error) {
           // Ignore authentication errors for optional auth
-          // // console.warn('Optional authentication failed:', error);
+          console.warn('Optional authentication failed:', error);
         }
       }
 
@@ -80,25 +87,33 @@ export class AuthMiddleware {
   };
 
   // Middleware to require specific roles
-  requireRole = (roles: UserRole | UserRole[]) => {
+  requireRole = (roles: UserRole | UserRole[]): AuthMiddlewareType => {
     const requiredRoles = Array.isArray(roles) ? roles : [roles];
 
-    return (_req: AuthenticatedRequest, _res: Response, _next: NextFunction): void => {
-      if (!req.user) {
-        res.status(401).json({
-          error: 'Authentication required',
+    return (req: Request, res: Response, next: NextFunction): void => {
+      const authReq = req as AuthenticatedRequest;
+
+      if (!authReq.user) {
+        const errorResponse: ApiError = {
+          success: false,
+          message: 'Authentication required',
           code: 'MISSING_AUTH',
-        });
+        };
+        res.status(401).json(errorResponse);
         return;
       }
 
-      if (!requiredRoles.includes(req.user.role)) {
-        res.status(403).json({
-          error: 'Insufficient permissions',
+      if (!requiredRoles.includes(authReq.user.role)) {
+        const errorResponse: ApiError = {
+          success: false,
+          message: 'Insufficient permissions',
           code: 'INSUFFICIENT_PERMISSIONS',
-          required: requiredRoles,
-          current: req.user.role,
-        });
+          details: {
+            required: requiredRoles,
+            current: authReq.user.role,
+          },
+        };
+        res.status(403).json(errorResponse);
         return;
       }
 
@@ -113,51 +128,69 @@ export class AuthMiddleware {
   requireTeamLead = this.requireRole([UserRole.TEAM_LEAD, UserRole.ADMIN]);
 
   // Middleware to check if user owns resource or has admin privileges
-  requireOwnershipOrAdmin = (getResourceUserId: (_req: Request) => string | Promise<string>) => {
-    return async (_req: AuthenticatedRequest, _res: Response, _next: NextFunction): Promise<void> => {
+  requireOwnershipOrAdmin = (
+    getResourceUserId: (req: Request) => string | Promise<string>
+  ): AuthMiddlewareType => {
+    return async (req: Request, res: Response, next: NextFunction): Promise<void> => {
       try {
-        if (!req.user) {
-          res.status(401).json({
-            error: 'Authentication required',
+        const authReq = req as AuthenticatedRequest;
+
+        if (!authReq.user) {
+          const errorResponse: ApiError = {
+            success: false,
+            message: 'Authentication required',
             code: 'MISSING_AUTH',
-          });
+          };
+          res.status(401).json(errorResponse);
           return;
         }
 
         // Admin can access everything
-        if (req.user.role === UserRole.ADMIN) {
+        if (authReq.user.role === UserRole.ADMIN) {
           next();
           return;
         }
 
         // Check ownership
         const resourceUserId = await getResourceUserId(req);
-        if (req.user.userId === resourceUserId) {
+        if (authReq.user.userId === resourceUserId) {
           next();
           return;
         }
 
-        res.status(403).json({
-          error: 'Access denied - insufficient permissions',
+        const errorResponse: ApiError = {
+          success: false,
+          message: 'Access denied - insufficient permissions',
           code: 'ACCESS_DENIED',
-        });
+        };
+        res.status(403).json(errorResponse);
       } catch (error) {
         console.error('Ownership check error:', error);
-        res.status(500).json({
-          error: 'Permission check failed',
+        const errorResponse: ApiError = {
+          success: false,
+          message: 'Permission check failed',
           code: 'PERMISSION_ERROR',
-        });
+        };
+        res.status(500).json(errorResponse);
       }
     };
   };
 
   // Middleware to validate email verification
-  requireVerifiedEmail = (_req: AuthenticatedRequest, _res: Response, _next: NextFunction): void => {
-    if (!req.user) {
-      res.status(401).json({
-        error: 'Authentication required',
+  requireVerifiedEmail: AuthMiddlewareType = (
+    req: Request,
+    res: Response,
+    next: NextFunction
+  ): void => {
+    const authReq = req as AuthenticatedRequest;
+
+    if (!authReq.user) {
+      const errorResponse: ApiError = {
+        success: false,
+        message: 'Authentication required',
         code: 'MISSING_AUTH',
-      });
+      };
+      res.status(401).json(errorResponse);
       return;
     }
 
@@ -173,11 +206,13 @@ export const createAuthRateLimit = () => {
   // For now, we'll create a simple in-memory rate limiter
   const attempts = new Map<string, { count: number; resetTime: number }>();
 
-  return (maxAttempts: number, windowMs: number) => {
-    return (_req: Request, _res: Response, _next: NextFunction): void => {
-      const key = req.ip + ':' + (req.body.email || 'unknown');
+  return (config: RateLimitConfig): AuthMiddlewareType => {
+    return (req: Request, res: Response, next: NextFunction): void => {
+      const key = config.keyGenerator
+        ? config.keyGenerator(req)
+        : (req.ip || 'unknown') + ':' + (req.body?.email || 'unknown');
       const now = Date.now();
-      const windowStart = now - windowMs;
+      const windowStart = now - config.windowMs;
 
       // Clean up old entries
       for (const [k, v] of attempts.entries()) {
@@ -188,17 +223,21 @@ export const createAuthRateLimit = () => {
 
       const current = attempts.get(key);
       if (!current) {
-        attempts.set(key, { count: 1, resetTime: now + windowMs });
+        attempts.set(key, { count: 1, resetTime: now + config.windowMs });
         next();
         return;
       }
 
-      if (current.count >= maxAttempts) {
-        res.status(429).json({
-          error: 'Too many attempts, please try again later',
+      if (current.count >= config.maxAttempts) {
+        const errorResponse: ApiError = {
+          success: false,
+          message: 'Too many attempts, please try again later',
           code: 'RATE_LIMIT_EXCEEDED',
-          retryAfter: Math.ceil((current.resetTime - now) / 1000),
-        });
+          details: {
+            retryAfter: Math.ceil((current.resetTime - now) / 1000),
+          },
+        };
+        res.status(429).json(errorResponse);
         return;
       }
 
@@ -209,3 +248,20 @@ export const createAuthRateLimit = () => {
 };
 
 export default AuthMiddleware;
+
+// Factory function to create auth middleware instance
+export const createAuthMiddleware = (authService: AuthService) => {
+  return new AuthMiddleware(authService);
+};
+
+// Export a default instance function for convenience
+export const authenticateToken = async (
+  req: Request,
+  res: Response,
+  next: NextFunction
+): Promise<void> => {
+  const { AuthService } = await import('../services/auth.service.js');
+  const authService = new AuthService();
+  const middleware = new AuthMiddleware(authService);
+  return middleware.authenticate(req, res, next);
+};

@@ -1,29 +1,24 @@
-import React, { useState, useEffect, useCallback, useRef } from 'react';
-import { 
-  DocumentTextIcon, 
-  EyeIcon, 
-  PencilIcon,
-  ClockIcon,
+import {
   CheckCircleIcon,
+  ClockIcon,
+  DocumentTextIcon,
   ExclamationTriangleIcon,
-  UsersIcon
+  EyeIcon,
+  PencilIcon,
+  UsersIcon,
 } from '@heroicons/react/24/outline';
-import { SpecificationPhase, DocumentStatus } from '../../types/project';
-import { cn } from '../../utils/cn';
-import { 
-  useCollaboration, 
+import React, { useCallback, useEffect, useRef, useState } from 'react';
+import {
   ClientOperationalTransform,
+  CollaborationUser,
   DocumentChange,
-  CollaborationUser 
+  useCollaboration,
 } from '../../hooks/useCollaboration';
+import { DocumentStatus, SpecificationPhase } from '../../types/project';
+import { cn } from '../../utils/cn';
 import { CollaborationIndicator, CollaborationStatus } from './CollaborationIndicator';
+import { CollaborativeComments, CommentThread, Reaction } from './CollaborativeComments';
 import { CollaborativeCursors, useCursorTracking } from './CollaborativeCursors';
-import { 
-  CollaborativeComments, 
-  CommentThread, 
-  Comment, 
-  Reaction 
-} from './CollaborativeComments';
 
 export interface SpecificationDocument {
   id: string;
@@ -42,6 +37,7 @@ export interface CollaborativeSpecificationEditorProps {
   collaborationEnabled?: boolean;
   authToken: string;
   className?: string;
+  children?: React.ReactNode;
 }
 
 export const CollaborativeSpecificationEditor: React.FC<CollaborativeSpecificationEditorProps> = ({
@@ -70,7 +66,7 @@ export const CollaborativeSpecificationEditor: React.FC<CollaborativeSpecificati
     token: authToken,
     onDocumentChange: handleRemoteDocumentChange,
     onContentUpdate: handleRemoteContentUpdate,
-    onError: (error) => console.error('Collaboration error:', error),
+    onError: error => console.error('Collaboration error:', error),
   });
 
   // Cursor tracking
@@ -112,49 +108,61 @@ export const CollaborativeSpecificationEditor: React.FC<CollaborativeSpecificati
     return () => clearTimeout(timer);
   }, [content, document.content, hasUnsavedChanges, mode, onSave]);
 
-  const handleContentChange = useCallback((newContent: string, changeInfo?: {
-    type: 'insert' | 'delete';
-    position: number;
-    content?: string;
-    length?: number;
-  }) => {
-    setContent(newContent);
-    setHasUnsavedChanges(newContent !== document.content);
+  const handleContentChange = useCallback(
+    (
+      newContent: string,
+      changeInfo?: {
+        type: 'insert' | 'delete';
+        position: number;
+        content?: string;
+        length?: number;
+      }
+    ) => {
+      setContent(newContent);
+      setHasUnsavedChanges(newContent !== document.content);
 
-    // Send change to collaboration service
-    if (collaborationEnabled && collaboration.isConnected && changeInfo) {
-      const operation = changeInfo.type === 'insert' 
-        ? ClientOperationalTransform.createInsertOperation(
-            changeInfo.position, 
-            changeInfo.content || '', 
-            document.id
-          )
-        : ClientOperationalTransform.createDeleteOperation(
-            changeInfo.position, 
-            changeInfo.length || 0, 
-            document.id
-          );
+      // Send change to collaboration service
+      if (collaborationEnabled && collaboration.isConnected && changeInfo) {
+        const operation =
+          changeInfo.type === 'insert'
+            ? ClientOperationalTransform.createInsertOperation(
+                changeInfo.position,
+                changeInfo.content || '',
+                document.id
+              )
+            : ClientOperationalTransform.createDeleteOperation(
+                changeInfo.position,
+                changeInfo.length || 0,
+                document.id
+              );
 
-      collaboration.sendDocumentChange(operation);
-    }
-  }, [document.content, document.id, collaborationEnabled, collaboration]);
+        collaboration.sendDocumentChange(operation);
+      }
+    },
+    [document.content, document.id, collaborationEnabled, collaboration]
+  );
 
   const handleTextareaChange = (e: React.ChangeEvent<HTMLTextAreaElement>) => {
     const newContent = e.target.value;
     const oldContent = content;
-    
+
     // Calculate the change for operational transformation
-    let changeInfo: {
-      type: 'insert' | 'delete';
-      position: number;
-      content?: string;
-      length?: number;
-    } | undefined;
+    let changeInfo:
+      | {
+          type: 'insert' | 'delete';
+          position: number;
+          content?: string;
+          length?: number;
+        }
+      | undefined;
 
     if (newContent.length > oldContent.length) {
       // Insert operation
       const position = findChangePosition(oldContent, newContent);
-      const insertedText = newContent.substring(position, position + (newContent.length - oldContent.length));
+      const insertedText = newContent.substring(
+        position,
+        position + (newContent.length - oldContent.length)
+      );
       changeInfo = {
         type: 'insert',
         position,
@@ -215,9 +223,9 @@ export const CollaborativeSpecificationEditor: React.FC<CollaborativeSpecificati
   };
 
   const handleResolveThread = (threadId: string) => {
-    setCommentThreads(prev => 
-      prev.map(thread => 
-        thread.id === threadId 
+    setCommentThreads(prev =>
+      prev.map(thread =>
+        thread.id === threadId
           ? { ...thread, status: 'resolved' as const, resolvedAt: new Date() }
           : thread
       )
@@ -225,9 +233,9 @@ export const CollaborativeSpecificationEditor: React.FC<CollaborativeSpecificati
   };
 
   const handleReopenThread = (threadId: string) => {
-    setCommentThreads(prev => 
-      prev.map(thread => 
-        thread.id === threadId 
+    setCommentThreads(prev =>
+      prev.map(thread =>
+        thread.id === threadId
           ? { ...thread, status: 'open' as const, resolvedAt: undefined }
           : thread
       )
@@ -273,7 +281,7 @@ export const CollaborativeSpecificationEditor: React.FC<CollaborativeSpecificati
   };
 
   const getPhaseToolbarItems = (phase: SpecificationPhase) => {
-    const baseItems = [
+    const baseItems: Array<{ label: string; shortcut?: string; action: () => void }> = [
       { label: 'Bold', shortcut: 'Ctrl+B', action: () => insertMarkdown('**', '**') },
       { label: 'Italic', shortcut: 'Ctrl+I', action: () => insertMarkdown('*', '*') },
       { label: 'Code', shortcut: 'Ctrl+`', action: () => insertMarkdown('`', '`') },
@@ -283,16 +291,36 @@ export const CollaborativeSpecificationEditor: React.FC<CollaborativeSpecificati
       case SpecificationPhase.REQUIREMENTS:
         return [
           ...baseItems,
-          { label: 'User Story', action: () => insertTemplate('**User Story:** As a [role], I want [feature], so that [benefit]') },
-          { label: 'EARS Format', action: () => insertTemplate('WHEN [event] THEN [system] SHALL [response]') },
-          { label: 'Requirement', action: () => insertTemplate('### Requirement [number]\n\n**User Story:** \n\n#### Acceptance Criteria\n\n1. ') },
+          {
+            label: 'User Story',
+            action: () =>
+              insertTemplate('**User Story:** As a [role], I want [feature], so that [benefit]'),
+          },
+          {
+            label: 'EARS Format',
+            action: () => insertTemplate('WHEN [event] THEN [system] SHALL [response]'),
+          },
+          {
+            label: 'Requirement',
+            action: () =>
+              insertTemplate(
+                '### Requirement [number]\n\n**User Story:** \n\n#### Acceptance Criteria\n\n1. '
+              ),
+          },
         ];
       case SpecificationPhase.DESIGN:
         return [
           ...baseItems,
           { label: 'Architecture', action: () => insertTemplate('## Architecture\n\n') },
-          { label: 'Component', action: () => insertTemplate('### [Component Name]\n\n**Purpose:** \n\n**Interfaces:** \n\n') },
-          { label: 'Mermaid Diagram', action: () => insertTemplate('```mermaid\ngraph TD\n    A[Start] --> B[End]\n```') },
+          {
+            label: 'Component',
+            action: () =>
+              insertTemplate('### [Component Name]\n\n**Purpose:** \n\n**Interfaces:** \n\n'),
+          },
+          {
+            label: 'Mermaid Diagram',
+            action: () => insertTemplate('```mermaid\ngraph TD\n    A[Start] --> B[End]\n```'),
+          },
         ];
       case SpecificationPhase.TASKS:
         return [
@@ -313,14 +341,15 @@ export const CollaborativeSpecificationEditor: React.FC<CollaborativeSpecificati
     const start = textarea.selectionStart;
     const end = textarea.selectionEnd;
     const selectedText = content.substring(start, end);
-    const newContent = content.substring(0, start) + before + selectedText + after + content.substring(end);
-    
+    const newContent =
+      content.substring(0, start) + before + selectedText + after + content.substring(end);
+
     handleContentChange(newContent, {
       type: 'insert',
       position: start,
       content: before + selectedText + after,
     });
-    
+
     // Restore cursor position
     setTimeout(() => {
       textarea.focus();
@@ -334,13 +363,13 @@ export const CollaborativeSpecificationEditor: React.FC<CollaborativeSpecificati
 
     const start = textarea.selectionStart;
     const newContent = content.substring(0, start) + template + content.substring(start);
-    
+
     handleContentChange(newContent, {
       type: 'insert',
       position: start,
       content: template,
     });
-    
+
     // Position cursor at end of inserted template
     setTimeout(() => {
       textarea.focus();
@@ -361,7 +390,12 @@ export const CollaborativeSpecificationEditor: React.FC<CollaborativeSpecificati
   }, [collaboration.collaborators, collaboration.currentUser]);
 
   return (
-    <div className={cn('flex flex-col h-full bg-white border border-gray-200 rounded-lg shadow-sm', className)}>
+    <div
+      className={cn(
+        'flex flex-col h-full bg-white border border-gray-200 rounded-lg shadow-sm',
+        className
+      )}
+    >
       {/* Header */}
       <div className="flex items-center justify-between p-4 border-b border-gray-200">
         <div className="flex items-center space-x-3">
@@ -441,7 +475,7 @@ export const CollaborativeSpecificationEditor: React.FC<CollaborativeSpecificati
                   Save Now
                 </button>
               )}
-              
+
               {onRequestReview && document.status === DocumentStatus.DRAFT && (
                 <button
                   onClick={onRequestReview}
@@ -495,7 +529,7 @@ export const CollaborativeSpecificationEditor: React.FC<CollaborativeSpecificati
               className="flex-1 p-4 border-none resize-none focus:outline-none font-mono text-sm leading-relaxed"
               style={{ minHeight: '400px' }}
             />
-            
+
             {/* Collaborative cursors */}
             {collaborationEnabled && (
               <CollaborativeCursors
@@ -539,9 +573,7 @@ export const CollaborativeSpecificationEditor: React.FC<CollaborativeSpecificati
 
       {/* Footer */}
       <div className="flex items-center justify-between p-2 border-t border-gray-200 bg-gray-50 text-xs text-gray-500">
-        <div>
-          Last updated: {new Date(document.updatedAt).toLocaleString()}
-        </div>
+        <div>Last updated: {new Date(document.updatedAt).toLocaleString()}</div>
         <div className="flex items-center space-x-4">
           {collaborationEnabled && collaboration.isConnected && (
             <span className="flex items-center space-x-1">

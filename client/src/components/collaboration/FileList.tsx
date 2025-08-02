@@ -1,19 +1,18 @@
-import React, { useState, useEffect } from 'react';
-import { 
-  DocumentIcon, 
-  ArrowDownTrayIcon, 
-  TrashIcon, 
-  EyeIcon,
-  ClockIcon,
-  UserIcon,
-  ChevronDownIcon,
-  ChevronRightIcon
-} from '@heroicons/react/24/outline';
 import { Menu, Transition } from '@headlessui/react';
-import { Fragment } from 'react';
-import { cn } from '../../utils/cn';
-import { fileUploadService, FileAttachment } from '../../services/file-upload.service';
+import {
+  ArrowDownTrayIcon,
+  ChevronDownIcon,
+  ChevronRightIcon,
+  ClockIcon,
+  DocumentIcon,
+  EyeIcon,
+  TrashIcon,
+  UserIcon,
+} from '@heroicons/react/24/outline';
 import { formatDistanceToNow } from 'date-fns';
+import React, { Fragment, useEffect, useState } from 'react';
+import { FileAttachment, fileUploadService } from '../../services/file-upload.service';
+import { cn } from '../../utils/cn';
 
 interface FileListProps {
   documentId?: string;
@@ -23,6 +22,7 @@ interface FileListProps {
   showUploader?: boolean;
   showVersions?: boolean;
   className?: string;
+  children?: React.ReactNode;
 }
 
 export const FileList: React.FC<FileListProps> = ({
@@ -60,7 +60,8 @@ export const FileList: React.FC<FileListProps> = ({
       const documentFiles = await fileUploadService.getDocumentFiles(documentId);
       setFiles(documentFiles);
     } catch (err: unknown) {
-      setError(err.response?.data?.message || 'Failed to load files');
+      const error = err as { response?: { data?: { message?: string } } };
+      setError(error.response?.data?.message || 'Failed to load files');
     } finally {
       setLoading(false);
     }
@@ -70,7 +71,8 @@ export const FileList: React.FC<FileListProps> = ({
     try {
       await fileUploadService.downloadFile(file.id, file.originalName);
     } catch (err: unknown) {
-      setError(err.response?.data?.message || 'Failed to download file');
+      const error = err as { response?: { data?: { message?: string } } };
+      setError(error.response?.data?.message || 'Failed to download file');
     }
   };
 
@@ -84,24 +86,22 @@ export const FileList: React.FC<FileListProps> = ({
       setFiles(prev => prev.filter(f => f.id !== file.id));
       onFileDeleted?.(file.id);
     } catch (err: unknown) {
-      setError(err.response?.data?.message || 'Failed to delete file');
+      const error = err as { response?: { data?: { message?: string } } };
+      setError(error.response?.data?.message || 'Failed to delete file');
     }
   };
 
   const handleVersionUpdate = async (file: FileAttachment, newFile: File) => {
     try {
-      const updatedFile = await fileUploadService.updateFileVersion(
-        file.id,
-        newFile,
-        (progress) => {
-          // Could show progress here
-        }
-      );
-      
-      setFiles(prev => prev.map(f => f.id === file.id ? updatedFile : f));
+      const updatedFile = await fileUploadService.updateFileVersion(file.id, newFile, progress => {
+        // Could show progress here
+      });
+
+      setFiles(prev => prev.map(f => (f.id === file.id ? updatedFile : f)));
       onFileUpdated?.(updatedFile);
     } catch (err: unknown) {
-      setError(err.response?.data?.message || 'Failed to update file version');
+      const error = err as { response?: { data?: { message?: string } } };
+      setError(error.response?.data?.message || 'Failed to update file version');
     }
   };
 
@@ -129,10 +129,7 @@ export const FileList: React.FC<FileListProps> = ({
     return (
       <div className={cn('text-center py-8', className)}>
         <p className="text-red-600 mb-2">{error}</p>
-        <button
-          onClick={loadFiles}
-          className="text-blue-600 hover:text-blue-800 text-sm"
-        >
+        <button onClick={loadFiles} className="text-blue-600 hover:text-blue-800 text-sm">
           Try again
         </button>
       </div>
@@ -150,7 +147,7 @@ export const FileList: React.FC<FileListProps> = ({
 
   return (
     <div className={cn('space-y-2', className)}>
-      {files.map((file) => (
+      {files.map(file => (
         <FileItem
           key={file.id}
           file={file}
@@ -205,17 +202,13 @@ const FileItem: React.FC<FileItemProps> = ({
       <div className="flex items-center space-x-3">
         {/* File Icon */}
         <div className="flex-shrink-0">
-          <span className="text-2xl">
-            {fileUploadService.getFileTypeIcon(file.mimeType)}
-          </span>
+          <span className="text-2xl">{fileUploadService.getFileTypeIcon(file.mimeType)}</span>
         </div>
 
         {/* File Info */}
         <div className="flex-1 min-w-0">
           <div className="flex items-center space-x-2">
-            <h4 className="text-sm font-medium text-gray-900 truncate">
-              {file.originalName}
-            </h4>
+            <h4 className="text-sm font-medium text-gray-900 truncate">{file.originalName}</h4>
             <span className="text-xs text-gray-500">
               {fileUploadService.formatFileSize(file.size)}
             </span>
@@ -228,7 +221,7 @@ const FileItem: React.FC<FileItemProps> = ({
                 <span>{file.uploader.name}</span>
               </div>
             )}
-            
+
             <div className="flex items-center space-x-1">
               <ClockIcon className="h-3 w-3" />
               <span>{formatDistanceToNow(new Date(file.createdAt), { addSuffix: true })}</span>
@@ -340,12 +333,17 @@ const FileItem: React.FC<FileItemProps> = ({
         <div className="mt-4 pl-8 border-l-2 border-gray-200">
           <h5 className="text-xs font-medium text-gray-700 mb-2">Version History</h5>
           <div className="space-y-2">
-            {file.versions!.map((version) => (
-              <div key={version.id} className="flex items-center justify-between text-xs text-gray-500">
+            {file.versions!.map(version => (
+              <div
+                key={version.id}
+                className="flex items-center justify-between text-xs text-gray-500"
+              >
                 <div className="flex items-center space-x-2">
                   <span>v{version.version}</span>
                   <span>{fileUploadService.formatFileSize(version.size)}</span>
-                  <span>{formatDistanceToNow(new Date(version.createdAt), { addSuffix: true })}</span>
+                  <span>
+                    {formatDistanceToNow(new Date(version.createdAt), { addSuffix: true })}
+                  </span>
                 </div>
                 <button
                   onClick={() => onDownload(file)}

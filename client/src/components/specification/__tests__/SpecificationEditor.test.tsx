@@ -1,7 +1,9 @@
 import { describe, it, expect, vi, beforeEach } from 'vitest';
 import { render, screen, fireEvent, waitFor } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
-import { SpecificationEditor, SpecificationEditorProps } from '../SpecificationEditor';
+import type { MockedFunction } from 'vitest';
+import { SpecificationEditor } from '../SpecificationEditor';
+import type { SpecificationEditorProps } from '../SpecificationEditor';
 import { SpecificationPhase, DocumentStatus } from '../../../types/project';
 
 const mockDocument = {
@@ -13,15 +15,20 @@ const mockDocument = {
   updatedAt: '2023-01-01T00:00:00Z',
 };
 
+const mockOnSave: MockedFunction<(content: string) => Promise<void>> = vi.fn();
+const mockOnRequestReview: MockedFunction<() => Promise<void>> = vi.fn();
+
 const defaultProps: SpecificationEditorProps = {
   document: mockDocument,
   mode: 'edit',
-  onSave: vi.fn(),
+  onSave: mockOnSave,
 };
 
 describe('SpecificationEditor', () => {
   beforeEach(() => {
     vi.clearAllMocks();
+    mockOnSave.mockClear();
+    mockOnRequestReview.mockClear();
   });
 
   it('should render with default props', () => {
@@ -47,7 +54,7 @@ describe('SpecificationEditor', () => {
   });
 
   it('should toggle between edit and preview modes', async () => {
-    const _user = userEvent.setup();
+    const user = userEvent.setup();
     render(<SpecificationEditor {...defaultProps} />);
     
     // Should start in edit mode
@@ -70,12 +77,12 @@ describe('SpecificationEditor', () => {
   });
 
   it('should call onSave when content changes', async () => {
-    const _user = userEvent.setup();
-    const mockOnSave = vi.fn().mockResolvedValue(undefined);
+    const user = userEvent.setup();
+    mockOnSave.mockResolvedValue(undefined);
     
-    render(<SpecificationEditor {...defaultProps} onSave={mockOnSave} />);
+    render(<SpecificationEditor {...defaultProps} />);
     
-    const textarea = screen.getByRole('textbox');
+    const textarea = screen.getByRole('textbox') as HTMLTextAreaElement;
     await user.clear(textarea);
     await user.type(textarea, 'New content');
     
@@ -86,22 +93,22 @@ describe('SpecificationEditor', () => {
   });
 
   it('should show unsaved changes indicator', async () => {
-    const _user = userEvent.setup();
+    const user = userEvent.setup();
     render(<SpecificationEditor {...defaultProps} />);
     
-    const textarea = screen.getByRole('textbox');
+    const textarea = screen.getByRole('textbox') as HTMLTextAreaElement;
     await user.type(textarea, ' Modified');
     
     expect(screen.getByText('Unsaved changes')).toBeInTheDocument();
   });
 
   it('should show saving indicator during save', async () => {
-    const _user = userEvent.setup();
-    const mockOnSave = vi.fn().mockImplementation(() => new Promise(resolve => setTimeout(resolve, 100)));
+    const user = userEvent.setup();
+    const mockOnSaveLocal = vi.fn().mockImplementation(() => new Promise(resolve => setTimeout(resolve, 100)));
     
-    render(<SpecificationEditor {...defaultProps} onSave={mockOnSave} />);
+    render(<SpecificationEditor {...defaultProps} onSave={mockOnSaveLocal} />);
     
-    const textarea = screen.getByRole('textbox');
+    const textarea = screen.getByRole('textbox') as HTMLTextAreaElement;
     await user.type(textarea, ' Modified');
     
     // Trigger manual save
@@ -146,8 +153,6 @@ describe('SpecificationEditor', () => {
   });
 
   it('should show request review button for draft documents', () => {
-    const mockOnRequestReview = vi.fn();
-    
     render(
       <SpecificationEditor 
         {...defaultProps} 
@@ -164,27 +169,27 @@ describe('SpecificationEditor', () => {
       status: DocumentStatus.APPROVED,
     };
     
-    render(
-      <SpecificationEditor 
-        {...defaultProps} 
-        document={approvedDocument}
-        onRequestReview={vi.fn()}
-      />
-    );
+    const props: SpecificationEditorProps = {
+      ...defaultProps,
+      document: approvedDocument,
+      onRequestReview: mockOnRequestReview
+    };
+    
+    render(<SpecificationEditor {...props} />);
     
     expect(screen.queryByText('Request Review')).not.toBeInTheDocument();
   });
 
   it('should call onRequestReview when button is clicked', async () => {
-    const _user = userEvent.setup();
-    const mockOnRequestReview = vi.fn().mockResolvedValue(undefined);
+    const user = userEvent.setup();
+    mockOnRequestReview.mockResolvedValue(undefined);
     
-    render(
-      <SpecificationEditor 
-        {...defaultProps} 
-        onRequestReview={mockOnRequestReview}
-      />
-    );
+    const props: SpecificationEditorProps = {
+      ...defaultProps,
+      onRequestReview: mockOnRequestReview
+    };
+    
+    render(<SpecificationEditor {...props} />);
     
     const reviewButton = screen.getByText('Request Review');
     await user.click(reviewButton);
@@ -193,7 +198,11 @@ describe('SpecificationEditor', () => {
   });
 
   it('should show collaboration indicator when enabled', () => {
-    render(<SpecificationEditor {...defaultProps} collaborationEnabled={true} />);
+    const props: SpecificationEditorProps = {
+      ...defaultProps,
+      collaborationEnabled: true
+    };
+    render(<SpecificationEditor {...props} />);
     
     expect(screen.getByText('Live collaboration enabled')).toBeInTheDocument();
   });
@@ -206,7 +215,11 @@ describe('SpecificationEditor', () => {
   });
 
   it('should be readonly when mode is readonly', () => {
-    render(<SpecificationEditor {...defaultProps} mode="readonly" />);
+    const props: SpecificationEditorProps = {
+      ...defaultProps,
+      mode: "readonly"
+    };
+    render(<SpecificationEditor {...props} />);
     
     expect(screen.queryByRole('textbox')).not.toBeInTheDocument();
     expect(screen.queryByText('Save Now')).not.toBeInTheDocument();
@@ -214,7 +227,7 @@ describe('SpecificationEditor', () => {
   });
 
   it('should insert markdown formatting when toolbar buttons are clicked', async () => {
-    const _user = userEvent.setup();
+    const user = userEvent.setup();
     render(<SpecificationEditor {...defaultProps} />);
     
     const textarea = screen.getByRole('textbox') as HTMLTextAreaElement;

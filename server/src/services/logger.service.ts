@@ -1,6 +1,14 @@
 import winston from 'winston';
 import path from 'path';
 import { Request, Response } from 'express';
+import { 
+  LoggerServiceConfig, 
+  ServiceError, 
+  ServiceLifecycle, 
+  ServiceHealthCheck, 
+  ServiceMetrics 
+} from '../types/services.js';
+
 
 // Log levels
 export enum LogLevel {
@@ -37,7 +45,7 @@ export interface LogEntry {
   stack?: string;
 }
 
-class LoggerService {
+export class LoggerService {
   private logger: winston.Logger;
   private service: string;
   private environment: string;

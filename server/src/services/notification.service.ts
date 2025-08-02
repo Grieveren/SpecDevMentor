@@ -2,6 +2,13 @@ import { PrismaClient, NotificationType, EmailStatus, DigestFrequency } from '@p
 import nodemailer from 'nodemailer';
 import { Redis } from 'ioredis';
 import { Server as SocketIOServer } from 'socket.io';
+import { 
+  NotificationServiceConfig, 
+  ServiceError, 
+  ServiceLifecycle, 
+  ServiceHealthCheck, 
+  ServiceMetrics 
+} from '../types/services.js';
 
 interface NotificationData {
   userId: string;
@@ -44,7 +51,7 @@ export class NotificationService {
     this.io = io;
     
     // Configure email transporter
-    this.emailTransporter = nodemailer.createTransporter({
+    this.emailTransporter = nodemailer.createTransport({
       host: process.env.SMTP_HOST || 'localhost',
       port: parseInt(process.env.SMTP_PORT || '587'),
       secure: process.env.SMTP_SECURE === 'true',
@@ -58,7 +65,7 @@ export class NotificationService {
   /**
    * Send a notification to a user
    */
-  async sendNotification(_data: NotificationData): Promise<void> {
+  async sendNotification(data: NotificationData): Promise<void> {
     try {
       // Get user's notification preferences
       const settings = await this.getUserNotificationSettings(data.userId);
@@ -84,7 +91,7 @@ export class NotificationService {
       }
     } catch (error) {
       console.error('Failed to send notification:', error);
-      throw error;
+      throw new ServiceError('Failed to send notification', 'NOTIFICATION_ERROR', 'NotificationService');
     }
   }
 

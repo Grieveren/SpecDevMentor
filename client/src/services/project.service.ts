@@ -1,28 +1,14 @@
 import {
-  Project,
-  CreateProjectRequest,
-  UpdateProjectRequest,
-  ProjectFilters,
-  PaginationOptions,
-  PaginatedProjects,
   AddTeamMemberRequest,
+  CreateProjectRequest,
+  PaginatedProjects,
+  PaginationOptions,
+  Project,
   ProjectAnalytics,
+  ProjectFilters,
+  UpdateProjectRequest,
 } from '../types/project';
-
-const API_BASE_URL = import.meta.env.VITE_API_URL || 'http://localhost:3001/api';
-
-interface ApiResponse<T> {
-  success: boolean;
-  data: T;
-  message?: string;
-}
-
-interface ApiError {
-  success: false;
-  message: string;
-  code?: string;
-  errors?: Array<{ field: string; message: string }>;
-}
+import { BaseService, typedApiClient } from './api.service';
 
 class ProjectApiError extends Error {
   constructor(
@@ -36,117 +22,112 @@ class ProjectApiError extends Error {
   }
 }
 
-class ProjectService {
-  private getAuthHeaders(): HeadersInit {
-    const token = localStorage.getItem('accessToken');
-    return {
-      'Content-Type': 'application/json',
-      ...(token && { Authorization: `Bearer ${token}` }),
-    };
+class ProjectService extends BaseService {
+  constructor() {
+    super(typedApiClient);
   }
 
-  private async handleResponse<T>(_response: Response): Promise<T> {
-    const _data = await response.json();
+  private handleProjectError(error: unknown): ProjectApiError {
+    const apiError = this.handleError(error);
 
-    if (!response.ok) {
-      const _error = data as ApiError;
-      throw new ProjectApiError(
-        error.message || 'An error occurred',
-        error.code,
-        response.status,
-        error.errors
-      );
-    }
-
-    return (data as ApiResponse<T>).data;
+    return new ProjectApiError(
+      apiError.message,
+      apiError.code,
+      apiError.statusCode,
+      apiError.context
+        ? Object.entries(apiError.context).map(([field, message]) => ({
+            field,
+            message: Array.isArray(message) ? message.join(', ') : String(message),
+          }))
+        : undefined
+    );
   }
 
   async getProjects(
     filters: ProjectFilters = {},
     pagination: PaginationOptions = { page: 1, limit: 10 }
   ): Promise<PaginatedProjects> {
-    const params = new URLSearchParams();
-    
-    if (filters.search) params.append('search', filters.search);
-    if (filters.status) params.append('status', filters.status);
-    if (filters.phase) params.append('phase', filters.phase);
-    if (filters.ownerId) params.append('ownerId', filters.ownerId);
-    
-    params.append('page', pagination.page.toString());
-    params.append('limit', pagination.limit.toString());
+    try {
+      const params: Record<string, string> = {};
 
-    const _response = await fetch(`${API_BASE_URL}/projects?${params}`, {
-      method: 'GET',
-      headers: this.getAuthHeaders(),
-    });
+      if (filters.search) params.search = filters.search;
+      if (filters.status) params.status = filters.status;
+      if (filters.phase) params.phase = filters.phase;
+      if (filters.ownerId) params.ownerId = filters.ownerId;
 
-    return this.handleResponse<PaginatedProjects>(response);
+      params.page = pagination.page.toString();
+      params.limit = pagination.limit.toString();
+
+      const response = await this.apiClient.get<PaginatedProjects>('/projects', { params });
+      return this.validateResponse(response);
+    } catch (error) {
+      throw this.handleProjectError(error);
+    }
   }
 
   async getProject(id: string): Promise<Project> {
-    const _response = await fetch(`${API_BASE_URL}/projects/${id}`, {
-      method: 'GET',
-      headers: this.getAuthHeaders(),
-    });
-
-    return this.handleResponse<Project>(response);
+    try {
+      const response = await this.apiClient.get<Project>(`/projects/${id}`);
+      return this.validateResponse(response);
+    } catch (error) {
+      throw this.handleProjectError(error);
+    }
   }
 
-  async createProject(_data: CreateProjectRequest): Promise<Project> {
-    const _response = await fetch(`${API_BASE_URL}/projects`, {
-      method: 'POST',
-      headers: this.getAuthHeaders(),
-      body: JSON.stringify(data),
-    });
-
-    return this.handleResponse<Project>(response);
+  async createProject(data: CreateProjectRequest): Promise<Project> {
+    try {
+      const response = await this.apiClient.post<Project>('/projects', data);
+      return this.validateResponse(response);
+    } catch (error) {
+      throw this.handleProjectError(error);
+    }
   }
 
-  async updateProject(id: string, _data: UpdateProjectRequest): Promise<Project> {
-    const _response = await fetch(`${API_BASE_URL}/projects/${id}`, {
-      method: 'PUT',
-      headers: this.getAuthHeaders(),
-      body: JSON.stringify(data),
-    });
-
-    return this.handleResponse<Project>(response);
+  async updateProject(id: string, data: UpdateProjectRequest): Promise<Project> {
+    try {
+      const response = await this.apiClient.put<Project>(`/projects/${id}`, data);
+      return this.validateResponse(response);
+    } catch (error) {
+      throw this.handleProjectError(error);
+    }
   }
 
   async deleteProject(id: string): Promise<void> {
-    const _response = await fetch(`${API_BASE_URL}/projects/${id}`, {
-      method: 'DELETE',
-      headers: this.getAuthHeaders(),
-    });
-
-    await this.handleResponse<void>(response);
+    try {
+      const response = await this.apiClient.delete<void>(`/projects/${id}`);
+      this.validateResponse(response);
+    } catch (error) {
+      throw this.handleProjectError(error);
+    }
   }
 
-  async addTeamMember(projectId: string, _data: AddTeamMemberRequest): Promise<void> {
-    const _response = await fetch(`${API_BASE_URL}/projects/${projectId}/team`, {
-      method: 'POST',
-      headers: this.getAuthHeaders(),
-      body: JSON.stringify(data),
-    });
-
-    await this.handleResponse<void>(response);
+  async addTeamMember(projectId: string, data: AddTeamMemberRequest): Promise<void> {
+    try {
+      const response = await this.apiClient.post<void>(`/projects/${projectId}/team`, data);
+      this.validateResponse(response);
+    } catch (error) {
+      throw this.handleProjectError(error);
+    }
   }
 
   async removeTeamMember(projectId: string, memberId: string): Promise<void> {
-    const _response = await fetch(`${API_BASE_URL}/projects/${projectId}/team/${memberId}`, {
-      method: 'DELETE',
-      headers: this.getAuthHeaders(),
-    });
-
-    await this.handleResponse<void>(response);
+    try {
+      const response = await this.apiClient.delete<void>(`/projects/${projectId}/team/${memberId}`);
+      this.validateResponse(response);
+    } catch (error) {
+      throw this.handleProjectError(error);
+    }
   }
 
   async getProjectAnalytics(projectId: string): Promise<ProjectAnalytics> {
-    const _response = await fetch(`${API_BASE_URL}/projects/${projectId}/analytics`, {
-      method: 'GET',
-      headers: this.getAuthHeaders(),
-    });
-
-    return this.handleResponse<ProjectAnalytics>(response);
+    try {
+      const response = await this.apiClient.get<ProjectAnalytics>(
+        `/projects/${projectId}/analytics`
+      );
+      return this.validateResponse(response);
+    } catch (error) {
+      throw this.handleProjectError(error);
+    }
   }
 }
 

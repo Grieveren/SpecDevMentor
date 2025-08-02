@@ -1,6 +1,13 @@
 import { PrismaClient } from '@prisma/client';
 import { Redis } from 'ioredis';
 import { EventEmitter } from 'events';
+import { 
+  PerformanceMonitoringConfig, 
+  ServiceError, 
+  ServiceLifecycle, 
+  ServiceHealthCheck, 
+  ServiceMetrics 
+} from '../types/services.js';
 
 interface PerformanceMetric {
   metricType: string;

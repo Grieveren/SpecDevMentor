@@ -1,4 +1,20 @@
 {
-  "*.{ts,tsx,js,jsx}": ["eslint --fix", "prettier --write"],
-  "*.{json,md,yml,yaml}": ["prettier --write"]
+  "*.{ts,tsx}": [
+    "bash -c 'tsc --noEmit --skipLibCheck'",
+    "eslint --fix",
+    "prettier --write"
+  ],
+  "*.{js,jsx}": [
+    "eslint --fix",
+    "prettier --write"
+  ],
+  "*.{json,md,yml,yaml}": [
+    "prettier --write"
+  ],
+  "client/**/*.{ts,tsx}": [
+    "bash -c 'cd client && npm run type-check'"
+  ],
+  "server/**/*.{ts,tsx}": [
+    "bash -c 'cd server && npm run type-check'"
+  ]
 }

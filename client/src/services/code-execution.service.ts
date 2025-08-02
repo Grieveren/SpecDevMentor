@@ -1,5 +1,5 @@
-import { apiService } from './api.service';
-import {
+import { typedApiClient } from './api.service';
+import type {
   CodeExecutionRequest,
   ExecutionResult,
   ComplianceResult,
@@ -8,14 +8,14 @@ import {
 } from '../types/code-execution';
 
 class CodeExecutionService {
-  async executeCode(_request: CodeExecutionRequest): Promise<ExecutionResult> {
+  async executeCode(request: CodeExecutionRequest): Promise<ExecutionResult> {
     try {
-      const _response = await apiService.post('/code-execution/execute', request);
+      const response = await typedApiClient.post<ExecutionResult>('/code-execution/execute', request);
       return response.data;
     } catch (error) {
       console.error('Code execution failed:', error);
       throw new Error(
-        error.response?.data?.message || 'Code execution failed'
+        (error as any).response?.data?.message || 'Code execution failed'
       );
     }
   }
@@ -26,7 +26,7 @@ class CodeExecutionService {
     specifications: SpecificationDocument[]
   ): Promise<ComplianceResult> {
     try {
-      const _response = await apiService.post('/code-execution/validate-compliance', {
+      const response = await typedApiClient.post<ComplianceResult>('/code-execution/validate-compliance', {
         code,
         language,
         specifications,
@@ -35,14 +35,14 @@ class CodeExecutionService {
     } catch (error) {
       console.error('Compliance validation failed:', error);
       throw new Error(
-        error.response?.data?.message || 'Compliance validation failed'
+        (error as any).response?.data?.message || 'Compliance validation failed'
       );
     }
   }
 
   async getSupportedLanguages(): Promise<SupportedLanguage[]> {
     try {
-      const _response = await apiService.get('/code-execution/languages');
+      const response = await typedApiClient.get<{ languages: SupportedLanguage[] }>('/code-execution/languages');
       return response.data.languages;
     } catch (error) {
       console.error('Failed to fetch supported languages:', error);
@@ -57,7 +57,12 @@ class CodeExecutionService {
     timestamp: string;
   }> {
     try {
-      const _response = await apiService.get('/code-execution/status');
+      const response = await typedApiClient.get<{
+        status: string;
+        activeSandboxes: number;
+        supportedLanguages: number;
+        timestamp: string;
+      }>('/code-execution/status');
       return response.data;
     } catch (error) {
       console.error('Failed to fetch system status:', error);

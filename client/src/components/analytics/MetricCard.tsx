@@ -1,5 +1,5 @@
+import { ArrowDownIcon, ArrowUpIcon } from '@heroicons/react/24/solid';
 import React from 'react';
-import { ArrowUpIcon, ArrowDownIcon } from '@heroicons/react/24/solid';
 
 interface MetricCardProps {
   title: string;
@@ -9,6 +9,7 @@ interface MetricCardProps {
   trendValue?: string;
   color?: 'blue' | 'green' | 'purple' | 'orange' | 'red';
   className?: string;
+  children?: React.ReactNode;
 }
 
 const colorClasses = {

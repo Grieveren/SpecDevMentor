@@ -1,25 +1,75 @@
 {
+  "extends": "../tsconfig.json",
   "compilerOptions": {
+    // Node.js-specific settings
     "target": "ES2022",
     "lib": ["ES2022"],
     "module": "ESNext",
     "moduleResolution": "node",
+    
+    // Module resolution
     "esModuleInterop": true,
     "allowSyntheticDefaultImports": true,
+    "resolveJsonModule": true,
+    
+    // Emit settings for server
+    "noEmit": false,
+    "declaration": true,
+    "declarationMap": true,
+    "sourceMap": true,
+    "composite": true,
+    "outDir": "./dist",
+    "rootDir": "..",
+    "incremental": true,
+    "tsBuildInfoFile": "./dist/.tsbuildinfo",
+    
+    // Type checking - gradual migration
     "strict": true,
+    "noImplicitAny": false, // Temporary during migration
+    "noImplicitReturns": false, // Temporary during migration
+    "noUnusedLocals": false, // Temporary during migration
+    "noUnusedParameters": false, // Temporary during migration
+    "noFallthroughCasesInSwitch": true,
+    "exactOptionalPropertyTypes": false, // Temporary during migration
+    
+    // Additional checks
     "skipLibCheck": true,
     "forceConsistentCasingInFileNames": true,
-    "declaration": true,
-    "outDir": "./dist",
-    "rootDir": "./src",
-    "resolveJsonModule": true,
+    "noUncheckedIndexedAccess": false, // Temporary during migration
+    
+    // Node.js specific
     "experimentalDecorators": true,
     "emitDecoratorMetadata": true,
-    "noImplicitAny": false,
-    "noImplicitReturns": false,
-    "noUnusedLocals": false,
-    "noUnusedParameters": false
+    "allowJs": true,
+    "checkJs": false,
+    
+    // Path mapping for server
+    "baseUrl": ".",
+    "paths": {
+      "@/*": ["./src/*"],
+      "@shared/*": ["../shared/*"],
+      "@services/*": ["./src/services/*"],
+      "@routes/*": ["./src/routes/*"],
+      "@middleware/*": ["./src/middleware/*"],
+      "@utils/*": ["./src/utils/*"],
+      "@types/*": ["./src/types/*"]
+    }
   },
-  "include": ["src/**/*"],
-  "exclude": ["node_modules", "dist", "**/*.test.ts", "**/*.spec.ts", "prisma"]
+  "include": [
+    "src/**/*",
+    "src/types/**/*",
+    "../shared/**/*"
+  ],
+  "exclude": [
+    "node_modules",
+    "dist",
+    "**/*.test.ts",
+    "**/*.spec.ts",
+    "prisma/migrations",
+    "prisma/seed.js"
+  ],
+  "ts-node": {
+    "esm": true,
+    "experimentalSpecifierResolution": "node"
+  }
 }

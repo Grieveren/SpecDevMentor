@@ -17,7 +17,7 @@ A comprehensive AI-powered specification-based development learning platform tha
 This project uses pnpm workspaces for monorepo management:
 
 - **client/**: React frontend application with TypeScript
-- **server/**: Node.js backend API with TypeScript  
+- **server/**: Node.js backend API with TypeScript
 - **packages/**: Shared utilities and components (future expansion)
 
 The root package.json defines workspace scripts that operate across all packages, enabling efficient development and build processes.
@@ -33,6 +33,7 @@ The root package.json defines workspace scripts that operate across all packages
 - **Testing**: Vitest + React Testing Library
 - **Monorepo**: pnpm workspaces
 - **Code Quality**: ESLint + Prettier + Husky pre-commit hooks
+- **Type Safety**: Strict TypeScript configuration with 100% type coverage
 
 ## Quick Start
 
@@ -99,6 +100,7 @@ pnpm lint:fix         # Auto-fix linting issues across workspaces
 pnpm format           # Format code with Prettier
 pnpm format:check     # Check code formatting without changes
 pnpm type-check       # Run TypeScript type checking across workspaces
+pnpm type-check:watch # Run TypeScript type checking in watch mode
 pnpm clean            # Clean build artifacts in all workspaces
 
 # Docker
@@ -110,6 +112,7 @@ pnpm docker:logs      # View container logs
 pnpm db:migrate       # Run database migrations
 pnpm db:seed          # Seed database with sample data
 pnpm db:reset         # Reset database
+pnpm db:studio        # Open Prisma Studio for database management
 
 # Setup
 pnpm prepare          # Install Husky git hooks
@@ -354,10 +357,33 @@ This project uses comprehensive code quality tools:
 
 - **ESLint** for JavaScript/TypeScript linting with strict rules
 - **Prettier** for consistent code formatting
-- **Jest** with React Testing Library for comprehensive testing
+- **Vitest** with React Testing Library for comprehensive testing
 - **Husky** for git hooks and pre-commit validation
-- **TypeScript** in strict mode for type safety
+- **TypeScript** in strict mode for type safety (100% type coverage)
 - **Prisma** for type-safe database operations
+
+### TypeScript Standards
+
+The codebase follows strict TypeScript standards:
+
+- **Zero TypeScript Errors**: All code must compile without TypeScript errors
+- **Strict Mode**: TypeScript strict mode enabled across all packages
+- **Type Coverage**: 100% type coverage with no implicit `any` types
+- **Consistent Patterns**: Standardized patterns for services, components, and hooks
+- **Type Safety**: Comprehensive error handling with typed error classes
+
+#### TypeScript Development Commands
+
+```bash
+# Type checking
+pnpm type-check           # Check types across all workspaces
+pnpm type-check:watch     # Watch mode type checking
+pnpm type-check:client    # Check client types only
+pnpm type-check:server    # Check server types only
+
+# Development with type checking
+pnpm dev:strict           # Start development with strict type checking
+```
 
 ### Testing Strategy
 
@@ -377,11 +403,14 @@ The project follows robust testing patterns including:
 - **Comprehensive Coverage**: Focus on behavior testing over implementation details
 
 Example of robust text content matching:
+
 ```typescript
 // Resilient to dynamic content and element structure
-expect(screen.getByText((content, element) => {
-  return element?.textContent?.includes('Expected Text') || false;
-})).toBeInTheDocument();
+expect(
+  screen.getByText((content, element) => {
+    return element?.textContent?.includes('Expected Text') || false;
+  })
+).toBeInTheDocument();
 ```
 
 ### Code Quality
@@ -402,10 +431,26 @@ This project uses comprehensive code quality tools:
 3. Make your changes following the coding standards
 4. Write tests for new functionality
 5. Ensure all tests pass: `pnpm run test`
-6. Run linting and formatting: `pnpm run lint && pnpm run format`
-7. Commit your changes: `git commit -m 'feat: add your feature'`
-8. Push to the branch: `git push origin feature/your-feature`
-9. Submit a pull request
+6. **Ensure TypeScript compilation passes**: `pnpm run type-check`
+7. Run linting and formatting: `pnpm run lint && pnpm run format`
+8. Commit your changes: `git commit -m 'feat: add your feature'`
+9. Push to the branch: `git push origin feature/your-feature`
+10. Submit a pull request
+
+### TypeScript Contribution Guidelines
+
+- **No TypeScript Errors**: All code must compile without TypeScript errors
+- **Type Definitions**: Provide explicit types for all public APIs
+- **No `any` Types**: Avoid `any` types; use proper typing or `unknown`
+- **Follow Patterns**: Use established patterns from `docs/DEVELOPMENT_BEST_PRACTICES.md`
+- **Test Types**: Ensure type safety in tests with proper mocking
+
+### Documentation
+
+- **Migration Guide**: See `docs/TYPESCRIPT_MIGRATION.md` for migration context
+- **Troubleshooting**: Check `docs/TYPESCRIPT_TROUBLESHOOTING.md` for common issues
+- **Best Practices**: Follow patterns in `docs/DEVELOPMENT_BEST_PRACTICES.md`
+- **Onboarding**: New developers should complete `docs/ONBOARDING_CHECKLIST.md`
 
 ## Scripts
 

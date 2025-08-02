@@ -1,15 +1,16 @@
+import { EyeIcon, EyeSlashIcon } from '@heroicons/react/24/outline';
+import { zodResolver } from '@hookform/resolvers/zod';
 import React, { useState } from 'react';
 import { useForm } from 'react-hook-form';
-import { zodResolver } from '@hookform/resolvers/zod';
-import { EyeIcon, EyeSlashIcon } from '@heroicons/react/24/outline';
-import { RegisterFormData, registerSchema } from '../../utils/validation';
 import { useAuthActions } from '../../stores/auth.store';
 import { cn } from '../../utils/cn';
+import { RegisterFormData, registerSchema } from '../../utils/validation';
 
 interface RegisterFormProps {
   onSuccess?: () => void;
   onSwitchToLogin?: () => void;
   className?: string;
+  children?: React.ReactNode;
 }
 
 export const RegisterForm: React.FC<RegisterFormProps> = ({
@@ -31,9 +32,9 @@ export const RegisterForm: React.FC<RegisterFormProps> = ({
     resolver: zodResolver(registerSchema),
   });
 
-  const onSubmit = async (_data: RegisterFormData) => {
+  const onSubmit = async (data: RegisterFormData) => {
     setIsSubmitting(true);
-    
+
     try {
       await registerUser({
         name: data.name,
@@ -41,19 +42,25 @@ export const RegisterForm: React.FC<RegisterFormProps> = ({
         password: data.password,
       });
       onSuccess?.();
-    } catch (_error: unknown) {
+    } catch (error: unknown) {
       // Handle specific error cases
-      if (error.code === 'USER_EXISTS') {
+      const authError = error as {
+        code?: string;
+        details?: Array<{ field: string; message: string }>;
+        error?: string;
+      };
+
+      if (authError.code === 'USER_EXISTS') {
         setError('email', { message: 'An account with this email already exists' });
-      } else if (error.details) {
+      } else if (authError.details) {
         // Handle validation errors from server
-        error.details.forEach((detail: unknown) => {
+        authError.details.forEach(detail => {
           setError(detail.field as keyof RegisterFormData, {
             message: detail.message,
           });
         });
       } else {
-        setError('root', { message: error.error || 'Registration failed' });
+        setError('root', { message: authError.error || 'Registration failed' });
       }
     } finally {
       setIsSubmitting(false);
@@ -85,9 +92,7 @@ export const RegisterForm: React.FC<RegisterFormProps> = ({
               )}
               placeholder="Enter your full name"
             />
-            {errors.name && (
-              <p className="mt-1 text-sm text-red-600">{errors.name.message}</p>
-            )}
+            {errors.name && <p className="mt-1 text-sm text-red-600">{errors.name.message}</p>}
           </div>
 
           {/* Email Field */}
@@ -106,9 +111,7 @@ export const RegisterForm: React.FC<RegisterFormProps> = ({
               )}
               placeholder="Enter your email"
             />
-            {errors.email && (
-              <p className="mt-1 text-sm text-red-600">{errors.email.message}</p>
-            )}
+            {errors.email && <p className="mt-1 text-sm text-red-600">{errors.email.message}</p>}
           </div>
 
           {/* Password Field */}
@@ -147,7 +150,10 @@ export const RegisterForm: React.FC<RegisterFormProps> = ({
 
           {/* Confirm Password Field */}
           <div>
-            <label htmlFor="confirmPassword" className="block text-sm font-medium text-gray-700 mb-1">
+            <label
+              htmlFor="confirmPassword"
+              className="block text-sm font-medium text-gray-700 mb-1"
+            >
               Confirm Password
             </label>
             <div className="relative">
@@ -193,9 +199,7 @@ export const RegisterForm: React.FC<RegisterFormProps> = ({
             className={cn(
               'w-full flex justify-center py-2 px-4 border border-transparent rounded-md shadow-sm text-sm font-medium text-white',
               'focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500',
-              isSubmitting
-                ? 'bg-gray-400 cursor-not-allowed'
-                : 'bg-blue-600 hover:bg-blue-700'
+              isSubmitting ? 'bg-gray-400 cursor-not-allowed' : 'bg-blue-600 hover:bg-blue-700'
             )}
           >
             {isSubmitting ? 'Creating Account...' : 'Create Account'}

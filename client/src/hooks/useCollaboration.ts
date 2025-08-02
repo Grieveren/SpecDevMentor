@@ -1,5 +1,5 @@
-import { useState, useEffect, useCallback, useRef } from 'react';
-import { io, Socket } from 'socket.io-client';
+import { useCallback, useEffect, useRef, useState } from 'react';
+import { Socket, io } from 'socket.io-client';
 
 // Types for collaboration
 export interface CollaborationUser {
@@ -52,7 +52,7 @@ export interface UseCollaborationOptions {
   token: string;
   onDocumentChange?: (change: DocumentChange) => void;
   onContentUpdate?: (content: string) => void;
-  onError?: (_error: string) => void;
+  onError?: (error: string) => void;
 }
 
 export const useCollaboration = ({
@@ -61,7 +61,12 @@ export const useCollaboration = ({
   onDocumentChange,
   onContentUpdate,
   onError,
-}: UseCollaborationOptions) => {
+}: UseCollaborationOptions): CollaborationState & {
+  sendDocumentChange: (change: Omit<DocumentChange, 'id' | 'timestamp' | 'author'>) => void;
+  sendCursorPosition: (position: { line: number; character: number }) => void;
+  disconnect: () => void;
+  retry: () => void;
+} => {
   const [state, setState] = useState<CollaborationState>({
     isConnected: false,
     collaborators: [],
@@ -70,13 +75,13 @@ export const useCollaboration = ({
   });
 
   const socketRef = useRef<Socket | null>(null);
-  const reconnectTimeoutRef = useRef<NodeJS.Timeout>();
+  const reconnectTimeoutRef = useRef<ReturnType<typeof setTimeout>>();
 
   // Initialize socket connection
   useEffect(() => {
     if (!documentId || !token) return;
 
-    const wsUrl = process.env.REACT_APP_WS_URL || 'http://localhost:3001';
+    const wsUrl = (import.meta.env.VITE_WS_URL as string) || 'http://localhost:3001';
     const socket = io(wsUrl, {
       transports: ['websocket', 'polling'],
       timeout: 20000,
@@ -89,13 +94,13 @@ export const useCollaboration = ({
     socket.on('connect', () => {
       // // // console.log('Socket connected:', socket.id);
       setState(prev => ({ ...prev, isConnected: true, error: undefined }));
-      
+
       // Join document room
       setState(prev => ({ ...prev, isJoining: true }));
       socket.emit('join-document', { documentId, token });
     });
 
-    socket.on('disconnect', (reason) => {
+    socket.on('disconnect', reason => {
       // // // console.log('Socket disconnected:', reason);
       setState(prev => ({
         ...prev,
@@ -117,24 +122,27 @@ export const useCollaboration = ({
     });
 
     // Document collaboration event handlers
-    socket.on('document-joined', (data: {
-      documentState: DocumentState;
-      activeUsers: CollaborationUser[];
-      user: CollaborationUser;
-    }) => {
-      // // // console.log('Joined document successfully');
-      setState(prev => ({
-        ...prev,
-        isJoining: false,
-        documentState: data.documentState,
-        collaborators: data.activeUsers,
-        currentUser: data.user,
-      }));
+    socket.on(
+      'document-joined',
+      (data: {
+        documentState: DocumentState;
+        activeUsers: CollaborationUser[];
+        user: CollaborationUser;
+      }) => {
+        // // // console.log('Joined document successfully');
+        setState(prev => ({
+          ...prev,
+          isJoining: false,
+          documentState: data.documentState,
+          collaborators: data.activeUsers,
+          currentUser: data.user,
+        }));
 
-      if (onContentUpdate) {
-        onContentUpdate(data.documentState.content);
+        if (onContentUpdate) {
+          onContentUpdate(data.documentState.content);
+        }
       }
-    });
+    );
 
     socket.on('user-joined', (user: CollaborationUser) => {
       // // // console.log('User joined:', user.name);
@@ -149,9 +157,9 @@ export const useCollaboration = ({
       setState(prev => ({
         ...prev,
         collaborators: prev.collaborators.filter(u => u.id !== userId),
-        cursors: Object.fromEntries(
-          Object.entries(prev.cursors).filter(([id]) => id !== userId)
-        ),
+        cursors: Object.entries(prev.cursors)
+          .filter(([id]) => id !== userId)
+          .reduce((acc, [key, value]) => ({ ...acc, [key]: value }), {}),
       }));
     });
 
@@ -176,18 +184,18 @@ export const useCollaboration = ({
     socket.on('error', (error: { message: string }) => {
       console.error('Socket error:', error);
       const errorMessage = error.message || 'Connection error';
-      setState(prev => ({ ...prev, _error: errorMessage, isJoining: false }));
-      
+      setState(prev => ({ ...prev, error: errorMessage, isJoining: false }));
+
       if (onError) {
         onError(errorMessage);
       }
     });
 
-    socket.on('connect_error', (error) => {
+    socket.on('connect_error', error => {
       console.error('Connection error:', error);
       const errorMessage = 'Failed to connect to collaboration server';
-      setState(prev => ({ ...prev, _error: errorMessage, isJoining: false }));
-      
+      setState(prev => ({ ...prev, error: errorMessage, isJoining: false }));
+
       if (onError) {
         onError(errorMessage);
       }
@@ -202,38 +210,44 @@ export const useCollaboration = ({
   }, [documentId, token, onDocumentChange, onContentUpdate, onError]);
 
   // Send document change
-  const sendDocumentChange = useCallback((change: Omit<DocumentChange, 'id' | 'timestamp' | 'author'>) => {
-    if (!socketRef.current?.connected) {
-      // // // console.warn('Socket not connected, cannot send document change');
-      return;
-    }
+  const sendDocumentChange = useCallback(
+    (change: Omit<DocumentChange, 'id' | 'timestamp' | 'author'>) => {
+      if (!socketRef.current?.connected) {
+        // // // console.warn('Socket not connected, cannot send document change');
+        return;
+      }
 
-    const fullChange: DocumentChange = {
-      ...change,
-      id: `change_${Date.now()}_${Math.random()}`,
-      timestamp: new Date(),
-      author: state.currentUser?.id || 'unknown',
-    };
+      const fullChange: DocumentChange = {
+        ...change,
+        id: `change_${Date.now()}_${Math.random()}`,
+        timestamp: new Date(),
+        author: state.currentUser?.id || 'unknown',
+      };
 
-    socketRef.current.emit('document-change', fullChange);
-  }, [state.currentUser?.id]);
+      socketRef.current.emit('document-change', fullChange);
+    },
+    [state.currentUser?.id]
+  );
 
   // Send cursor position
-  const sendCursorPosition = useCallback((position: { line: number; character: number }) => {
-    if (!socketRef.current?.connected || !state.currentUser) {
-      return;
-    }
+  const sendCursorPosition = useCallback(
+    (position: { line: number; character: number }) => {
+      if (!socketRef.current?.connected || !state.currentUser) {
+        return;
+      }
 
-    const cursorPosition: CursorPosition = {
-      userId: state.currentUser.id,
-      documentId,
-      line: position.line,
-      character: position.character,
-      timestamp: new Date(),
-    };
+      const cursorPosition: CursorPosition = {
+        userId: state.currentUser.id,
+        documentId,
+        line: position.line,
+        character: position.character,
+        timestamp: new Date(),
+      };
 
-    socketRef.current.emit('cursor-position', cursorPosition);
-  }, [documentId, state.currentUser]);
+      socketRef.current.emit('cursor-position', cursorPosition);
+    },
+    [documentId, state.currentUser]
+  );
 
   // Disconnect from collaboration
   const disconnect = useCallback(() => {

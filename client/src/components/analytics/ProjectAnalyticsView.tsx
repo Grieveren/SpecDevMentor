@@ -1,38 +1,39 @@
+import {
+  ArrowPathIcon,
+  ArrowTrendingUpIcon,
+  ChartBarIcon,
+  ClockIcon,
+} from '@heroicons/react/24/outline';
 import React from 'react';
 import { ProjectAnalytics, TimeRange } from '../../services/analytics.service';
+import { CollaborationMetricsCard } from './CollaborationMetricsCard';
 import { MetricCard } from './MetricCard';
 import { PhaseProgressChart } from './PhaseProgressChart';
 import { QualityTrendChart } from './QualityTrendChart';
-import { CollaborationMetricsCard } from './CollaborationMetricsCard';
-import {
-  ChartBarIcon,
-  ClockIcon,
-  ArrowPathIcon,
-  TrendingUpIcon,
-} from '@heroicons/react/24/outline';
 
 interface ProjectAnalyticsViewProps {
   analytics: ProjectAnalytics;
   timeRange?: TimeRange;
   className?: string;
+  children?: React.ReactNode;
 }
 
 export const ProjectAnalyticsView: React.FC<ProjectAnalyticsViewProps> = ({
   analytics,
-  timeRange: _timeRange,
+  timeRange,
   className = '',
 }) => {
   const formatTime = (seconds: number): string => {
     const hours = Math.floor(seconds / 3600);
     const minutes = Math.floor((seconds % 3600) / 60);
-    
+
     if (hours > 0) {
       return `${hours}h ${minutes}m`;
     }
     return `${minutes}m`;
   };
 
-  const _getPhaseCompletionRate = () => {
+  const getPhaseCompletionRate = () => {
     const completedPhases = analytics.phaseMetrics.filter(p => p.completionRate === 100).length;
     return (completedPhases / analytics.phaseMetrics.length) * 100;
   };
@@ -69,7 +70,7 @@ export const ProjectAnalyticsView: React.FC<ProjectAnalyticsViewProps> = ({
         <MetricCard
           title="Quality Score"
           value={getAverageQualityScore().toFixed(1)}
-          icon={TrendingUpIcon}
+          icon={ArrowTrendingUpIcon}
           trend="up"
           color="purple"
         />
@@ -97,7 +98,7 @@ export const ProjectAnalyticsView: React.FC<ProjectAnalyticsViewProps> = ({
         </div>
         <div className="p-6">
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
-            {analytics.phaseMetrics.map((phase) => (
+            {analytics.phaseMetrics.map(phase => (
               <div key={phase.phase} className="border rounded-lg p-4">
                 <div className="flex items-center justify-between mb-2">
                   <h4 className="font-medium text-gray-900 capitalize">
@@ -147,13 +148,18 @@ export const ProjectAnalyticsView: React.FC<ProjectAnalyticsViewProps> = ({
               <div className="flex">
                 <div className="flex-shrink-0">
                   <svg className="h-5 w-5 text-yellow-400" viewBox="0 0 20 20" fill="currentColor">
-                    <path fillRule="evenodd" d="M8.257 3.099c.765-1.36 2.722-1.36 3.486 0l5.58 9.92c.75 1.334-.213 2.98-1.742 2.98H4.42c-1.53 0-2.493-1.646-1.743-2.98l5.58-9.92zM11 13a1 1 0 11-2 0 1 1 0 012 0zm-1-8a1 1 0 00-1 1v3a1 1 0 002 0V6a1 1 0 00-1-1z" clipRule="evenodd" />
+                    <path
+                      fillRule="evenodd"
+                      d="M8.257 3.099c.765-1.36 2.722-1.36 3.486 0l5.58 9.92c.75 1.334-.213 2.98-1.742 2.98H4.42c-1.53 0-2.493-1.646-1.743-2.98l5.58-9.92zM11 13a1 1 0 11-2 0 1 1 0 012 0zm-1-8a1 1 0 00-1 1v3a1 1 0 002 0V6a1 1 0 00-1-1z"
+                      clipRule="evenodd"
+                    />
                   </svg>
                 </div>
                 <div className="ml-3">
                   <h4 className="text-sm font-medium text-yellow-800">Low Completion Rate</h4>
                   <p className="text-sm text-yellow-700 mt-1">
-                    Consider breaking down tasks into smaller, more manageable pieces to improve completion rates.
+                    Consider breaking down tasks into smaller, more manageable pieces to improve
+                    completion rates.
                   </p>
                 </div>
               </div>
@@ -165,13 +171,18 @@ export const ProjectAnalyticsView: React.FC<ProjectAnalyticsViewProps> = ({
               <div className="flex">
                 <div className="flex-shrink-0">
                   <svg className="h-5 w-5 text-blue-400" viewBox="0 0 20 20" fill="currentColor">
-                    <path fillRule="evenodd" d="M18 10a8 8 0 11-16 0 8 8 0 0116 0zm-7-4a1 1 0 11-2 0 1 1 0 012 0zM9 9a1 1 0 000 2v3a1 1 0 001 1h1a1 1 0 100-2v-3a1 1 0 00-1-1H9z" clipRule="evenodd" />
+                    <path
+                      fillRule="evenodd"
+                      d="M18 10a8 8 0 11-16 0 8 8 0 0116 0zm-7-4a1 1 0 11-2 0 1 1 0 012 0zM9 9a1 1 0 000 2v3a1 1 0 001 1h1a1 1 0 100-2v-3a1 1 0 00-1-1H9z"
+                      clipRule="evenodd"
+                    />
                   </svg>
                 </div>
                 <div className="ml-3">
                   <h4 className="text-sm font-medium text-blue-800">High Review Cycles</h4>
                   <p className="text-sm text-blue-700 mt-1">
-                    Multiple review cycles detected. Consider improving initial quality through better templates or training.
+                    Multiple review cycles detected. Consider improving initial quality through
+                    better templates or training.
                   </p>
                 </div>
               </div>
@@ -183,7 +194,11 @@ export const ProjectAnalyticsView: React.FC<ProjectAnalyticsViewProps> = ({
               <div className="flex">
                 <div className="flex-shrink-0">
                   <svg className="h-5 w-5 text-green-400" viewBox="0 0 20 20" fill="currentColor">
-                    <path fillRule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z" clipRule="evenodd" />
+                    <path
+                      fillRule="evenodd"
+                      d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z"
+                      clipRule="evenodd"
+                    />
                   </svg>
                 </div>
                 <div className="ml-3">

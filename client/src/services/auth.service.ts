@@ -1,14 +1,15 @@
 import axios, { AxiosResponse } from 'axios';
 import {
+  AuthError,
   AuthResponse,
-  RegisterRequest,
-  LoginRequest,
-  ResetPasswordRequest,
   ChangePasswordRequest,
+  LoginRequest,
+  RegisterRequest,
+  ResetPasswordRequest,
   TokenPair,
   User,
-  AuthError,
 } from '../types/auth';
+import { BaseService, TypedApiClient } from './api.service';
 
 const API_BASE_URL = import.meta.env.VITE_API_URL || 'http://localhost:3001/api';
 
@@ -23,20 +24,20 @@ const apiClient = axios.create({
 
 // Request interceptor to add auth token
 apiClient.interceptors.request.use(
-  (config) => {
+  config => {
     const tokens = getStoredTokens();
     if (tokens?.accessToken) {
       config.headers.Authorization = `Bearer ${tokens.accessToken}`;
     }
     return config;
   },
-  (error) => Promise.reject(error)
+  error => Promise.reject(error)
 );
 
 // Response interceptor to handle token refresh
 apiClient.interceptors.response.use(
-  (response) => response,
-  async (error) => {
+  response => response,
+  async error => {
     const originalRequest = error.config;
 
     if (error.response?.status === 401 && !originalRequest._retry) {
@@ -47,7 +48,7 @@ apiClient.interceptors.response.use(
         if (tokens?.refreshToken) {
           const newTokens = await refreshTokens(tokens.refreshToken);
           setStoredTokens(newTokens);
-          
+
           // Retry original request with new token
           originalRequest.headers.Authorization = `Bearer ${newTokens.accessToken}`;
           return apiClient(originalRequest);
@@ -84,41 +85,61 @@ export const clearStoredTokens = (): void => {
   localStorage.removeItem(TOKEN_STORAGE_KEY);
 };
 
-// Auth API functions
-export const authService = {
-  async register(_data: RegisterRequest): Promise<AuthResponse> {
-    try {
-      const response: AxiosResponse<AuthResponse> = await apiClient.post('/auth/register', data);
-      
-      if (response.data.data?.tokens) {
-        setStoredTokens(response.data.data.tokens);
-      }
-      
-      return response.data;
-    } catch (error) {
-      throw handleAuthError(error);
-    }
-  },
+/**
+ * Authentication service class extending BaseService
+ */
+class AuthService extends BaseService {
+  constructor() {
+    super(new TypedApiClient(apiClient));
+  }
 
-  async login(_data: LoginRequest): Promise<AuthResponse> {
+  async register(data: RegisterRequest): Promise<AuthResponse> {
     try {
-      const response: AxiosResponse<AuthResponse> = await apiClient.post('/auth/login', data);
-      
-      if (response.data.data?.tokens) {
-        setStoredTokens(response.data.data.tokens);
+      const response = await this.apiClient.post<{ user: User; tokens: TokenPair }>(
+        '/auth/register',
+        data
+      );
+
+      if (response.data?.tokens) {
+        setStoredTokens(response.data.tokens);
       }
-      
-      return response.data;
+
+      return {
+        success: response.success,
+        message: response.message || 'Registration successful',
+        data: response.data,
+      };
     } catch (error) {
-      throw handleAuthError(error);
+      throw this.handleAuthError(error);
     }
-  },
+  }
+
+  async login(data: LoginRequest): Promise<AuthResponse> {
+    try {
+      const response = await this.apiClient.post<{ user: User; tokens: TokenPair }>(
+        '/auth/login',
+        data
+      );
+
+      if (response.data?.tokens) {
+        setStoredTokens(response.data.tokens);
+      }
+
+      return {
+        success: response.success,
+        message: response.message || 'Login successful',
+        data: response.data,
+      };
+    } catch (error) {
+      throw this.handleAuthError(error);
+    }
+  }
 
   async logout(): Promise<void> {
     try {
       const tokens = getStoredTokens();
       if (tokens?.refreshToken) {
-        await apiClient.post('/auth/logout', { refreshToken: tokens.refreshToken });
+        await this.apiClient.post<void>('/auth/logout', { refreshToken: tokens.refreshToken });
       }
     } catch (error) {
       // Log error but don't throw - logout should always succeed
@@ -126,93 +147,112 @@ export const authService = {
     } finally {
       clearStoredTokens();
     }
-  },
+  }
 
   async refreshTokens(refreshToken: string): Promise<TokenPair> {
     try {
-      const response: AxiosResponse<{ success: boolean; data: { tokens: TokenPair } }> = 
-        await apiClient.post('/auth/refresh', { refreshToken });
-      
-      const newTokens = response.data.data.tokens;
+      const response = await this.apiClient.post<{ tokens: TokenPair }>('/auth/refresh', {
+        refreshToken,
+      });
+
+      const newTokens = response.data.tokens;
       setStoredTokens(newTokens);
-      
+
       return newTokens;
     } catch (error) {
       clearStoredTokens();
-      throw handleAuthError(error);
+      throw this.handleAuthError(error);
     }
-  },
+  }
 
   async getCurrentUser(): Promise<User> {
     try {
-      const response: AxiosResponse<{ success: boolean; data: { user: User } }> = 
-        await apiClient.get('/auth/me');
-      
-      return response.data.data.user;
+      const response = await this.apiClient.get<{ user: User }>('/auth/me');
+      return response.data.user;
     } catch (error) {
-      throw handleAuthError(error);
+      throw this.handleAuthError(error);
     }
-  },
+  }
 
   async requestPasswordReset(email: string): Promise<void> {
     try {
-      await apiClient.post('/auth/forgot-password', { email });
+      await this.apiClient.post<void>('/auth/forgot-password', { email });
     } catch (error) {
-      throw handleAuthError(error);
+      throw this.handleAuthError(error);
     }
-  },
+  }
 
-  async resetPassword(_data: ResetPasswordRequest): Promise<void> {
+  async resetPassword(data: ResetPasswordRequest): Promise<void> {
     try {
-      await apiClient.post('/auth/reset-password', data);
+      await this.apiClient.post<void>('/auth/reset-password', data);
     } catch (error) {
-      throw handleAuthError(error);
+      throw this.handleAuthError(error);
     }
-  },
+  }
 
-  async changePassword(_data: ChangePasswordRequest): Promise<void> {
+  async changePassword(data: ChangePasswordRequest): Promise<void> {
     try {
-      await apiClient.post('/auth/change-password', data);
+      await this.apiClient.post<void>('/auth/change-password', data);
     } catch (error) {
-      throw handleAuthError(error);
+      throw this.handleAuthError(error);
     }
-  },
+  }
 
   async validateToken(token?: string): Promise<{ valid: boolean; payload?: unknown }> {
     try {
-      const response: AxiosResponse<{ 
-        success: boolean; 
-        data: { valid: boolean; payload?: unknown } 
-      }> = await apiClient.post('/auth/validate', { token });
-      
-      return response.data.data;
+      const response = await this.apiClient.post<{ valid: boolean; payload?: unknown }>(
+        '/auth/validate',
+        { token }
+      );
+      return response.data;
     } catch (error) {
       return { valid: false };
     }
-  },
+  }
 
   async verifyEmail(token: string): Promise<void> {
     try {
-      await apiClient.get(`/auth/verify-email/${token}`);
+      await this.apiClient.get<void>(`/auth/verify-email/${token}`);
     } catch (error) {
-      throw handleAuthError(error);
+      throw this.handleAuthError(error);
     }
-  },
-};
+  }
+
+  /**
+   * Handle authentication-specific errors
+   */
+  private handleAuthError(error: unknown): AuthError {
+    const apiError = this.handleError(error);
+
+    return {
+      error: apiError.message,
+      code: apiError.code,
+      details: apiError.context
+        ? Object.entries(apiError.context).map(([field, message]) => ({
+            field,
+            message: Array.isArray(message) ? message.join(', ') : String(message),
+          }))
+        : undefined,
+    };
+  }
+}
+
+// Create service instance
+export const authService = new AuthService();
 
 // Standalone refresh function for interceptor
 async function refreshTokens(refreshToken: string): Promise<TokenPair> {
-  const response: AxiosResponse<{ success: boolean; data: { tokens: TokenPair } }> = 
+  const response: AxiosResponse<{ success: boolean; data: { tokens: TokenPair } }> =
     await axios.post(`${API_BASE_URL}/auth/refresh`, { refreshToken });
-  
+
   return response.data.data.tokens;
 }
 
 // Error handling utility
-function handleAuthError(_error: unknown): AuthError {
+function handleAuthError(error: unknown): AuthError {
   if (axios.isAxiosError(error)) {
-    const _response = error.response;
-    
+    const response = error.response;
+
     if (response?.data) {
       return {
         error: response.data.error || 'Authentication failed',
@@ -220,15 +260,22 @@ function handleAuthError(_error: unknown): AuthError {
         details: response.data.details,
       };
     }
-    
+
     return {
       error: error.message || 'Network error',
       code: 'NETWORK_ERROR',
     };
   }
-  
+
+  if (error instanceof Error) {
+    return {
+      error: error.message,
+      code: 'UNKNOWN_ERROR',
+    };
+  }
+
   return {
-    error: error.message || 'Unknown error',
+    error: 'Unknown error occurred',
     code: 'UNKNOWN_ERROR',
   };
 }

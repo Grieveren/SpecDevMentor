@@ -1,8 +1,15 @@
-import jwt from 'jsonwebtoken';
+import { PrismaClient, User, UserRole } from '@prisma/client';
+import {
+  AuthenticationError,
+  ConflictError,
+  InternalServerError,
+  NotFoundError,
+} from '@shared/types/errors';
 import bcrypt from 'bcryptjs';
 import crypto from 'crypto';
-import { PrismaClient, User, UserRole } from '@prisma/client';
+import jwt from 'jsonwebtoken';
 import { Redis } from 'redis';
+import { handleServiceError } from '../utils/error-handler';
 
 const prisma = new PrismaClient();
 
@@ -36,12 +43,7 @@ export interface ResetPasswordRequest {
   newPassword: string;
 }
 
-export class AuthenticationError extends Error {
-  constructor(message: string, public code?: string) {
-    super(message);
-    this.name = 'AuthenticationError';
-  }
-}
+// Remove the local AuthenticationError class as we're using the shared one
 
 export class AuthService {
   private readonly JWT_SECRET: string;
@@ -55,7 +57,7 @@ export class AuthService {
     this.redis = redis;
 
     if (!this.JWT_SECRET || !this.REFRESH_SECRET) {
-      throw new Error('JWT secrets not configured');
+      throw new InternalServerError('JWT secrets not configured');
     }
 
     // Load revoked tokens from Redis on startup
@@ -71,14 +73,17 @@ export class AuthService {
     }
   }
 
-  async register(_data: RegisterRequest): Promise<{ user: Omit<User, 'password'>; tokens: TokenPair }> {
+  @handleServiceError
+  async register(
+    data: RegisterRequest
+  ): Promise<{ user: Omit<User, 'password'>; tokens: TokenPair }> {
     // Check if user already exists
     const existingUser = await prisma.user.findUnique({
       where: { email: data.email.toLowerCase() },
     });
 
     if (existingUser) {
-      throw new AuthenticationError('User already exists with this email', 'USER_EXISTS');
+      throw new ConflictError('User already exists with this email', 'USER_EXISTS', data.email);
     }
 
     // Hash password
@@ -88,7 +93,7 @@ export class AuthService {
     const verificationToken = crypto.randomBytes(32).toString('hex');
 
     // Create user
-    const _user = await prisma.user.create({
+    const user = await prisma.user.create({
       data: {
         email: data.email.toLowerCase(),
         name: data.name,
@@ -110,9 +115,10 @@ export class AuthService {
     };
   }
 
-  async login(_data: LoginRequest): Promise<{ user: Omit<User, 'password'>; tokens: TokenPair }> {
+  @handleServiceError
+  async login(data: LoginRequest): Promise<{ user: Omit<User, 'password'>; tokens: TokenPair }> {
     // Find user by email
-    const _user = await prisma.user.findUnique({
+    const user = await prisma.user.findUnique({
       where: { email: data.email.toLowerCase() },
     });
 
@@ -139,10 +145,14 @@ export class AuthService {
     };
   }
 
+  @handleServiceError
   async refreshTokens(refreshToken: string): Promise<TokenPair> {
     try {
       // Verify refresh token
-      const payload = jwt.verify(refreshToken, this.REFRESH_SECRET) as { userId: string; jti: string };
+      const payload = jwt.verify(refreshToken, this.REFRESH_SECRET) as {
+        userId: string;
+        jti: string;
+      };
 
       // Check if refresh token exists in database and is not revoked
       const storedToken = await prisma.refreshToken.findUnique({
@@ -209,6 +219,7 @@ export class AuthService {
     return { accessToken, refreshToken };
   }
 
+  @handleServiceError
   async verifyToken(token: string): Promise<JWTPayload> {
     try {
       const payload = jwt.verify(token, this.JWT_SECRET, {
@@ -234,7 +245,7 @@ export class AuthService {
     this.revokedTokens.add(jti);
     // Store in Redis for distributed systems
     await this.redis.sAdd('revoked_tokens', jti);
-    
+
     // Set expiration for cleanup (match JWT expiration)
     await this.redis.expire('revoked_tokens', 15 * 60); // 15 minutes
   }
@@ -252,8 +263,9 @@ export class AuthService {
     }
   }
 
+  @handleServiceError
   async requestPasswordReset(email: string): Promise<void> {
-    const _user = await prisma.user.findUnique({
+    const user = await prisma.user.findUnique({
       where: { email: email.toLowerCase() },
     });
 
@@ -280,8 +292,9 @@ export class AuthService {
     // // console.log(`Password reset token for ${email}: ${resetToken}`);
   }
 
-  async resetPassword(_data: ResetPasswordRequest): Promise<void> {
-    const _user = await prisma.user.findFirst({
+  @handleServiceError
+  async resetPassword(data: ResetPasswordRequest): Promise<void> {
+    const user = await prisma.user.findFirst({
       where: {
         resetToken: data.token,
         resetTokenExpiry: {
@@ -314,8 +327,9 @@ export class AuthService {
     });
   }
 
+  @handleServiceError
   async verifyEmail(token: string): Promise<void> {
-    const _user = await prisma.user.findFirst({
+    const user = await prisma.user.findFirst({
       where: { verificationToken: token },
     });
 
@@ -332,13 +346,18 @@ export class AuthService {
     });
   }
 
-  async changePassword(userId: string, currentPassword: string, newPassword: string): Promise<void> {
-    const _user = await prisma.user.findUnique({
+  @handleServiceError
+  async changePassword(
+    userId: string,
+    currentPassword: string,
+    newPassword: string
+  ): Promise<void> {
+    const user = await prisma.user.findUnique({
       where: { id: userId },
     });
 
     if (!user) {
-      throw new AuthenticationError('User not found', 'USER_NOT_FOUND');
+      throw new NotFoundError('User not found', 'user', userId);
     }
 
     // Verify current password
@@ -364,8 +383,9 @@ export class AuthService {
     });
   }
 
+  @handleServiceError
   async getUserById(userId: string): Promise<Omit<User, 'password'> | null> {
-    const _user = await prisma.user.findUnique({
+    const user = await prisma.user.findUnique({
       where: { id: userId },
     });
 
@@ -377,14 +397,12 @@ export class AuthService {
     return userWithoutPassword;
   }
 
+  @handleServiceError
   async cleanupExpiredTokens(): Promise<void> {
     // Clean up expired refresh tokens
     await prisma.refreshToken.deleteMany({
       where: {
-        OR: [
-          { expiresAt: { lt: new Date() } },
-          { isRevoked: true },
-        ],
+        OR: [{ expiresAt: { lt: new Date() } }, { isRevoked: true }],
       },
     });
 

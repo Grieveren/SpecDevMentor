@@ -1,4 +1,4 @@
-import { apiClient } from './api.service';
+import { BaseService, typedApiClient } from './api.service';
 
 export interface LearningModule {
   id: string;
@@ -90,46 +90,75 @@ export interface PrerequisiteValidation {
   completedPrerequisites: string[];
 }
 
-class LearningService {
+class LearningService extends BaseService {
+  constructor() {
+    super(typedApiClient);
+  }
+
   // Module Management
   async getModules(filters?: {
     phase?: string;
     difficulty?: string;
     search?: string;
   }): Promise<LearningModule[]> {
-    const params = new URLSearchParams();
-    if (filters?.phase) params.append('phase', filters.phase);
-    if (filters?.difficulty) params.append('difficulty', filters.difficulty);
-    if (filters?.search) params.append('search', filters.search);
+    try {
+      const params: Record<string, string> = {};
+      if (filters?.phase) params.phase = filters.phase;
+      if (filters?.difficulty) params.difficulty = filters.difficulty;
+      if (filters?.search) params.search = filters.search;
 
-    const _response = await apiClient.get(`/learning/modules?${params.toString()}`);
-    return response.data.data;
+      const response = await this.apiClient.get<LearningModule[]>('/learning/modules', { params });
+      return this.validateResponse(response);
+    } catch (error) {
+      throw this.handleError(error);
+    }
   }
 
   async getModule(id: string): Promise<LearningModule> {
-    const _response = await apiClient.get(`/learning/modules/${id}`);
-    return response.data.data;
+    try {
+      const response = await this.apiClient.get<LearningModule>(`/learning/modules/${id}`);
+      return this.validateResponse(response);
+    } catch (error) {
+      throw this.handleError(error);
+    }
   }
 
   async createModule(data: Omit<LearningModule, 'id' | 'createdAt' | 'updatedAt'>): Promise<LearningModule> {
-    const _response = await apiClient.post('/learning/modules', data);
-    return response.data.data;
+    try {
+      const response = await this.apiClient.post<LearningModule>('/learning/modules', data);
+      return this.validateResponse(response);
+    } catch (error) {
+      throw this.handleError(error);
+    }
   }
 
   async updateModule(id: string, data: Partial<LearningModule>): Promise<LearningModule> {
-    const _response = await apiClient.put(`/learning/modules/${id}`, data);
-    return response.data.data;
+    try {
+      const response = await this.apiClient.put<LearningModule>(`/learning/modules/${id}`, data);
+      return this.validateResponse(response);
+    } catch (error) {
+      throw this.handleError(error);
+    }
   }
 
   async deleteModule(id: string): Promise<void> {
-    await apiClient.delete(`/learning/modules/${id}`);
+    try {
+      const response = await this.apiClient.delete<void>(`/learning/modules/${id}`);
+      this.validateResponse(response);
+    } catch (error) {
+      throw this.handleError(error);
+    }
   }
 
   // Progress Tracking
   async getUserProgress(moduleId?: string): Promise<UserProgress[]> {
-    const params = moduleId ? `?moduleId=${moduleId}` : '';
-    const _response = await apiClient.get(`/learning/progress${params}`);
-    return response.data.data;
+    try {
+      const params = moduleId ? { moduleId } : {};
+      const response = await this.apiClient.get<UserProgress[]>('/learning/progress', { params });
+      return this.validateResponse(response);
+    } catch (error) {
+      throw this.handleError(error);
+    }
   }
 
   async updateProgress(data: {
@@ -139,71 +168,116 @@ class LearningService {
     skillAssessments?: SkillAssessment[];
     status?: 'NOT_STARTED' | 'IN_PROGRESS' | 'COMPLETED' | 'SKIPPED';
   }): Promise<UserProgress> {
-    const _response = await apiClient.post('/learning/progress', data);
-    return response.data.data;
+    try {
+      const response = await this.apiClient.post<UserProgress>('/learning/progress', data);
+      return this.validateResponse(response);
+    } catch (error) {
+      throw this.handleError(error);
+    }
   }
 
   // Prerequisites
   async validatePrerequisites(moduleId: string): Promise<PrerequisiteValidation> {
-    const _response = await apiClient.get(`/learning/modules/${moduleId}/prerequisites`);
-    return response.data.data;
+    try {
+      const response = await this.apiClient.get<PrerequisiteValidation>(`/learning/modules/${moduleId}/prerequisites`);
+      return this.validateResponse(response);
+    } catch (error) {
+      throw this.handleError(error);
+    }
   }
 
   async getRecommendations(): Promise<LearningModule[]> {
-    const _response = await apiClient.get('/learning/recommendations');
-    return response.data.data;
+    try {
+      const response = await this.apiClient.get<LearningModule[]>('/learning/recommendations');
+      return this.validateResponse(response);
+    } catch (error) {
+      throw this.handleError(error);
+    }
   }
 
   // Content Delivery
   async getLessonContent(moduleId: string, lessonId: string): Promise<LessonContent> {
-    const _response = await apiClient.get(`/learning/modules/${moduleId}/lessons/${lessonId}`);
-    return response.data.data;
+    try {
+      const response = await this.apiClient.get<LessonContent>(`/learning/modules/${moduleId}/lessons/${lessonId}`);
+      return this.validateResponse(response);
+    } catch (error) {
+      throw this.handleError(error);
+    }
   }
 
   async getExercise(moduleId: string, exerciseId: string): Promise<Exercise> {
-    const _response = await apiClient.get(`/learning/modules/${moduleId}/exercises/${exerciseId}`);
-    return response.data.data;
+    try {
+      const response = await this.apiClient.get<Exercise>(`/learning/modules/${moduleId}/exercises/${exerciseId}`);
+      return this.validateResponse(response);
+    } catch (error) {
+      throw this.handleError(error);
+    }
   }
 
   // Exercise Submission
-  async submitExercise(moduleId: string, exerciseId: string, _response: unknown): Promise<ExerciseResult> {
-    const submitResponse = await apiClient.post(`/learning/modules/${moduleId}/exercises/${exerciseId}/submit`, {
-      response,
-      submittedAt: new Date().toISOString(),
-    });
-    return submitResponse.data.data;
+  async submitExercise(moduleId: string, exerciseId: string, exerciseResponse: unknown): Promise<ExerciseResult> {
+    try {
+      const response = await this.apiClient.post<ExerciseResult>(`/learning/modules/${moduleId}/exercises/${exerciseId}/submit`, {
+        response: exerciseResponse,
+        submittedAt: new Date().toISOString(),
+      });
+      return this.validateResponse(response);
+    } catch (error) {
+      throw this.handleError(error);
+    }
   }
 
   // Skill Assessment
   async assessSkill(moduleId: string, skillId: string, responses: Record<string, any>): Promise<SkillAssessment> {
-    const _response = await apiClient.post(`/learning/modules/${moduleId}/assess/${skillId}`, {
-      responses,
-    });
-    return response.data.data;
+    try {
+      const response = await this.apiClient.post<SkillAssessment>(`/learning/modules/${moduleId}/assess/${skillId}`, {
+        responses,
+      });
+      return this.validateResponse(response);
+    } catch (error) {
+      throw this.handleError(error);
+    }
   }
 
   // Achievement System
   async getAchievements(): Promise<Achievement[]> {
-    const _response = await apiClient.get('/learning/achievements');
-    return response.data.data;
+    try {
+      const response = await this.apiClient.get<Achievement[]>('/learning/achievements');
+      return this.validateResponse(response);
+    } catch (error) {
+      throw this.handleError(error);
+    }
   }
 
   async unlockAchievement(achievementId: string): Promise<void> {
-    await apiClient.post(`/learning/achievements/${achievementId}/unlock`);
+    try {
+      const response = await this.apiClient.post<void>(`/learning/achievements/${achievementId}/unlock`);
+      this.validateResponse(response);
+    } catch (error) {
+      throw this.handleError(error);
+    }
   }
 
   // Learning Path
   async getLearningPath(phase?: string): Promise<LearningModule[]> {
-    const params = phase ? `?phase=${phase}` : '';
-    const _response = await apiClient.get(`/learning/path${params}`);
-    return response.data.data;
+    try {
+      const params = phase ? { phase } : {};
+      const response = await this.apiClient.get<LearningModule[]>('/learning/path', { params });
+      return this.validateResponse(response);
+    } catch (error) {
+      throw this.handleError(error);
+    }
   }
 
   // Analytics
   async getLearningAnalytics(timeframe?: 'week' | 'month' | 'year'): Promise<LearningAnalytics> {
-    const params = timeframe ? `?timeframe=${timeframe}` : '';
-    const _response = await apiClient.get(`/learning/analytics${params}`);
-    return response.data.data;
+    try {
+      const params = timeframe ? { timeframe } : {};
+      const response = await this.apiClient.get<LearningAnalytics>('/learning/analytics', { params });
+      return this.validateResponse(response);
+    } catch (error) {
+      throw this.handleError(error);
+    }
   }
 }
 

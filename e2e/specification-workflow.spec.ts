@@ -1,6 +1,8 @@
 import { test, expect } from '@playwright/test';
 import { AuthHelper, testUsers } from './fixtures/auth';
 import { ProjectHelper, testProjects } from './fixtures/project';
+import type { TestUser } from './fixtures/auth';
+import type { TestProject } from './fixtures/project';
 
 test.describe('Specification Workflow', () => {
   let authHelper: AuthHelper;

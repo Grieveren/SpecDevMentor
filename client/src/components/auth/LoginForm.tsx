@@ -1,16 +1,17 @@
+import { EyeIcon, EyeSlashIcon } from '@heroicons/react/24/outline';
+import { zodResolver } from '@hookform/resolvers/zod';
 import React, { useState } from 'react';
 import { useForm } from 'react-hook-form';
-import { zodResolver } from '@hookform/resolvers/zod';
-import { EyeIcon, EyeSlashIcon } from '@heroicons/react/24/outline';
-import { LoginFormData, loginSchema } from '../../utils/validation';
 import { useAuthActions } from '../../stores/auth.store';
 import { cn } from '../../utils/cn';
+import { LoginFormData, loginSchema } from '../../utils/validation';
 
 interface LoginFormProps {
   onSuccess?: () => void;
   onSwitchToRegister?: () => void;
   onForgotPassword?: () => void;
   className?: string;
+  children?: React.ReactNode;
 }
 
 export const LoginForm: React.FC<LoginFormProps> = ({
@@ -32,26 +33,32 @@ export const LoginForm: React.FC<LoginFormProps> = ({
     resolver: zodResolver(loginSchema),
   });
 
-  const onSubmit = async (_data: LoginFormData) => {
+  const onSubmit = async (data: LoginFormData) => {
     setIsSubmitting(true);
-    
+
     try {
       await login(data);
       onSuccess?.();
-    } catch (_error: unknown) {
+    } catch (error: unknown) {
       // Handle specific error cases
-      if (error.code === 'INVALID_CREDENTIALS') {
+      const authError = error as {
+        code?: string;
+        details?: Array<{ field: string; message: string }>;
+        error?: string;
+      };
+
+      if (authError.code === 'INVALID_CREDENTIALS') {
         setError('email', { message: 'Invalid email or password' });
         setError('password', { message: 'Invalid email or password' });
-      } else if (error.details) {
+      } else if (authError.details) {
         // Handle validation errors from server
-        error.details.forEach((detail: unknown) => {
+        authError.details.forEach(detail => {
           setError(detail.field as keyof LoginFormData, {
             message: detail.message,
           });
         });
       } else {
-        setError('root', { message: error.error || 'Login failed' });
+        setError('root', { message: authError.error || 'Login failed' });
       }
     } finally {
       setIsSubmitting(false);
@@ -83,9 +90,7 @@ export const LoginForm: React.FC<LoginFormProps> = ({
               )}
               placeholder="Enter your email"
             />
-            {errors.email && (
-              <p className="mt-1 text-sm text-red-600">{errors.email.message}</p>
-            )}
+            {errors.email && <p className="mt-1 text-sm text-red-600">{errors.email.message}</p>}
           </div>
 
           {/* Password Field */}
@@ -136,9 +141,7 @@ export const LoginForm: React.FC<LoginFormProps> = ({
             className={cn(
               'w-full flex justify-center py-2 px-4 border border-transparent rounded-md shadow-sm text-sm font-medium text-white',
               'focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500',
-              isSubmitting
-                ? 'bg-gray-400 cursor-not-allowed'
-                : 'bg-blue-600 hover:bg-blue-700'
+              isSubmitting ? 'bg-gray-400 cursor-not-allowed' : 'bg-blue-600 hover:bg-blue-700'
             )}
           >
             {isSubmitting ? 'Signing In...' : 'Sign In'}

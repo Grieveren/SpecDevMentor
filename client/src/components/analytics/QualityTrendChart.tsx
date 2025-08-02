@@ -67,7 +67,7 @@ export const QualityTrendChart: React.FC<QualityTrendChartProps> = ({
   };
 
   const getLatestScore = (phase: string) => {
-    const _data = phaseData[phase];
+    const data = phaseData[phase];
     return data.length > 0 ? data[data.length - 1].score : 0;
   };
 

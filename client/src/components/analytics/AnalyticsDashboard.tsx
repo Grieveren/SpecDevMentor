@@ -1,18 +1,25 @@
-import React, { useState, useEffect } from 'react';
-import { ChartBarIcon, UsersIcon, ClockIcon, TrendingUpIcon } from '@heroicons/react/24/outline';
-import { analyticsService, DashboardData, TimeRange } from '../../services/analytics.service';
-import { LoadingSpinner } from '../common/LoadingSpinner';
+import {
+  ArrowTrendingUpIcon,
+  ChartBarIcon,
+  ClockIcon,
+  UsersIcon,
+} from '@heroicons/react/24/outline';
+import { InternalServerError } from '@shared/types/errors';
+import React, { useState } from 'react';
+import { DashboardData, TimeRange, analyticsService } from '../../services/analytics.service';
 import { ErrorAlert } from '../common/ErrorAlert';
+import { LoadingSpinner } from '../common/LoadingSpinner';
+import { MetricCard } from './MetricCard';
 import { ProjectAnalyticsView } from './ProjectAnalyticsView';
 import { TeamAnalyticsView } from './TeamAnalyticsView';
-import { UserAnalyticsView } from './UserAnalyticsView';
 import { TimeRangeSelector } from './TimeRangeSelector';
-import { MetricCard } from './MetricCard';
+import { UserAnalyticsView } from './UserAnalyticsView';
 
 interface AnalyticsDashboardProps {
   projectId?: string;
   userId?: string;
   className?: string;
+  children?: React.ReactNode;
 }
 
 export const AnalyticsDashboard: React.FC<AnalyticsDashboardProps> = ({
@@ -24,19 +31,17 @@ export const AnalyticsDashboard: React.FC<AnalyticsDashboardProps> = ({
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [timeRange, setTimeRange] = useState<TimeRange | undefined>();
-  const [activeView, setActiveView] = useState<'overview' | 'project' | 'team' | 'user'>('overview');
-
-  useEffect(() => {
-    loadDashboardData();
-  }, [projectId, userId, timeRange]);
+  const [activeView, setActiveView] = useState<'overview' | 'project' | 'team' | 'user'>(
+    'overview'
+  );
 
   const loadDashboardData = async () => {
     try {
       setLoading(true);
       setError(null);
-      const _data = await analyticsService.getDashboardData(projectId);
+      const data = await analyticsService.getDashboardData(projectId);
       setDashboardData(data);
-      
+
       // Set default view based on data type
       if (data.type === 'project') {
         setActiveView('project');
@@ -49,6 +54,10 @@ export const AnalyticsDashboard: React.FC<AnalyticsDashboardProps> = ({
       setLoading(false);
     }
   };
+
+  useEffect(() => {
+    loadDashboardData();
+  }, [projectId, userId, timeRange]);
 
   const handleTimeRangeChange = (newTimeRange: TimeRange | undefined) => {
     setTimeRange(newTimeRange);
@@ -65,7 +74,7 @@ export const AnalyticsDashboard: React.FC<AnalyticsDashboardProps> = ({
   if (error) {
     return (
       <div className={className}>
-        <ErrorAlert message={error} onRetry={loadDashboardData} />
+        <ErrorAlert error={new InternalServerError(error)} />
       </div>
     );
   }
@@ -102,7 +111,7 @@ export const AnalyticsDashboard: React.FC<AnalyticsDashboardProps> = ({
               value={dashboardData.project.phaseMetrics
                 .reduce((sum, p) => sum + p.averageQualityScore, 0)
                 .toFixed(1)}
-              icon={TrendingUpIcon}
+              icon={ArrowTrendingUpIcon}
               trend="up"
               color="purple"
             />
@@ -150,13 +159,13 @@ export const AnalyticsDashboard: React.FC<AnalyticsDashboardProps> = ({
             <MetricCard
               title="Completed"
               value={dashboardData.user.completedProjects.toString()}
-              icon={TrendingUpIcon}
+              icon={ArrowTrendingUpIcon}
               color="green"
             />
             <MetricCard
               title="Avg Quality"
               value={dashboardData.user.averageQualityScore.toFixed(1)}
-              icon={TrendingUpIcon}
+              icon={ArrowTrendingUpIcon}
               trend="up"
               color="purple"
             />
@@ -225,58 +234,56 @@ export const AnalyticsDashboard: React.FC<AnalyticsDashboardProps> = ({
         </div>
 
         {/* Navigation */}
-        {activeView !== 'overview' && (
-          <div className="mt-4">
-            <nav className="flex space-x-4">
+        <div className="mt-4">
+          <nav className="flex space-x-4">
+            <button
+              onClick={() => setActiveView('overview')}
+              className={`px-3 py-2 text-sm font-medium rounded-md transition-colors ${
+                activeView === 'overview'
+                  ? 'bg-blue-100 text-blue-700'
+                  : 'text-gray-500 hover:text-gray-700'
+              }`}
+            >
+              Overview
+            </button>
+            {dashboardData.project && (
               <button
-                onClick={() => setActiveView('overview')}
+                onClick={() => setActiveView('project')}
                 className={`px-3 py-2 text-sm font-medium rounded-md transition-colors ${
-                  activeView === 'overview'
+                  activeView === 'project'
                     ? 'bg-blue-100 text-blue-700'
                     : 'text-gray-500 hover:text-gray-700'
                 }`}
               >
-                Overview
+                Project
               </button>
-              {dashboardData.project && (
-                <button
-                  onClick={() => setActiveView('project')}
-                  className={`px-3 py-2 text-sm font-medium rounded-md transition-colors ${
-                    activeView === 'project'
-                      ? 'bg-blue-100 text-blue-700'
-                      : 'text-gray-500 hover:text-gray-700'
-                  }`}
-                >
-                  Project
-                </button>
-              )}
-              {dashboardData.team && (
-                <button
-                  onClick={() => setActiveView('team')}
-                  className={`px-3 py-2 text-sm font-medium rounded-md transition-colors ${
-                    activeView === 'team'
-                      ? 'bg-blue-100 text-blue-700'
-                      : 'text-gray-500 hover:text-gray-700'
-                  }`}
-                >
-                  Team
-                </button>
-              )}
-              {dashboardData.user && (
-                <button
-                  onClick={() => setActiveView('user')}
-                  className={`px-3 py-2 text-sm font-medium rounded-md transition-colors ${
-                    activeView === 'user'
-                      ? 'bg-blue-100 text-blue-700'
-                      : 'text-gray-500 hover:text-gray-700'
-                  }`}
-                >
-                  Personal
-                </button>
-              )}
-            </nav>
-          </div>
-        )}
+            )}
+            {dashboardData.team && (
+              <button
+                onClick={() => setActiveView('team')}
+                className={`px-3 py-2 text-sm font-medium rounded-md transition-colors ${
+                  activeView === 'team'
+                    ? 'bg-blue-100 text-blue-700'
+                    : 'text-gray-500 hover:text-gray-700'
+                }`}
+              >
+                Team
+              </button>
+            )}
+            {dashboardData.user && (
+              <button
+                onClick={() => setActiveView('user')}
+                className={`px-3 py-2 text-sm font-medium rounded-md transition-colors ${
+                  activeView === 'user'
+                    ? 'bg-blue-100 text-blue-700'
+                    : 'text-gray-500 hover:text-gray-700'
+                }`}
+              >
+                Personal
+              </button>
+            )}
+          </nav>
+        </div>
       </div>
 
       {/* Content */}

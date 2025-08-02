@@ -1,25 +1,26 @@
-import React, { useState, useEffect, useCallback, useRef } from 'react';
-import { 
-  MagnifyingGlassIcon, 
-  FunnelIcon, 
-  XMarkIcon,
-  ChevronDownIcon,
+import {
   CalendarIcon,
+  FunnelIcon,
+  MagnifyingGlassIcon,
   UserIcon,
-  TagIcon,
-  AdjustmentsHorizontalIcon
+  XMarkIcon,
 } from '@heroicons/react/24/outline';
-import { Menu, Transition, Disclosure } from '@headlessui/react';
-import { Fragment } from 'react';
-import { cn } from '../../utils/cn';
-import { searchService, SearchOptions, SearchResponse, SearchResult } from '../../services/search.service';
 import { formatDistanceToNow } from 'date-fns';
+import React, { useCallback, useEffect, useRef, useState } from 'react';
+import {
+  SearchOptions,
+  SearchResponse,
+  SearchResult,
+  searchService,
+} from '../../services/search.service';
+import { cn } from '../../utils/cn';
 
 interface SearchInterfaceProps {
-  onResultSelect?: (_result: SearchResult) => void;
+  onResultSelect?: (result: SearchResult) => void;
   initialQuery?: string;
   projectId?: string;
   className?: string;
+  children?: React.ReactNode;
 }
 
 export const SearchInterface: React.FC<SearchInterfaceProps> = ({
@@ -72,7 +73,8 @@ export const SearchInterface: React.FC<SearchInterfaceProps> = ({
 
           setResults(searchResults);
         } catch (err: unknown) {
-          setError(err.response?.data?.message || 'Search failed');
+          const searchError = err as { response?: { data?: { message?: string } } };
+          setError(searchError.response?.data?.message || 'Search failed');
           setResults(null);
         } finally {
           setLoading(false);
@@ -101,7 +103,7 @@ export const SearchInterface: React.FC<SearchInterfaceProps> = ({
   const handleSearchChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const value = e.target.value;
     setQuery(value);
-    
+
     if (value.trim()) {
       getSuggestions(value);
       setShowSuggestions(true);
@@ -134,7 +136,7 @@ export const SearchInterface: React.FC<SearchInterfaceProps> = ({
   };
 
   // Handle result click
-  const handleResultClick = (_result: SearchResult) => {
+  const handleResultClick = (result: SearchResult) => {
     onResultSelect?.(result);
   };
 
@@ -147,7 +149,7 @@ export const SearchInterface: React.FC<SearchInterfaceProps> = ({
 
   // Click outside handler for suggestions
   useEffect(() => {
-    const handleClickOutside = (_event: MouseEvent) => {
+    const handleClickOutside = (event: MouseEvent) => {
       if (
         suggestionsRef.current &&
         !suggestionsRef.current.contains(event.target as Node) &&
@@ -180,7 +182,11 @@ export const SearchInterface: React.FC<SearchInterfaceProps> = ({
               type="text"
               value={query}
               onChange={handleSearchChange}
-              placeholder={projectId ? "Search within project..." : "Search specifications, documents, templates..."}
+              placeholder={
+                projectId
+                  ? 'Search within project...'
+                  : 'Search specifications, documents, templates...'
+              }
               className="w-full pl-10 pr-12 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
             />
             <div className="absolute right-3 top-1/2 transform -translate-y-1/2 flex items-center space-x-2">
@@ -259,19 +265,12 @@ interface SearchFiltersProps {
   onClose: () => void;
 }
 
-const SearchFilters: React.FC<SearchFiltersProps> = ({
-  filters,
-  onFilterChange,
-  onClose,
-}) => {
+const SearchFilters: React.FC<SearchFiltersProps> = ({ filters, onFilterChange, onClose }) => {
   return (
     <div className="bg-gray-50 border border-gray-200 rounded-lg p-4">
       <div className="flex items-center justify-between mb-4">
         <h3 className="text-sm font-medium text-gray-900">Filters</h3>
-        <button
-          onClick={onClose}
-          className="text-gray-400 hover:text-gray-600"
-        >
+        <button onClick={onClose} className="text-gray-400 hover:text-gray-600">
           <XMarkIcon className="h-4 w-4" />
         </button>
       </div>
@@ -279,12 +278,10 @@ const SearchFilters: React.FC<SearchFiltersProps> = ({
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
         {/* Phase Filter */}
         <div>
-          <label className="block text-xs font-medium text-gray-700 mb-1">
-            Phase
-          </label>
+          <label className="block text-xs font-medium text-gray-700 mb-1">Phase</label>
           <select
             value={filters.phase || ''}
-            onChange={(e) => onFilterChange({ phase: e.target.value || undefined })}
+            onChange={e => onFilterChange({ phase: e.target.value || undefined })}
             className="w-full text-sm border border-gray-300 rounded px-2 py-1"
           >
             <option value="">All Phases</option>
@@ -297,12 +294,10 @@ const SearchFilters: React.FC<SearchFiltersProps> = ({
 
         {/* Status Filter */}
         <div>
-          <label className="block text-xs font-medium text-gray-700 mb-1">
-            Status
-          </label>
+          <label className="block text-xs font-medium text-gray-700 mb-1">Status</label>
           <select
             value={filters.status || ''}
-            onChange={(e) => onFilterChange({ status: e.target.value || undefined })}
+            onChange={e => onFilterChange({ status: e.target.value || undefined })}
             className="w-full text-sm border border-gray-300 rounded px-2 py-1"
           >
             <option value="">All Statuses</option>
@@ -315,12 +310,10 @@ const SearchFilters: React.FC<SearchFiltersProps> = ({
 
         {/* Sort By */}
         <div>
-          <label className="block text-xs font-medium text-gray-700 mb-1">
-            Sort By
-          </label>
+          <label className="block text-xs font-medium text-gray-700 mb-1">Sort By</label>
           <select
             value={filters.sortBy || 'relevance'}
-            onChange={(e) => onFilterChange({ sortBy: e.target.value as any })}
+            onChange={e => onFilterChange({ sortBy: e.target.value as any })}
             className="w-full text-sm border border-gray-300 rounded px-2 py-1"
           >
             <option value="relevance">Relevance</option>
@@ -332,12 +325,10 @@ const SearchFilters: React.FC<SearchFiltersProps> = ({
 
         {/* Sort Order */}
         <div>
-          <label className="block text-xs font-medium text-gray-700 mb-1">
-            Order
-          </label>
+          <label className="block text-xs font-medium text-gray-700 mb-1">Order</label>
           <select
             value={filters.sortOrder || 'desc'}
-            onChange={(e) => onFilterChange({ sortOrder: e.target.value as any })}
+            onChange={e => onFilterChange({ sortOrder: e.target.value as any })}
             className="w-full text-sm border border-gray-300 rounded px-2 py-1"
           >
             <option value="desc">Descending</option>
@@ -349,28 +340,28 @@ const SearchFilters: React.FC<SearchFiltersProps> = ({
       {/* Date Range */}
       <div className="mt-4 grid grid-cols-1 md:grid-cols-2 gap-4">
         <div>
-          <label className="block text-xs font-medium text-gray-700 mb-1">
-            From Date
-          </label>
+          <label className="block text-xs font-medium text-gray-700 mb-1">From Date</label>
           <input
             type="date"
             value={filters.dateFrom ? filters.dateFrom.toISOString().split('T')[0] : ''}
-            onChange={(e) => onFilterChange({ 
-              dateFrom: e.target.value ? new Date(e.target.value) : undefined 
-            })}
+            onChange={e =>
+              onFilterChange({
+                dateFrom: e.target.value ? new Date(e.target.value) : undefined,
+              })
+            }
             className="w-full text-sm border border-gray-300 rounded px-2 py-1"
           />
         </div>
         <div>
-          <label className="block text-xs font-medium text-gray-700 mb-1">
-            To Date
-          </label>
+          <label className="block text-xs font-medium text-gray-700 mb-1">To Date</label>
           <input
             type="date"
             value={filters.dateTo ? filters.dateTo.toISOString().split('T')[0] : ''}
-            onChange={(e) => onFilterChange({ 
-              dateTo: e.target.value ? new Date(e.target.value) : undefined 
-            })}
+            onChange={e =>
+              onFilterChange({
+                dateTo: e.target.value ? new Date(e.target.value) : undefined,
+              })
+            }
             className="w-full text-sm border border-gray-300 rounded px-2 py-1"
           />
         </div>
@@ -382,7 +373,7 @@ const SearchFilters: React.FC<SearchFiltersProps> = ({
 interface SearchResultsProps {
   results: SearchResponse;
   query: string;
-  onResultClick: (_result: SearchResult) => void;
+  onResultClick: (result: SearchResult) => void;
   onPageChange: (page: number) => void;
 }
 
@@ -417,7 +408,7 @@ const SearchResults: React.FC<SearchResultsProps> = ({
 
       {/* Results List */}
       <div className="space-y-3">
-        {results.results.map((result) => (
+        {results.results.map(result => (
           <SearchResultItem
             key={`${result.type}-${result.id}`}
             result={result}
@@ -437,7 +428,7 @@ const SearchResults: React.FC<SearchResultsProps> = ({
           >
             Previous
           </button>
-          
+
           {Array.from({ length: Math.min(5, results.pages) }, (_, i) => {
             const page = i + Math.max(1, results.page - 2);
             return (
@@ -455,7 +446,7 @@ const SearchResults: React.FC<SearchResultsProps> = ({
               </button>
             );
           })}
-          
+
           <button
             onClick={() => onPageChange(results.page + 1)}
             disabled={results.page >= results.pages}
@@ -475,11 +466,7 @@ interface SearchResultItemProps {
   onClick: () => void;
 }
 
-const SearchResultItem: React.FC<SearchResultItemProps> = ({
-  result,
-  query,
-  onClick,
-}) => {
+const SearchResultItem: React.FC<SearchResultItemProps> = ({ result, query, onClick }) => {
   return (
     <div
       onClick={onClick}
@@ -487,28 +474,26 @@ const SearchResultItem: React.FC<SearchResultItemProps> = ({
     >
       <div className="flex items-start space-x-3">
         <div className="flex-shrink-0">
-          <span className="text-2xl">
-            {searchService.getResultTypeIcon(result.type)}
-          </span>
+          <span className="text-2xl">{searchService.getResultTypeIcon(result.type)}</span>
         </div>
 
         <div className="flex-1 min-w-0">
           <div className="flex items-center space-x-2 mb-1">
-            <h3 className="text-sm font-medium text-gray-900 truncate">
-              {result.title}
-            </h3>
-            <span className={cn(
-              'px-2 py-1 text-xs rounded-full',
-              searchService.getResultTypeColor(result.type)
-            )}>
+            <h3 className="text-sm font-medium text-gray-900 truncate">{result.title}</h3>
+            <span
+              className={cn(
+                'px-2 py-1 text-xs rounded-full',
+                searchService.getResultTypeColor(result.type)
+              )}
+            >
               {searchService.formatResultType(result.type)}
             </span>
           </div>
 
-          <p 
+          <p
             className="text-sm text-gray-600 mb-2"
             dangerouslySetInnerHTML={{
-              __html: searchService.highlightSearchTerms(result.excerpt, query)
+              __html: searchService.highlightSearchTerms(result.excerpt, query),
             }}
           />
 
@@ -519,23 +504,19 @@ const SearchResultItem: React.FC<SearchResultItemProps> = ({
                 <span>{result.metadata.author.name}</span>
               </div>
             )}
-            
+
             <div className="flex items-center space-x-1">
               <CalendarIcon className="h-3 w-3" />
               <span>{formatDistanceToNow(new Date(result.updatedAt), { addSuffix: true })}</span>
             </div>
 
             {result.metadata.phase && (
-              <span className="text-blue-600">
-                {result.metadata.phase}
-              </span>
+              <span className="text-blue-600">{result.metadata.phase}</span>
             )}
           </div>
         </div>
 
-        <div className="flex-shrink-0 text-xs text-gray-400">
-          Score: {result.score.toFixed(1)}
-        </div>
+        <div className="flex-shrink-0 text-xs text-gray-400">Score: {result.score.toFixed(1)}</div>
       </div>
     </div>
   );

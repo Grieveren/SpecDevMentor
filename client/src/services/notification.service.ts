@@ -1,4 +1,4 @@
-import { apiClient } from './api.service';
+import { BaseService, typedApiClient } from './api.service';
 
 export interface Notification {
   id: string;
@@ -49,7 +49,11 @@ export interface NotificationListResponse {
   };
 }
 
-export class NotificationService {
+export class NotificationService extends BaseService {
+  constructor() {
+    super(typedApiClient);
+  }
+
   /**
    * Get user notifications
    */
@@ -58,51 +62,78 @@ export class NotificationService {
     limit?: number;
     unreadOnly?: boolean;
   } = {}): Promise<NotificationListResponse> {
-    const params = new URLSearchParams();
-    
-    if (options.page) params.append('page', options.page.toString());
-    if (options.limit) params.append('limit', options.limit.toString());
-    if (options.unreadOnly) params.append('unreadOnly', 'true');
+    try {
+      const params: Record<string, string> = {};
+      
+      if (options.page) params.page = options.page.toString();
+      if (options.limit) params.limit = options.limit.toString();
+      if (options.unreadOnly) params.unreadOnly = 'true';
 
-    const _response = await apiClient.get(`/notifications?${params.toString()}`);
-    return response.data.data;
+      const response = await this.apiClient.get<NotificationListResponse>('/notifications', { params });
+      return this.validateResponse(response);
+    } catch (error) {
+      throw this.handleError(error);
+    }
   }
 
   /**
    * Get unread notification count
    */
   async getUnreadCount(): Promise<number> {
-    const _response = await apiClient.get('/notifications/unread-count');
-    return response.data.data.count;
+    try {
+      const response = await this.apiClient.get<{ count: number }>('/notifications/unread-count');
+      return this.validateResponse(response).count;
+    } catch (error) {
+      throw this.handleError(error);
+    }
   }
 
   /**
    * Mark notification as read
    */
   async markAsRead(notificationId: string): Promise<void> {
-    await apiClient.patch(`/notifications/${notificationId}/read`);
+    try {
+      const response = await this.apiClient.patch<void>(`/notifications/${notificationId}/read`);
+      this.validateResponse(response);
+    } catch (error) {
+      throw this.handleError(error);
+    }
   }
 
   /**
    * Mark all notifications as read
    */
   async markAllAsRead(): Promise<void> {
-    await apiClient.patch('/notifications/read-all');
+    try {
+      const response = await this.apiClient.patch<void>('/notifications/read-all');
+      this.validateResponse(response);
+    } catch (error) {
+      throw this.handleError(error);
+    }
   }
 
   /**
    * Get notification settings
    */
   async getSettings(): Promise<NotificationSettings> {
-    const _response = await apiClient.get('/notifications/settings');
-    return response.data.data;
+    try {
+      const response = await this.apiClient.get<NotificationSettings>('/notifications/settings');
+      return this.validateResponse(response);
+    } catch (error) {
+      throw this.handleError(error);
+    }
   }
 
   /**
    * Update notification settings
    */
   async updateSettings(settings: Partial<NotificationSettings>): Promise<void> {
-    await apiClient.put('/notifications/settings', settings);
+    try {
+      const response = await this.apiClient.put<void>('/notifications/settings', settings);
+      this.validateResponse(response);
+    } catch (error) {
+      throw this.handleError(error);
+    }
   }
 
   /**
@@ -115,7 +146,12 @@ export class NotificationService {
     message: string;
     data?: Record<string, any>;
   }): Promise<void> {
-    await apiClient.post('/notifications/test', data);
+    try {
+      const response = await this.apiClient.post<void>('/notifications/test', data);
+      this.validateResponse(response);
+    } catch (error) {
+      throw this.handleError(error);
+    }
   }
 }
 

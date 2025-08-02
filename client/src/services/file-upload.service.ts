@@ -1,4 +1,5 @@
-import { apiClient } from './api.service';
+import { AxiosRequestConfig } from 'axios';
+import { BaseService, typedApiClient } from './api.service';
 
 export interface FileAttachment {
   id: string;
@@ -43,7 +44,11 @@ export interface UploadProgress {
   error?: string;
 }
 
-export class FileUploadService {
+export class FileUploadService extends BaseService {
+  constructor() {
+    super(typedApiClient);
+  }
+
   /**
    * Upload files
    */
@@ -53,7 +58,7 @@ export class FileUploadService {
     onProgress?: (progress: UploadProgress[]) => void
   ): Promise<FileAttachment[]> {
     const formData = new FormData();
-    
+
     files.forEach(file => {
       formData.append('files', file);
     });
@@ -74,39 +79,44 @@ export class FileUploadService {
     }
 
     try {
-      const _response = await apiClient.post('/files/upload', formData, {
+      const config: AxiosRequestConfig = {
         headers: {
           'Content-Type': 'multipart/form-data',
         },
-        onUploadProgress: (progressEvent) => {
+        onUploadProgress: progressEvent => {
           if (progressEvent.total) {
             const progress = Math.round((progressEvent.loaded * 100) / progressEvent.total);
-            const updatedProgress = progressArray.map(p => ({
+            const updatedProgress: UploadProgress[] = progressArray.map(p => ({
               ...p,
               progress,
-              status: progress === 100 ? 'completed' : 'uploading' as const,
+              status: progress === 100 ? 'completed' : 'uploading',
             }));
-            
+
             if (onProgress) {
               onProgress(updatedProgress);
             }
           }
         },
-      });
+      };
 
-      return response.data.data.files;
-    } catch (_error: unknown) {
+      const response = await this.apiClient.post<{ files: FileAttachment[] }>(
+        '/files/upload',
+        formData,
+        config
+      );
+      return this.validateResponse(response).files;
+    } catch (error: unknown) {
       const errorProgress = progressArray.map(p => ({
         ...p,
-        status: 'error' as const,
-        error: error.response?.data?.message || 'Upload failed',
+        status: 'error' as UploadProgress['status'],
+        error: this.handleError(error).message || 'Upload failed',
       }));
-      
+
       if (onProgress) {
         onProgress(errorProgress);
       }
-      
-      throw error;
+
+      throw this.handleError(error);
     }
   }
 
@@ -114,35 +124,49 @@ export class FileUploadService {
    * Get file by ID
    */
   async getFile(fileId: string): Promise<FileAttachment> {
-    const _response = await apiClient.get(`/files/${fileId}`);
-    return response.data.data;
+    try {
+      const response = await this.apiClient.get<FileAttachment>(`/files/${fileId}`);
+      return this.validateResponse(response);
+    } catch (error) {
+      throw this.handleError(error);
+    }
   }
 
   /**
    * Download file
    */
   async downloadFile(fileId: string, filename?: string): Promise<void> {
-    const _response = await apiClient.get(`/files/${fileId}/download`, {
-      responseType: 'blob',
-    });
+    try {
+      const response = await this.apiClient.get<Blob>(`/files/${fileId}/download`, {
+        responseType: 'blob',
+      });
 
-    // Create download link
-    const url = window.URL.createObjectURL(new Blob([response.data]));
-    const link = document.createElement('a');
-    link.href = url;
-    link.download = filename || 'download';
-    document.body.appendChild(link);
-    link.click();
-    document.body.removeChild(link);
-    window.URL.revokeObjectURL(url);
+      // Create download link
+      const url = window.URL.createObjectURL(new Blob([response.data]));
+      const link = document.createElement('a');
+      link.href = url;
+      link.download = filename || 'download';
+      document.body.appendChild(link);
+      link.click();
+      document.body.removeChild(link);
+      window.URL.revokeObjectURL(url);
+    } catch (error) {
+      throw this.handleError(error);
+    }
   }
 
   /**
    * Get files for a document
    */
   async getDocumentFiles(documentId: string): Promise<FileAttachment[]> {
-    const _response = await apiClient.get(`/files/document/${documentId}`);
-    return response.data.data.files;
+    try {
+      const response = await this.apiClient.get<{ files: FileAttachment[] }>(
+        `/files/document/${documentId}`
+      );
+      return this.validateResponse(response).files;
+    } catch (error) {
+      throw this.handleError(error);
+    }
   }
 
   /**
@@ -153,39 +177,57 @@ export class FileUploadService {
     file: File,
     onProgress?: (progress: number) => void
   ): Promise<FileAttachment> {
-    const formData = new FormData();
-    formData.append('file', file);
+    try {
+      const formData = new FormData();
+      formData.append('file', file);
 
-    const _response = await apiClient.post(`/files/${fileId}/version`, formData, {
-      headers: {
-        'Content-Type': 'multipart/form-data',
-      },
-      onUploadProgress: (progressEvent) => {
-        if (progressEvent.total && onProgress) {
-          const progress = Math.round((progressEvent.loaded * 100) / progressEvent.total);
-          onProgress(progress);
-        }
-      },
-    });
+      const config: AxiosRequestConfig = {
+        headers: {
+          'Content-Type': 'multipart/form-data',
+        },
+        onUploadProgress: progressEvent => {
+          if (progressEvent.total && onProgress) {
+            const progress = Math.round((progressEvent.loaded * 100) / progressEvent.total);
+            onProgress(progress);
+          }
+        },
+      };
 
-    return response.data.data;
+      const response = await this.apiClient.post<FileAttachment>(
+        `/files/${fileId}/version`,
+        formData,
+        config
+      );
+      return this.validateResponse(response);
+    } catch (error) {
+      throw this.handleError(error);
+    }
   }
 
   /**
    * Delete file
    */
   async deleteFile(fileId: string): Promise<void> {
-    await apiClient.delete(`/files/${fileId}`);
+    try {
+      const response = await this.apiClient.delete<void>(`/files/${fileId}`);
+      this.validateResponse(response);
+    } catch (error) {
+      throw this.handleError(error);
+    }
   }
 
   /**
    * Get storage statistics
    */
   async getStorageStats(global = false): Promise<StorageStats> {
-    const _response = await apiClient.get('/files/stats/storage', {
-      params: { global },
-    });
-    return response.data.data;
+    try {
+      const response = await this.apiClient.get<StorageStats>('/files/stats/storage', {
+        params: { global },
+      });
+      return this.validateResponse(response);
+    } catch (error) {
+      throw this.handleError(error);
+    }
   }
 
   /**
@@ -240,10 +282,13 @@ export class FileUploadService {
   /**
    * Validate file before upload
    */
-  validateFile(file: File, options: {
-    maxSize?: number;
-    allowedTypes?: string[];
-  } = {}): { valid: boolean; error?: string } {
+  validateFile(
+    file: File,
+    options: {
+      maxSize?: number;
+      allowedTypes?: string[];
+    } = {}
+  ): { valid: boolean; error?: string } {
     const {
       maxSize = 10 * 1024 * 1024, // 10MB default
       allowedTypes = [
@@ -281,11 +326,23 @@ export class FileUploadService {
 
     // Check for executable files
     const executableExtensions = [
-      '.exe', '.bat', '.cmd', '.com', '.scr', '.pif',
-      '.sh', '.bash', '.zsh', '.fish',
-      '.app', '.dmg', '.pkg',
-      '.deb', '.rpm',
-      '.jar', '.war',
+      '.exe',
+      '.bat',
+      '.cmd',
+      '.com',
+      '.scr',
+      '.pif',
+      '.sh',
+      '.bash',
+      '.zsh',
+      '.fish',
+      '.app',
+      '.dmg',
+      '.pkg',
+      '.deb',
+      '.rpm',
+      '.jar',
+      '.war',
     ];
 
     const extension = '.' + file.name.split('.').pop()?.toLowerCase();

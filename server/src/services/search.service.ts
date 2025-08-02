@@ -1,4 +1,4 @@
-import { PrismaClient, SpecificationPhase, ProjectStatus, UserRole } from '@prisma/client';
+import { Prisma, PrismaClient, ProjectStatus, SpecificationPhase } from '@prisma/client';
 import { Redis } from 'ioredis';
 
 interface SearchOptions {
@@ -46,7 +46,7 @@ interface SearchResponse {
 export class SearchService {
   private prisma: PrismaClient;
   private redis: Redis;
-  private searchIndex: Map<string, any> = new Map();
+  private searchIndex: Map<string, unknown> = new Map();
 
   constructor(prisma: PrismaClient, redis: Redis) {
     this.prisma = prisma;
@@ -90,12 +90,7 @@ export class SearchService {
     ]);
 
     // Combine and score results
-    let allResults = [
-      ...projectResults,
-      ...documentResults,
-      ...templateResults,
-      ...commentResults,
-    ];
+    let allResults = [...projectResults, ...documentResults, ...templateResults, ...commentResults];
 
     // Apply filters
     allResults = this.applyFilters(allResults, options);
@@ -139,21 +134,30 @@ export class SearchService {
     query: string,
     options: SearchOptions
   ): Promise<SearchResult[]> {
-    const whereClause: unknown = {
-      OR: [
-        { ownerId: userId },
-        { team: { some: { userId, status: 'ACTIVE' } } },
+    // Build base access conditions
+    const accessConditions: Prisma.SpecificationProjectWhereInput[] = [
+      { ownerId: userId },
+      { team: { some: { userId, status: 'ACTIVE' } } },
+    ];
+
+    // Build search conditions
+    const searchConditions: Prisma.SpecificationProjectWhereInput[] = [];
+    if (query) {
+      searchConditions.push(
+        { name: { contains: query, mode: 'insensitive' } },
+        { description: { contains: query, mode: 'insensitive' } }
+      );
+    }
+
+    // Combine access and search conditions
+    const whereClause: Prisma.SpecificationProjectWhereInput = {
+      AND: [
+        { OR: accessConditions },
+        ...(searchConditions.length > 0 ? [{ OR: searchConditions }] : []),
       ],
     };
 
-    if (query) {
-      whereClause.OR = [
-        ...whereClause.OR,
-        { name: { contains: query, mode: 'insensitive' } },
-        { description: { contains: query, mode: 'insensitive' } },
-      ];
-    }
-
+    // Add additional filters
     if (options.status) {
       whereClause.status = options.status;
     }
@@ -163,9 +167,10 @@ export class SearchService {
     }
 
     if (options.dateFrom || options.dateTo) {
-      whereClause.createdAt = {};
-      if (options.dateFrom) whereClause.createdAt.gte = options.dateFrom;
-      if (options.dateTo) whereClause.createdAt.lte = options.dateTo;
+      const dateFilter: Prisma.DateTimeFilter = {};
+      if (options.dateFrom) dateFilter.gte = options.dateFrom;
+      if (options.dateTo) dateFilter.lte = options.dateTo;
+      whereClause.createdAt = dateFilter;
     }
 
     const projects = await this.prisma.specificationProject.findMany({
@@ -222,34 +227,42 @@ export class SearchService {
     query: string,
     options: SearchOptions
   ): Promise<SearchResult[]> {
-    const whereClause: unknown = {
+    // Build where clause with proper type safety
+    const whereClause: Prisma.SpecificationDocumentWhereInput = {
       project: {
-        OR: [
-          { ownerId: userId },
-          { team: { some: { userId, status: 'ACTIVE' } } },
-        ],
+        OR: [{ ownerId: userId }, { team: { some: { userId, status: 'ACTIVE' } } }],
       },
     };
 
+    // Add content search if query provided
     if (query) {
       whereClause.content = { contains: query, mode: 'insensitive' };
     }
 
+    // Add phase filter
     if (options.phase) {
       whereClause.phase = options.phase;
     }
 
+    // Add date range filter
     if (options.dateFrom || options.dateTo) {
-      whereClause.updatedAt = {};
-      if (options.dateFrom) whereClause.updatedAt.gte = options.dateFrom;
-      if (options.dateTo) whereClause.updatedAt.lte = options.dateTo;
+      const dateFilter: Prisma.DateTimeFilter = {};
+      if (options.dateFrom) dateFilter.gte = options.dateFrom;
+      if (options.dateTo) dateFilter.lte = options.dateTo;
+      whereClause.updatedAt = dateFilter;
     }
 
     const documents = await this.prisma.specificationDocument.findMany({
       where: whereClause,
       include: {
         project: {
-          select: { id: true, name: true, owner: true },
+          select: {
+            id: true,
+            name: true,
+            owner: {
+              select: { id: true, name: true, email: true },
+            },
+          },
         },
         comments: {
           where: { status: 'OPEN' },
@@ -292,23 +305,32 @@ export class SearchService {
     query: string,
     options: SearchOptions
   ): Promise<SearchResult[]> {
-    const whereClause: unknown = {
-      OR: [
-        { isPublic: true },
-        { authorId: userId },
-        { teamShares: { some: { project: { team: { some: { userId } } } } } },
+    // Build base access conditions
+    const accessConditions: Prisma.TemplateWhereInput[] = [
+      { isPublic: true },
+      { authorId: userId },
+      { teamShares: { some: { project: { team: { some: { userId } } } } } },
+    ];
+
+    // Build search conditions
+    const searchConditions: Prisma.TemplateWhereInput[] = [];
+    if (query) {
+      searchConditions.push(
+        { name: { contains: query, mode: 'insensitive' } },
+        { description: { contains: query, mode: 'insensitive' } },
+        { content: { contains: query, mode: 'insensitive' } }
+      );
+    }
+
+    // Combine access and search conditions
+    const whereClause: Prisma.TemplateWhereInput = {
+      AND: [
+        { OR: accessConditions },
+        ...(searchConditions.length > 0 ? [{ OR: searchConditions }] : []),
       ],
     };
 
-    if (query) {
-      whereClause.OR = [
-        ...whereClause.OR,
-        { name: { contains: query, mode: 'insensitive' } },
-        { description: { contains: query, mode: 'insensitive' } },
-        { content: { contains: query, mode: 'insensitive' } },
-      ];
-    }
-
+    // Add additional filters
     if (options.phase) {
       whereClause.phase = options.phase;
     }
@@ -358,24 +380,22 @@ export class SearchService {
   ): Promise<SearchResult[]> {
     if (!query) return []; // Only search comments when there's a query
 
-    const whereClause: unknown = {
+    const whereClause: Prisma.CommentWhereInput = {
       content: { contains: query, mode: 'insensitive' },
       thread: {
         document: {
           project: {
-            OR: [
-              { ownerId: userId },
-              { team: { some: { userId, status: 'ACTIVE' } } },
-            ],
+            OR: [{ ownerId: userId }, { team: { some: { userId, status: 'ACTIVE' } } }],
           },
         },
       },
     };
 
     if (options.dateFrom || options.dateTo) {
-      whereClause.createdAt = {};
-      if (options.dateFrom) whereClause.createdAt.gte = options.dateFrom;
-      if (options.dateTo) whereClause.createdAt.lte = options.dateTo;
+      const dateFilter: Prisma.DateTimeFilter = {};
+      if (options.dateFrom) dateFilter.gte = options.dateFrom;
+      if (options.dateTo) dateFilter.lte = options.dateTo;
+      whereClause.createdAt = dateFilter;
     }
 
     const comments = await this.prisma.comment.findMany({
@@ -427,8 +447,13 @@ export class SearchService {
     if (options.teamMemberId) {
       filtered = filtered.filter(result => {
         if (result.type === 'project') {
-          return result.metadata.owner.id === options.teamMemberId ||
-                 result.metadata.team?.some((member: unknown) => member.user.id === options.teamMemberId);
+          const team = result.metadata.team as
+            | Array<{ user: { id: string; name: string; email: string } }>
+            | undefined;
+          return (
+            result.metadata.owner.id === options.teamMemberId ||
+            team?.some(member => member.user.id === options.teamMemberId)
+          );
         }
         return result.metadata.author?.id === options.teamMemberId;
       });
@@ -496,11 +521,7 @@ export class SearchService {
   /**
    * Sort search results
    */
-  private sortResults(
-    results: SearchResult[],
-    sortBy: string,
-    sortOrder: string
-  ): SearchResult[] {
+  private sortResults(results: SearchResult[], sortBy: string, sortOrder: string): SearchResult[] {
     return results.sort((a, b) => {
       let comparison = 0;
 
@@ -549,7 +570,8 @@ export class SearchService {
 
       // Count statuses
       if (result.metadata.status) {
-        facets.statuses[result.metadata.status] = (facets.statuses[result.metadata.status] || 0) + 1;
+        facets.statuses[result.metadata.status] =
+          (facets.statuses[result.metadata.status] || 0) + 1;
       }
 
       // Count authors
@@ -591,10 +613,20 @@ export class SearchService {
 
     // Add common specification terms
     const commonTerms = [
-      'requirements', 'design', 'tasks', 'implementation',
-      'user story', 'acceptance criteria', 'architecture',
-      'component', 'interface', 'data model', 'testing',
-      'security', 'performance', 'scalability',
+      'requirements',
+      'design',
+      'tasks',
+      'implementation',
+      'user story',
+      'acceptance criteria',
+      'architecture',
+      'component',
+      'interface',
+      'data model',
+      'testing',
+      'security',
+      'performance',
+      'scalability',
     ];
 
     const matchingTerms = commonTerms
@@ -603,7 +635,7 @@ export class SearchService {
 
     suggestions.push(...matchingTerms);
 
-    return [...new Set(suggestions)].slice(0, 8);
+    return Array.from(new Set(suggestions)).slice(0, 8);
   }
 
   /**
@@ -613,26 +645,22 @@ export class SearchService {
     if (!content) return '';
 
     if (!query) {
-      return content.length > maxLength 
-        ? content.substring(0, maxLength) + '...'
-        : content;
+      return content.length > maxLength ? content.substring(0, maxLength) + '...' : content;
     }
 
     // Find the first occurrence of the query term
     const queryIndex = content.toLowerCase().indexOf(query.toLowerCase());
-    
+
     if (queryIndex === -1) {
-      return content.length > maxLength 
-        ? content.substring(0, maxLength) + '...'
-        : content;
+      return content.length > maxLength ? content.substring(0, maxLength) + '...' : content;
     }
 
     // Extract context around the query
     const start = Math.max(0, queryIndex - 50);
     const end = Math.min(content.length, queryIndex + query.length + 150);
-    
+
     let excerpt = content.substring(start, end);
-    
+
     if (start > 0) excerpt = '...' + excerpt;
     if (end < content.length) excerpt = excerpt + '...';
 
@@ -704,7 +732,7 @@ export class SearchService {
     try {
       const topSearches = await this.redis.zrevrange('search_terms', 0, 9, 'WITHSCORES');
       const formattedTopSearches = [];
-      
+
       for (let i = 0; i < topSearches.length; i += 2) {
         formattedTopSearches.push({
           term: topSearches[i],
@@ -713,7 +741,7 @@ export class SearchService {
       }
 
       const totalSearches = await this.redis.llen('recent_searches');
-      
+
       // Get unique searchers (approximate)
       const userKeys = await this.redis.keys('user_searches:*');
       const uniqueSearchers = userKeys.length;

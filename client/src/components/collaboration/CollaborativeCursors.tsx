@@ -39,7 +39,7 @@ export const CollaborativeCursors: React.FC<CollaborativeCursorsProps> = ({
   return (
     <div className={cn('pointer-events-none fixed inset-0 z-50', className)}>
       {Object.entries(cursors).map(([userId, position]) => {
-        const _user = users[userId];
+        const user = users[userId];
         if (!user) return null;
 
         const pixelPos = getPixelPosition(position);

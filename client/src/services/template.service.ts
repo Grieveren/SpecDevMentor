@@ -1,4 +1,4 @@
-import { apiClient } from './api.service';
+import { typedApiClient } from './api.service';
 
 export interface TemplateVariable {
   name: string;
@@ -88,32 +88,32 @@ export interface RateTemplateRequest {
 }
 
 export class TemplateService {
-  async createTemplate(_data: CreateTemplateRequest): Promise<Template> {
-    const _response = await apiClient.post('/templates', data);
+  async createTemplate(data: CreateTemplateRequest): Promise<Template> {
+    const response = await typedApiClient.post<{ data: Template }>('/templates', data);
     return response.data.data;
   }
 
-  async updateTemplate(templateId: string, _data: UpdateTemplateRequest): Promise<Template> {
-    const _response = await apiClient.put(`/templates/${templateId}`, data);
+  async updateTemplate(templateId: string, data: UpdateTemplateRequest): Promise<Template> {
+    const response = await typedApiClient.put<{ data: Template }>(`/templates/${templateId}`, data);
     return response.data.data;
   }
 
   async deleteTemplate(templateId: string): Promise<void> {
-    await apiClient.delete(`/templates/${templateId}`);
+    await typedApiClient.delete(`/templates/${templateId}`);
   }
 
   async getTemplate(templateId: string): Promise<Template> {
-    const _response = await apiClient.get(`/templates/${templateId}`);
+    const response = await typedApiClient.get<{ data: Template }>(`/templates/${templateId}`);
     return response.data.data;
   }
 
   async searchTemplates(params: SearchTemplatesRequest = {}): Promise<PaginatedTemplates> {
-    const _response = await apiClient.get('/templates', { params });
+    const response = await typedApiClient.get<{ data: PaginatedTemplates }>('/templates', { params });
     return response.data.data;
   }
 
-  async applyTemplate(_request: ApplyTemplateRequest): Promise<string> {
-    const _response = await apiClient.post('/templates/apply', request);
+  async applyTemplate(request: ApplyTemplateRequest): Promise<string> {
+    const response = await typedApiClient.post<{ data: { content: string } }>('/templates/apply', request);
     return response.data.data.content;
   }
 
@@ -121,15 +121,15 @@ export class TemplateService {
     templateId: string,
     data: ShareTemplateRequest
   ): Promise<void> {
-    await apiClient.post(`/templates/${templateId}/share`, data);
+    await typedApiClient.post(`/templates/${templateId}/share`, data);
   }
 
-  async rateTemplate(templateId: string, _data: RateTemplateRequest): Promise<void> {
-    await apiClient.post(`/templates/${templateId}/rate`, data);
+  async rateTemplate(templateId: string, data: RateTemplateRequest): Promise<void> {
+    await typedApiClient.post(`/templates/${templateId}/rate`, data);
   }
 
   async getTemplatesByProject(projectId: string): Promise<Template[]> {
-    const _response = await apiClient.get(`/templates/project/${projectId}`);
+    const response = await typedApiClient.get<{ data: Template[] }>(`/templates/project/${projectId}`);
     return response.data.data;
   }
 }

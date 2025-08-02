@@ -1,32 +1,36 @@
 import { describe, it, expect, vi, beforeEach } from 'vitest';
-import { render, screen, fireEvent, waitFor } from '@testing-library/react';
+import { render, screen, waitFor } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
+import type { MockedFunction } from 'vitest';
 import { LoginForm } from '../LoginForm';
+import type { LoginFormProps } from '../LoginForm';
 
 // Mock the auth store
+const mockLogin = vi.fn();
 vi.mock('../../../stores/auth.store', () => ({
   useAuthActions: () => ({
-    login: vi.fn(),
+    login: mockLogin,
   }),
 }));
 
 describe('LoginForm', () => {
-  const mockOnSuccess = vi.fn();
-  const mockOnSwitchToRegister = vi.fn();
-  const mockOnForgotPassword = vi.fn();
+  const mockOnSuccess: MockedFunction<() => void> = vi.fn();
+  const mockOnSwitchToRegister: MockedFunction<() => void> = vi.fn();
+  const mockOnForgotPassword: MockedFunction<() => void> = vi.fn();
+
+  const defaultProps: LoginFormProps = {
+    onSuccess: mockOnSuccess,
+    onSwitchToRegister: mockOnSwitchToRegister,
+    onForgotPassword: mockOnForgotPassword,
+  };
 
   beforeEach(() => {
     vi.clearAllMocks();
+    mockLogin.mockClear();
   });
 
   it('renders login form with all fields', () => {
-    render(
-      <LoginForm
-        onSuccess={mockOnSuccess}
-        onSwitchToRegister={mockOnSwitchToRegister}
-        onForgotPassword={mockOnForgotPassword}
-      />
-    );
+    render(<LoginForm {...defaultProps} />);
 
     expect(screen.getByText('Sign In')).toBeInTheDocument();
     expect(screen.getByLabelText(/email address/i)).toBeInTheDocument();
@@ -35,9 +39,9 @@ describe('LoginForm', () => {
   });
 
   it('shows validation errors for empty fields', async () => {
-    const _user = userEvent.setup();
+    const user = userEvent.setup();
     
-    render(<LoginForm onSuccess={mockOnSuccess} />);
+    render(<LoginForm {...defaultProps} />);
 
     const submitButton = screen.getByRole('button', { name: /sign in/i });
     await user.click(submitButton);
@@ -49,11 +53,11 @@ describe('LoginForm', () => {
   });
 
   it('shows validation error for invalid email', async () => {
-    const _user = userEvent.setup();
+    const user = userEvent.setup();
     
-    render(<LoginForm onSuccess={mockOnSuccess} />);
+    render(<LoginForm {...defaultProps} />);
 
-    const emailInput = screen.getByLabelText(/email address/i);
+    const emailInput = screen.getByLabelText(/email address/i) as HTMLInputElement;
     await user.type(emailInput, 'invalid-email');
 
     const submitButton = screen.getByRole('button', { name: /sign in/i });
@@ -65,12 +69,12 @@ describe('LoginForm', () => {
   });
 
   it('toggles password visibility', async () => {
-    const _user = userEvent.setup();
+    const user = userEvent.setup();
     
-    render(<LoginForm onSuccess={mockOnSuccess} />);
+    render(<LoginForm {...defaultProps} />);
 
-    const passwordInput = screen.getByLabelText(/password/i);
-    const toggleButton = screen.getByRole('button', { name: '' }); // Eye icon button
+    const passwordInput = screen.getByLabelText(/password/i) as HTMLInputElement;
+    const toggleButton = screen.getByRole('button', { name: /toggle password visibility/i });
 
     expect(passwordInput).toHaveAttribute('type', 'password');
 
@@ -82,9 +86,9 @@ describe('LoginForm', () => {
   });
 
   it('calls onSwitchToRegister when sign up link is clicked', async () => {
-    const _user = userEvent.setup();
+    const user = userEvent.setup();
     
-    render(<LoginForm onSwitchToRegister={mockOnSwitchToRegister} />);
+    render(<LoginForm {...defaultProps} />);
 
     const signUpLink = screen.getByText(/sign up/i);
     await user.click(signUpLink);
@@ -93,9 +97,9 @@ describe('LoginForm', () => {
   });
 
   it('calls onForgotPassword when forgot password link is clicked', async () => {
-    const _user = userEvent.setup();
+    const user = userEvent.setup();
     
-    render(<LoginForm onForgotPassword={mockOnForgotPassword} />);
+    render(<LoginForm {...defaultProps} />);
 
     const forgotPasswordLink = screen.getByText(/forgot your password/i);
     await user.click(forgotPasswordLink);
@@ -104,17 +108,13 @@ describe('LoginForm', () => {
   });
 
   it('submits form with valid data', async () => {
-    const _user = userEvent.setup();
-    const mockLogin = vi.fn().mockResolvedValue({});
-    
-    vi.mocked(require('../../../stores/auth.store').useAuthActions).mockReturnValue({
-      login: mockLogin,
-    });
+    const user = userEvent.setup();
+    mockLogin.mockResolvedValue({ success: true });
 
-    render(<LoginForm onSuccess={mockOnSuccess} />);
+    render(<LoginForm {...defaultProps} />);
 
-    const emailInput = screen.getByLabelText(/email address/i);
-    const passwordInput = screen.getByLabelText(/password/i);
+    const emailInput = screen.getByLabelText(/email address/i) as HTMLInputElement;
+    const passwordInput = screen.getByLabelText(/password/i) as HTMLInputElement;
     const submitButton = screen.getByRole('button', { name: /sign in/i });
 
     await user.type(emailInput, 'test@example.com');

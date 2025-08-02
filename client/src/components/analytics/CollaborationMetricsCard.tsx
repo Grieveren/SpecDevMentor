@@ -1,10 +1,16 @@
+import {
+  ChartBarIcon,
+  ChatBubbleLeftRightIcon,
+  ClockIcon,
+  UsersIcon,
+} from '@heroicons/react/24/outline';
 import React from 'react';
 import { CollaborationMetrics } from '../../services/analytics.service';
-import { UsersIcon, ChatBubbleLeftRightIcon, ClockIcon, ChartBarIcon } from '@heroicons/react/24/outline';
 
 interface CollaborationMetricsCardProps {
   metrics: CollaborationMetrics;
   className?: string;
+  children?: React.ReactNode;
 }
 
 export const CollaborationMetricsCard: React.FC<CollaborationMetricsCardProps> = ({
@@ -54,9 +60,7 @@ export const CollaborationMetricsCard: React.FC<CollaborationMetricsCardProps> =
                 <ChatBubbleLeftRightIcon className="h-6 w-6 text-green-600" />
               </div>
             </div>
-            <div className="text-2xl font-semibold text-gray-900">
-              {metrics.totalComments}
-            </div>
+            <div className="text-2xl font-semibold text-gray-900">{metrics.totalComments}</div>
             <div className="text-sm text-gray-600">Total Comments</div>
           </div>
 
@@ -84,9 +88,16 @@ export const CollaborationMetricsCard: React.FC<CollaborationMetricsCardProps> =
               {metrics.collaborationScore.toFixed(0)}
             </div>
             <div className="text-sm text-gray-600">Collaboration Score</div>
-            <div className={`inline-flex px-2 py-1 text-xs rounded-full mt-1 ${getScoreColor(metrics.collaborationScore)}`}>
-              {metrics.collaborationScore >= 80 ? 'Excellent' : 
-               metrics.collaborationScore >= 60 ? 'Good' : 'Needs Improvement'}
+            <div
+              className={`inline-flex px-2 py-1 text-xs rounded-full mt-1 ${getScoreColor(
+                metrics.collaborationScore
+              )}`}
+            >
+              {metrics.collaborationScore >= 80
+                ? 'Excellent'
+                : metrics.collaborationScore >= 60
+                ? 'Good'
+                : 'Needs Improvement'}
             </div>
           </div>
         </div>
@@ -98,25 +109,35 @@ export const CollaborationMetricsCard: React.FC<CollaborationMetricsCardProps> =
             {metrics.averageCollaborators < 2 && (
               <div className="flex items-start space-x-2">
                 <div className="w-1.5 h-1.5 bg-yellow-400 rounded-full mt-2 flex-shrink-0" />
-                <span>Consider involving more team members in the specification process for better coverage.</span>
+                <span>
+                  Consider involving more team members in the specification process for better
+                  coverage.
+                </span>
               </div>
             )}
             {metrics.averageResponseTime > 48 && (
               <div className="flex items-start space-x-2">
                 <div className="w-1.5 h-1.5 bg-red-400 rounded-full mt-2 flex-shrink-0" />
-                <span>Response times are high. Consider setting up notification systems or regular check-ins.</span>
+                <span>
+                  Response times are high. Consider setting up notification systems or regular
+                  check-ins.
+                </span>
               </div>
             )}
             {metrics.totalComments === 0 && (
               <div className="flex items-start space-x-2">
                 <div className="w-1.5 h-1.5 bg-blue-400 rounded-full mt-2 flex-shrink-0" />
-                <span>No comments yet. Encourage team members to provide feedback and suggestions.</span>
+                <span>
+                  No comments yet. Encourage team members to provide feedback and suggestions.
+                </span>
               </div>
             )}
             {metrics.collaborationScore >= 80 && (
               <div className="flex items-start space-x-2">
                 <div className="w-1.5 h-1.5 bg-green-400 rounded-full mt-2 flex-shrink-0" />
-                <span>Excellent collaboration! Your team is working well together on specifications.</span>
+                <span>
+                  Excellent collaboration! Your team is working well together on specifications.
+                </span>
               </div>
             )}
           </div>

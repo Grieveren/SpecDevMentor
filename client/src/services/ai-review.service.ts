@@ -1,4 +1,4 @@
-import { apiClient } from './api.service';
+import { typedApiClient } from './api.service';
 
 // Types
 export interface AIReviewResult {
@@ -108,8 +108,8 @@ class AIReviewService {
   /**
    * Request a new AI review for a document
    */
-  async requestReview(_request: ReviewRequest): Promise<AIReviewResult> {
-    const _response = await apiClient.post('/ai-review/request', request);
+  async requestReview(request: ReviewRequest): Promise<AIReviewResult> {
+    const response = await typedApiClient.post<AIReviewResult>('/ai-review/request', request);
     return response.data;
   }
 
@@ -117,7 +117,7 @@ class AIReviewService {
    * Get an AI review by ID
    */
   async getReview(reviewId: string): Promise<AIReviewResult> {
-    const _response = await apiClient.get(`/ai-review/${reviewId}`);
+    const response = await typedApiClient.get<AIReviewResult>(`/ai-review/${reviewId}`);
     return response.data;
   }
 
@@ -129,7 +129,7 @@ class AIReviewService {
     options: { limit?: number; offset?: number } = {}
   ): Promise<DocumentReviewsResponse> {
     const { limit = 10, offset = 0 } = options;
-    const _response = await apiClient.get(`/ai-review/document/${documentId}`, {
+    const response = await typedApiClient.get<DocumentReviewsResponse>(`/ai-review/document/${documentId}`, {
       params: { limit, offset },
     });
     return response.data;
@@ -138,8 +138,8 @@ class AIReviewService {
   /**
    * Apply an AI suggestion to the document
    */
-  async applySuggestion(_request: ApplySuggestionRequest): Promise<SuggestionApplicationResult> {
-    const _response = await apiClient.post(
+  async applySuggestion(request: ApplySuggestionRequest): Promise<SuggestionApplicationResult> {
+    const response = await typedApiClient.post<SuggestionApplicationResult>(
       `/ai-review/${request.reviewId}/apply-suggestion`,
       {
         suggestionId: request.suggestionId,
@@ -152,8 +152,8 @@ class AIReviewService {
   /**
    * Rollback an applied AI suggestion
    */
-  async rollbackSuggestion(_request: RollbackSuggestionRequest): Promise<SuggestionRollbackResult> {
-    const _response = await apiClient.post(
+  async rollbackSuggestion(request: RollbackSuggestionRequest): Promise<SuggestionRollbackResult> {
+    const response = await typedApiClient.post<SuggestionRollbackResult>(
       `/ai-review/${request.reviewId}/rollback-suggestion`,
       {
         suggestionId: request.suggestionId,
@@ -165,16 +165,16 @@ class AIReviewService {
   /**
    * Validate EARS format compliance
    */
-  async validateEARSFormat(_request: ValidationRequest): Promise<ValidationResult> {
-    const _response = await apiClient.post('/ai-review/validate-ears', request);
+  async validateEARSFormat(request: ValidationRequest): Promise<ValidationResult> {
+    const response = await typedApiClient.post<ValidationResult>('/ai-review/validate-ears', request);
     return response.data;
   }
 
   /**
    * Validate user story structure
    */
-  async validateUserStories(_request: ValidationRequest): Promise<ValidationResult> {
-    const _response = await apiClient.post('/ai-review/validate-user-stories', request);
+  async validateUserStories(request: ValidationRequest): Promise<ValidationResult> {
+    const response = await typedApiClient.post<ValidationResult>('/ai-review/validate-user-stories', request);
     return response.data;
   }
 }

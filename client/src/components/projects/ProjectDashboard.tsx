@@ -1,18 +1,18 @@
+import { FunnelIcon, MagnifyingGlassIcon, PlusIcon } from '@heroicons/react/24/outline';
+import { InternalServerError } from '@shared/types/errors';
 import React, { useEffect, useState } from 'react';
-import { PlusIcon, MagnifyingGlassIcon, FunnelIcon } from '@heroicons/react/24/outline';
-import { useProjects, useProjectActions } from '../../stores/project.store';
-import { ProjectCard } from './ProjectCard';
-import { CreateProjectModal } from './CreateProjectModal';
-import { ProjectFilters } from './ProjectFilters';
-import { Pagination } from '../common/Pagination';
-import { LoadingSpinner } from '../common/LoadingSpinner';
+import { useProjectActions, useProjects } from '../../stores/project.store';
 import { ErrorAlert } from '../common/ErrorAlert';
-import { ProjectStatus, SpecificationPhase } from '../../types/project';
+import { LoadingSpinner } from '../common/LoadingSpinner';
+import { Pagination } from '../common/Pagination';
+import { CreateProjectModal } from './CreateProjectModal';
+import { ProjectCard } from './ProjectCard';
+import { ProjectFilters } from './ProjectFilters';
 
 export const ProjectDashboard: React.FC = () => {
   const { projects, pagination, filters, loading, error } = useProjects();
   const { loadProjects, setFilters, clearError } = useProjectActions();
-  
+
   const [showCreateModal, setShowCreateModal] = useState(false);
   const [showFilters, setShowFilters] = useState(false);
   const [searchQuery, setSearchQuery] = useState(filters.search || '');
@@ -73,13 +73,13 @@ export const ProjectDashboard: React.FC = () => {
             <input
               type="text"
               value={searchQuery}
-              onChange={(e) => setSearchQuery(e.target.value)}
+              onChange={e => setSearchQuery(e.target.value)}
               placeholder="Search projects..."
               className="block w-full pl-10 pr-3 py-2 border border-gray-300 rounded-md leading-5 bg-white placeholder-gray-500 focus:outline-none focus:placeholder-gray-400 focus:ring-1 focus:ring-blue-500 focus:border-blue-500"
             />
           </div>
         </form>
-        
+
         <button
           onClick={() => setShowFilters(!showFilters)}
           className="inline-flex items-center px-4 py-2 border border-gray-300 rounded-md shadow-sm text-sm font-medium text-gray-700 bg-white hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500"
@@ -99,12 +99,7 @@ export const ProjectDashboard: React.FC = () => {
       )}
 
       {/* Error Alert */}
-      {error && (
-        <ErrorAlert
-          message={error}
-          onDismiss={clearError}
-        />
-      )}
+      {error && <ErrorAlert error={new InternalServerError(error)} onDismiss={clearError} />}
 
       {/* Loading State */}
       {loading && projects.length === 0 && (
@@ -146,7 +141,7 @@ export const ProjectDashboard: React.FC = () => {
       {projects.length > 0 && (
         <>
           <div className="grid grid-cols-1 gap-6 sm:grid-cols-2 lg:grid-cols-3">
-            {projects.map((project) => (
+            {projects.map(project => (
               <ProjectCard key={project.id} project={project} />
             ))}
           </div>

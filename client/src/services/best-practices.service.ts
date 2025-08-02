@@ -1,4 +1,4 @@
-import { apiClient } from './api.service';
+import { typedApiClient } from './api.service';
 
 export interface InteractiveTip {
   id: string;
@@ -77,42 +77,42 @@ export interface AnalyzeQualityRequest {
 }
 
 export class BestPracticesService {
-  async createGuide(_data: CreateGuideRequest): Promise<BestPracticeGuide> {
-    const _response = await apiClient.post('/best-practices', data);
+  async createGuide(data: CreateGuideRequest): Promise<BestPracticeGuide> {
+    const response = await typedApiClient.post<{ data: BestPracticeGuide }>('/best-practices', data);
     return response.data.data;
   }
 
-  async updateGuide(guideId: string, _data: UpdateGuideRequest): Promise<BestPracticeGuide> {
-    const _response = await apiClient.put(`/best-practices/${guideId}`, data);
+  async updateGuide(guideId: string, data: UpdateGuideRequest): Promise<BestPracticeGuide> {
+    const response = await typedApiClient.put<{ data: BestPracticeGuide }>(`/best-practices/${guideId}`, data);
     return response.data.data;
   }
 
   async deleteGuide(guideId: string): Promise<void> {
-    await apiClient.delete(`/best-practices/${guideId}`);
+    await typedApiClient.delete(`/best-practices/${guideId}`);
   }
 
   async getGuide(guideId: string): Promise<BestPracticeGuide> {
-    const _response = await apiClient.get(`/best-practices/${guideId}`);
+    const response = await typedApiClient.get<{ data: BestPracticeGuide }>(`/best-practices/${guideId}`);
     return response.data.data;
   }
 
   async getAllGuides(): Promise<BestPracticeGuide[]> {
-    const _response = await apiClient.get('/best-practices');
+    const response = await typedApiClient.get<{ data: BestPracticeGuide[] }>('/best-practices');
     return response.data.data;
   }
 
   async getGuidesByPhase(phase: 'REQUIREMENTS' | 'DESIGN' | 'TASKS' | 'IMPLEMENTATION'): Promise<BestPracticeGuide[]> {
-    const _response = await apiClient.get(`/best-practices/phase/${phase}`);
+    const response = await typedApiClient.get<{ data: BestPracticeGuide[] }>(`/best-practices/phase/${phase}`);
     return response.data.data;
   }
 
-  async getContextualGuidance(_request: GetGuidanceRequest): Promise<ContextualGuidance> {
-    const _response = await apiClient.post('/best-practices/guidance', request);
+  async getContextualGuidance(request: GetGuidanceRequest): Promise<ContextualGuidance> {
+    const response = await typedApiClient.post<{ data: ContextualGuidance }>('/best-practices/guidance', request);
     return response.data.data;
   }
 
-  async analyzeDocumentQuality(_request: AnalyzeQualityRequest): Promise<QualityAnalysis> {
-    const _response = await apiClient.post('/best-practices/analyze', request);
+  async analyzeDocumentQuality(request: AnalyzeQualityRequest): Promise<QualityAnalysis> {
+    const response = await typedApiClient.post<{ data: QualityAnalysis }>('/best-practices/analyze', request);
     return response.data.data;
   }
 }

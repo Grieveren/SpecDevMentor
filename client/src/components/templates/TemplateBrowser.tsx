@@ -1,11 +1,17 @@
-import React, { useState, useEffect } from 'react';
-import { MagnifyingGlassIcon, FunnelIcon, StarIcon, EyeIcon, UserIcon } from '@heroicons/react/24/outline';
-import { StarIcon as StarIconSolid } from '@heroicons/react/24/solid';
-import { templateService, Template, SearchTemplatesRequest } from '../../services/template.service';
-import { LoadingSpinner } from '../common/LoadingSpinner';
-import { ErrorAlert } from '../common/ErrorAlert';
-import { Pagination } from '../common/Pagination';
+import {
+  EyeIcon,
+  FunnelIcon,
+  MagnifyingGlassIcon,
+  StarIcon,
+  UserIcon,
+} from '@heroicons/react/24/outline';
+import { InternalServerError } from '@shared/types/errors';
+import React, { useEffect, useState } from 'react';
+import { SearchTemplatesRequest, Template, templateService } from '../../services/template.service';
 import { cn } from '../../utils/cn';
+import { ErrorAlert } from '../common/ErrorAlert';
+import { LoadingSpinner } from '../common/LoadingSpinner';
+import { Pagination } from '../common/Pagination';
 
 interface TemplateBrowserProps {
   onSelectTemplate?: (template: Template) => void;
@@ -105,7 +111,7 @@ export const TemplateBrowser: React.FC<TemplateBrowserProps> = ({
   const renderStars = (rating: number) => {
     return (
       <div className="flex items-center">
-        {[1, 2, 3, 4, 5].map((star) => (
+        {[1, 2, 3, 4, 5].map(star => (
           <StarIcon
             key={star}
             className={cn(
@@ -150,7 +156,7 @@ export const TemplateBrowser: React.FC<TemplateBrowserProps> = ({
 
       {template.tags.length > 0 && (
         <div className="flex flex-wrap gap-1 mb-3">
-          {template.tags.slice(0, 3).map((tag) => (
+          {template.tags.slice(0, 3).map(tag => (
             <span
               key={tag}
               className="inline-flex items-center px-2 py-1 rounded text-xs font-medium bg-gray-50 text-gray-700"
@@ -181,7 +187,7 @@ export const TemplateBrowser: React.FC<TemplateBrowserProps> = ({
       {onApplyTemplate && (
         <div className="mt-4 pt-4 border-t border-gray-200">
           <button
-            onClick={(e) => {
+            onClick={e => {
               e.stopPropagation();
               onApplyTemplate(template);
             }}
@@ -213,7 +219,7 @@ export const TemplateBrowser: React.FC<TemplateBrowserProps> = ({
               type="text"
               placeholder="Search templates..."
               value={filters.query || ''}
-              onChange={(e) => handleSearch(e.target.value)}
+              onChange={e => handleSearch(e.target.value)}
               className="w-full pl-10 pr-4 py-2 border border-gray-300 rounded-md focus:ring-2 focus:ring-blue-500 focus:border-transparent"
             />
           </div>
@@ -234,15 +240,20 @@ export const TemplateBrowser: React.FC<TemplateBrowserProps> = ({
         {showFilters && (
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4 pt-4 border-t border-gray-200">
             <div>
-              <label htmlFor="phase-filter" className="block text-sm font-medium text-gray-700 mb-1">Phase</label>
+              <label
+                htmlFor="phase-filter"
+                className="block text-sm font-medium text-gray-700 mb-1"
+              >
+                Phase
+              </label>
               <select
                 id="phase-filter"
                 value={filters.phase || ''}
-                onChange={(e) => handleFilterChange('phase', e.target.value || undefined)}
+                onChange={e => handleFilterChange('phase', e.target.value || undefined)}
                 className="w-full border border-gray-300 rounded-md px-3 py-2 text-sm focus:ring-2 focus:ring-blue-500 focus:border-transparent"
               >
                 <option value="">All Phases</option>
-                {PHASES.map((phase) => (
+                {PHASES.map(phase => (
                   <option key={phase.value} value={phase.value}>
                     {phase.label}
                   </option>
@@ -254,11 +265,11 @@ export const TemplateBrowser: React.FC<TemplateBrowserProps> = ({
               <label className="block text-sm font-medium text-gray-700 mb-1">Category</label>
               <select
                 value={filters.category || ''}
-                onChange={(e) => handleFilterChange('category', e.target.value || undefined)}
+                onChange={e => handleFilterChange('category', e.target.value || undefined)}
                 className="w-full border border-gray-300 rounded-md px-3 py-2 text-sm focus:ring-2 focus:ring-blue-500 focus:border-transparent"
               >
                 <option value="">All Categories</option>
-                {CATEGORIES.map((category) => (
+                {CATEGORIES.map(category => (
                   <option key={category.value} value={category.value}>
                     {category.label}
                   </option>
@@ -270,7 +281,7 @@ export const TemplateBrowser: React.FC<TemplateBrowserProps> = ({
               <label className="block text-sm font-medium text-gray-700 mb-1">Visibility</label>
               <select
                 value={filters.isPublic === undefined ? '' : filters.isPublic.toString()}
-                onChange={(e) => {
+                onChange={e => {
                   const value = e.target.value;
                   handleFilterChange('isPublic', value === '' ? undefined : value === 'true');
                 }}
@@ -286,10 +297,10 @@ export const TemplateBrowser: React.FC<TemplateBrowserProps> = ({
               <label className="block text-sm font-medium text-gray-700 mb-1">Sort By</label>
               <select
                 value={filters.sortBy || 'createdAt'}
-                onChange={(e) => handleFilterChange('sortBy', e.target.value)}
+                onChange={e => handleFilterChange('sortBy', e.target.value)}
                 className="w-full border border-gray-300 rounded-md px-3 py-2 text-sm focus:ring-2 focus:ring-blue-500 focus:border-transparent"
               >
-                {SORT_OPTIONS.map((option) => (
+                {SORT_OPTIONS.map(option => (
                   <option key={option.value} value={option.value}>
                     {option.label}
                   </option>
@@ -301,7 +312,7 @@ export const TemplateBrowser: React.FC<TemplateBrowserProps> = ({
       </div>
 
       {/* Error Display */}
-      {error && <ErrorAlert message={error} />}
+      {error && <ErrorAlert error={new InternalServerError(error)} />}
 
       {/* Templates Grid */}
       {templates.length > 0 ? (

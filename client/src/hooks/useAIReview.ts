@@ -73,7 +73,7 @@ export const useAIReview = ({
     }
 
     try {
-      const _result = await aiReviewService.applySuggestion({
+      const result = await aiReviewService.applySuggestion({
         reviewId: currentReview.id,
         suggestionId: suggestion.id,
         documentContent,
@@ -104,7 +104,7 @@ export const useAIReview = ({
     }
 
     try {
-      const _result = await aiReviewService.rollbackSuggestion({
+      const result = await aiReviewService.rollbackSuggestion({
         reviewId: currentReview.id,
         suggestionId,
       });

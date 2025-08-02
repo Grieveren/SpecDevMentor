@@ -30,22 +30,24 @@ export const PasswordResetForm: React.FC<PasswordResetFormProps> = ({
     resolver: zodResolver(forgotPasswordSchema),
   });
 
-  const onSubmit = async (_data: ForgotPasswordFormData) => {
+  const onSubmit = async (data: ForgotPasswordFormData) => {
     setIsSubmitting(true);
     
     try {
       await requestPasswordReset(data.email);
       setIsSuccess(true);
       onSuccess?.();
-    } catch (_error: unknown) {
-      if (error.details) {
-        error.details.forEach((detail: unknown) => {
+    } catch (error: unknown) {
+      const authError = error as { details?: Array<{ field: string; message: string }>; error?: string };
+      
+      if (authError.details) {
+        authError.details.forEach((detail) => {
           setError(detail.field as keyof ForgotPasswordFormData, {
             message: detail.message,
           });
         });
       } else {
-        setError('root', { message: error.error || 'Failed to send reset email' });
+        setError('root', { message: authError.error || 'Failed to send reset email' });
       }
     } finally {
       setIsSubmitting(false);

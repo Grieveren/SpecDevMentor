@@ -1,23 +1,80 @@
 {
+  "extends": "../tsconfig.json",
   "compilerOptions": {
+    // React-specific settings
     "target": "ES2020",
     "useDefineForClassFields": true,
-    "lib": ["ES2020", "DOM", "DOM.Iterable"],
+    "lib": ["ES2020", "DOM", "DOM.Iterable", "WebWorker"],
     "module": "ESNext",
-    "skipLibCheck": true,
     "moduleResolution": "bundler",
+
+    // Module resolution
     "allowImportingTsExtensions": true,
     "resolveJsonModule": true,
     "isolatedModules": true,
-    "noEmit": true,
+    "esModuleInterop": true,
+    "allowSyntheticDefaultImports": true,
+
+    // Emit settings for client
+    "noEmit": false,
+    "declaration": true,
+    "sourceMap": true,
+    "incremental": true,
+    "composite": true,
+    "outDir": "./dist",
+    "rootDir": "..",
+    "tsBuildInfoFile": "./dist/.tsbuildinfo",
+
+    // JSX settings
     "jsx": "react-jsx",
-    "strict": false,
-    "noUnusedLocals": false,
-    "noUnusedParameters": false,
+    "jsxImportSource": "react",
+
+    // Type checking - gradual migration
+    "strict": true,
+    "noImplicitAny": false, // Temporary during migration
+    "noImplicitReturns": false, // Temporary during migration
+    "noUnusedLocals": false, // Temporary during migration
+    "noUnusedParameters": false, // Temporary during migration
     "noFallthroughCasesInSwitch": true,
-    "noImplicitAny": false,
-    "noImplicitReturns": false
+    "exactOptionalPropertyTypes": false, // Temporary during migration
+
+    // Additional checks
+    "skipLibCheck": true,
+    "forceConsistentCasingInFileNames": true,
+    "noUncheckedIndexedAccess": false, // Temporary during migration
+
+    // Path mapping for client
+    "baseUrl": ".",
+    "paths": {
+      "@/*": ["./src/*"],
+      "@shared/*": ["../shared/*"],
+      "@components/*": ["./src/components/*"],
+      "@services/*": ["./src/services/*"],
+      "@hooks/*": ["./src/hooks/*"],
+      "@utils/*": ["./src/utils/*"],
+      "@types/*": ["./src/types/*"],
+      "@stores/*": ["./src/stores/*"]
+    },
+
+    // React-specific compiler options
+    "allowJs": true,
+    "checkJs": false
   },
-  "include": ["src"],
+  "include": [
+    "src/**/*",
+    "src/**/*.json",
+    "src/types/**/*",
+    "src/test/globals.d.ts",
+    "../shared/**/*"
+  ],
+  "exclude": [
+    "node_modules",
+    "dist",
+    "build",
+    "**/*.test.ts",
+    "**/*.test.tsx",
+    "**/*.spec.ts",
+    "**/*.spec.tsx"
+  ],
   "references": [{ "path": "./tsconfig.node.json" }]
 }

@@ -1,11 +1,12 @@
-import React, { useState } from 'react';
 import { CalendarIcon } from '@heroicons/react/24/outline';
+import React, { useState } from 'react';
 import { TimeRange } from '../../services/analytics.service';
 
 interface TimeRangeSelectorProps {
   value?: TimeRange;
   onChange: (timeRange: TimeRange | undefined) => void;
   className?: string;
+  children?: React.ReactNode;
 }
 
 const presetRanges = [
@@ -56,14 +57,14 @@ export const TimeRangeSelector: React.FC<TimeRangeSelectorProps> = ({
 
   const getDisplayText = () => {
     if (!value) return 'All time';
-    
+
     const start = new Date(value.start);
     const end = new Date(value.end);
     const diffDays = Math.ceil((end.getTime() - start.getTime()) / (1000 * 60 * 60 * 24));
-    
+
     const preset = presetRanges.find(p => p.value === diffDays);
     if (preset) return preset.label;
-    
+
     return `${start.toLocaleDateString()} - ${end.toLocaleDateString()}`;
   };
 
@@ -81,10 +82,10 @@ export const TimeRangeSelector: React.FC<TimeRangeSelectorProps> = ({
         <div className="absolute right-0 mt-2 w-80 bg-white rounded-md shadow-lg border border-gray-200 z-50">
           <div className="p-4">
             <h3 className="text-sm font-medium text-gray-900 mb-3">Select Time Range</h3>
-            
+
             {/* Preset ranges */}
             <div className="space-y-2 mb-4">
-              {presetRanges.map((preset) => (
+              {presetRanges.map(preset => (
                 <button
                   key={preset.value}
                   onClick={() => handlePresetSelect(preset.value)}
@@ -104,7 +105,7 @@ export const TimeRangeSelector: React.FC<TimeRangeSelectorProps> = ({
                   <input
                     type="date"
                     value={customStart}
-                    onChange={(e) => setCustomStart(e.target.value)}
+                    onChange={e => setCustomStart(e.target.value)}
                     className="w-full px-2 py-1 border border-gray-300 rounded text-sm focus:outline-none focus:ring-1 focus:ring-blue-500"
                   />
                 </div>
@@ -113,7 +114,7 @@ export const TimeRangeSelector: React.FC<TimeRangeSelectorProps> = ({
                   <input
                     type="date"
                     value={customEnd}
-                    onChange={(e) => setCustomEnd(e.target.value)}
+                    onChange={e => setCustomEnd(e.target.value)}
                     className="w-full px-2 py-1 border border-gray-300 rounded text-sm focus:outline-none focus:ring-1 focus:ring-blue-500"
                   />
                 </div>
@@ -139,12 +140,7 @@ export const TimeRangeSelector: React.FC<TimeRangeSelectorProps> = ({
       )}
 
       {/* Backdrop */}
-      {isOpen && (
-        <div
-          className="fixed inset-0 z-40"
-          onClick={() => setIsOpen(false)}
-        />
-      )}
+      {isOpen && <div className="fixed inset-0 z-40" onClick={() => setIsOpen(false)} />}
     </div>
   );
 };

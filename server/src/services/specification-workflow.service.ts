@@ -1,6 +1,13 @@
-import { PrismaClient, SpecificationPhase, DocumentStatus, SpecificationProject, SpecificationDocument, User } from '@prisma/client';
+import {
+  DocumentStatus,
+  PrismaClient,
+  SpecificationDocument,
+  SpecificationPhase,
+  SpecificationProject,
+  User,
+} from '@prisma/client';
 import Redis from 'ioredis';
-import { AIService, AIReviewResult } from './ai.service.js';
+import { AIReviewResult, AIService } from './ai.service.js';
 
 export interface PhaseTransitionRequest {
   targetPhase: SpecificationPhase;
@@ -114,7 +121,7 @@ export class SpecificationWorkflowService {
     projectId: string,
     phase: SpecificationPhase
   ): Promise<ValidationResult> {
-    const _document = await this.prisma.specificationDocument.findUnique({
+    const specificationDoc = await this.prisma.specificationDocument.findUnique({
       where: {
         projectId_phase: {
           projectId,
@@ -123,7 +130,7 @@ export class SpecificationWorkflowService {
       },
     });
 
-    if (!document) {
+    if (!specificationDoc) {
       return {
         isValid: false,
         errors: ['Document not found for phase'],
@@ -141,7 +148,7 @@ export class SpecificationWorkflowService {
 
     // Check required sections
     const sectionChecks = rule.requiredSections.map(section => {
-      const hasSection = document.content.toLowerCase().includes(section.toLowerCase());
+      const hasSection = specificationDoc.content.toLowerCase().includes(section.toLowerCase());
       if (!hasSection) {
         errors.push(`Missing required section: ${section}`);
       }
@@ -149,17 +156,19 @@ export class SpecificationWorkflowService {
     });
 
     // Check word count
-    const wordCount = document.content.split(/\s+/).length;
+    const wordCount = specificationDoc.content.split(/\s+/).length;
     if (wordCount < rule.minimumWordCount) {
-      errors.push(`Document too short. Minimum ${rule.minimumWordCount} words required, found ${wordCount}`);
+      errors.push(
+        `Document too short. Minimum ${rule.minimumWordCount} words required, found ${wordCount}`
+      );
     }
 
     // Run custom validators
     if (rule.customValidators) {
       for (const validator of rule.customValidators) {
-        const _result = validator(document.content);
-        errors.push(...result.errors);
-        warnings.push(...result.warnings);
+        const validationResult = validator(specificationDoc.content);
+        errors.push(...validationResult.errors);
+        warnings.push(...validationResult.warnings);
       }
     }
 
@@ -167,7 +176,7 @@ export class SpecificationWorkflowService {
     if (this.aiService) {
       try {
         aiReview = await this.aiService.reviewSpecification(
-          document.content,
+          specificationDoc.content,
           this.mapPhaseToAIPhase(phase),
           projectId
         );
@@ -177,7 +186,7 @@ export class SpecificationWorkflowService {
         // Add AI suggestions as warnings/errors based on severity
         for (const suggestion of aiReview.suggestions) {
           const message = `AI: ${suggestion.title} - ${suggestion.description}`;
-          
+
           if (suggestion.severity === 'critical' || suggestion.severity === 'high') {
             errors.push(message);
           } else {
@@ -188,7 +197,7 @@ export class SpecificationWorkflowService {
         // Add compliance issues as errors
         for (const issue of aiReview.complianceIssues) {
           const message = `AI Compliance: ${issue.description} - ${issue.suggestion}`;
-          
+
           if (issue.severity === 'high') {
             errors.push(message);
           } else {
@@ -200,7 +209,6 @@ export class SpecificationWorkflowService {
         for (const recommendation of aiReview.completenessCheck.recommendations) {
           warnings.push(`AI Recommendation: ${recommendation}`);
         }
-
       } catch (aiError) {
         // // console.warn('AI validation failed:', aiError);
         warnings.push('AI validation temporarily unavailable');
@@ -210,12 +218,12 @@ export class SpecificationWorkflowService {
     // Calculate completion percentage
     const sectionsComplete = sectionChecks.filter(Boolean).length;
     const wordCountComplete = wordCount >= rule.minimumWordCount ? 1 : 0;
-    
+
     let customValidationComplete = 1;
     if (rule.customValidators) {
       for (const validator of rule.customValidators) {
-        const _result = validator(document.content);
-        if (!result.isValid) {
+        const validationResult = validator(specificationDoc.content);
+        if (!validationResult.isValid) {
           customValidationComplete = 0;
           break;
         }
@@ -229,9 +237,15 @@ export class SpecificationWorkflowService {
       aiValidationComplete = aiValidationScore >= 70 ? 1 : 0;
     }
 
-    const totalChecks = rule.requiredSections.length + 1 + (rule.customValidators ? 1 : 0) + (aiValidationScore !== undefined ? 1 : 0);
+    const totalChecks =
+      rule.requiredSections.length +
+      1 +
+      (rule.customValidators ? 1 : 0) +
+      (aiValidationScore !== undefined ? 1 : 0);
     completionPercentage = Math.round(
-      ((sectionsComplete + wordCountComplete + customValidationComplete + aiValidationComplete) / totalChecks) * 100
+      ((sectionsComplete + wordCountComplete + customValidationComplete + aiValidationComplete) /
+        totalChecks) *
+        100
     );
 
     return {
@@ -249,7 +263,7 @@ export class SpecificationWorkflowService {
     targetPhase: SpecificationPhase,
     userId: string
   ): Promise<{ canTransition: boolean; reason?: string }> {
-    const _project = await this.prisma.specificationProject.findUnique({
+    const project = await this.prisma.specificationProject.findUnique({
       where: { id: projectId },
       include: {
         owner: true,
@@ -275,16 +289,19 @@ export class SpecificationWorkflowService {
     const targetPhaseIndex = this.phaseOrder.indexOf(targetPhase);
 
     if (targetPhaseIndex !== currentPhaseIndex + 1 && targetPhaseIndex !== currentPhaseIndex - 1) {
-      return { canTransition: false, reason: 'Invalid phase transition. Phases must be sequential' };
+      return {
+        canTransition: false,
+        reason: 'Invalid phase transition. Phases must be sequential',
+      };
     }
 
     // If moving forward, validate current phase completion
     if (targetPhaseIndex > currentPhaseIndex) {
       const validation = await this.validatePhaseCompletion(projectId, project.currentPhase);
       if (!validation.isValid) {
-        return { 
-          canTransition: false, 
-          reason: `Current phase validation failed: ${validation.errors.join(', ')}` 
+        return {
+          canTransition: false,
+          reason: `Current phase validation failed: ${validation.errors.join(', ')}`,
         };
       }
 
@@ -292,9 +309,11 @@ export class SpecificationWorkflowService {
       const approvals = await this.getPhaseApprovals(projectId, project.currentPhase);
       const rule = this.validationRules[project.currentPhase];
       if (approvals.filter(a => a.approved).length < rule.requiredApprovals) {
-        return { 
-          canTransition: false, 
-          reason: `Insufficient approvals. Required: ${rule.requiredApprovals}, Found: ${approvals.filter(a => a.approved).length}` 
+        return {
+          canTransition: false,
+          reason: `Insufficient approvals. Required: ${rule.requiredApprovals}, Found: ${
+            approvals.filter(a => a.approved).length
+          }`,
         };
       }
     }
@@ -308,7 +327,7 @@ export class SpecificationWorkflowService {
     userId: string
   ): Promise<WorkflowState> {
     const canTransition = await this.canTransitionToPhase(projectId, request.targetPhase, userId);
-    
+
     if (!canTransition.canTransition) {
       throw new SpecificationWorkflowError(
         canTransition.reason || 'Phase transition not allowed',
@@ -318,7 +337,7 @@ export class SpecificationWorkflowService {
       );
     }
 
-    const _project = await this.prisma.specificationProject.findUnique({
+    const project = await this.prisma.specificationProject.findUnique({
       where: { id: projectId },
     });
 
@@ -327,7 +346,7 @@ export class SpecificationWorkflowService {
     }
 
     // Perform transition in transaction
-    await this.prisma.$transaction(async (tx) => {
+    await this.prisma.$transaction(async tx => {
       // Update project phase
       await tx.specificationProject.update({
         where: { id: projectId },
@@ -408,7 +427,7 @@ export class SpecificationWorkflowService {
       );
     }
 
-    const _document = await this.prisma.specificationDocument.findUnique({
+    const specificationDoc = await this.prisma.specificationDocument.findUnique({
       where: {
         projectId_phase: {
           projectId,
@@ -417,21 +436,16 @@ export class SpecificationWorkflowService {
       },
     });
 
-    if (!document) {
-      throw new SpecificationWorkflowError(
-        'Document not found',
-        'DOCUMENT_NOT_FOUND',
-        404,
-        phase
-      );
+    if (!specificationDoc) {
+      throw new SpecificationWorkflowError('Document not found', 'DOCUMENT_NOT_FOUND', 404, phase);
     }
 
     // Create version history entry
     await this.prisma.documentVersion.create({
       data: {
-        documentId: document.id,
-        version: document.version,
-        content: document.content,
+        documentId: specificationDoc.id,
+        version: specificationDoc.version,
+        content: specificationDoc.content,
         changes: {},
         createdBy: userId,
       },
@@ -439,10 +453,10 @@ export class SpecificationWorkflowService {
 
     // Update document
     const updatedDocument = await this.prisma.specificationDocument.update({
-      where: { id: document.id },
+      where: { id: specificationDoc.id },
       data: {
         content: request.content,
-        version: document.version + 1,
+        version: specificationDoc.version + 1,
         status: DocumentStatus.DRAFT,
         updatedAt: new Date(),
       },
@@ -454,7 +468,7 @@ export class SpecificationWorkflowService {
         userId,
         action: 'document_update',
         resource: 'document',
-        resourceId: document.id,
+        resourceId: specificationDoc.id,
         details: {
           phase,
           projectId,
@@ -479,7 +493,7 @@ export class SpecificationWorkflowService {
       if (cached) {
         const workflowState = JSON.parse(cached);
         // Convert date strings back to Date objects
-        workflowState.phaseHistory = workflowState.phaseHistory.map((transition: unknown) => ({
+        workflowState.phaseHistory = workflowState.phaseHistory.map((transition: any) => ({
           ...transition,
           timestamp: new Date(transition.timestamp),
         }));
@@ -487,7 +501,7 @@ export class SpecificationWorkflowService {
       }
     }
 
-    const _project = await this.prisma.specificationProject.findUnique({
+    const project = await this.prisma.specificationProject.findUnique({
       where: { id: projectId },
       include: {
         documents: {
@@ -520,9 +534,10 @@ export class SpecificationWorkflowService {
 
     // Determine if can progress
     const currentPhaseIndex = this.phaseOrder.indexOf(project.currentPhase);
-    const nextPhase = currentPhaseIndex < this.phaseOrder.length - 1 
-      ? this.phaseOrder[currentPhaseIndex + 1] 
-      : undefined;
+    const nextPhase =
+      currentPhaseIndex < this.phaseOrder.length - 1
+        ? this.phaseOrder[currentPhaseIndex + 1]
+        : undefined;
 
     let canProgress = false;
     if (nextPhase) {
@@ -594,23 +609,27 @@ export class SpecificationWorkflowService {
     // Check for user stories format
     const userStoryPattern = /As a .+, I want .+, so that .+/gi;
     const userStories = content.match(userStoryPattern) || [];
-    
+
     if (userStories.length === 0) {
-      errors.push('No user stories found. Use format: "As a [role], I want [feature], so that [benefit]"');
+      errors.push(
+        'No user stories found. Use format: "As a [role], I want [feature], so that [benefit]"'
+      );
     }
 
     // Check for EARS format (WHEN/IF/THEN)
     const earsPattern = /(WHEN|IF).+(THEN).+(SHALL)/gi;
     const earsStatements = content.match(earsPattern) || [];
-    
+
     if (earsStatements.length === 0) {
-      warnings.push('Consider using EARS format for acceptance criteria: "WHEN [event] THEN [system] SHALL [response]"');
+      warnings.push(
+        'Consider using EARS format for acceptance criteria: "WHEN [event] THEN [system] SHALL [response]"'
+      );
     }
 
     // Check for numbered requirements
     const numberedReqPattern = /### Requirement \d+/gi;
     const numberedReqs = content.match(numberedReqPattern) || [];
-    
+
     if (numberedReqs.length === 0) {
       warnings.push('Consider numbering requirements for better traceability');
     }
@@ -628,28 +647,31 @@ export class SpecificationWorkflowService {
     const warnings: string[] = [];
 
     // Check for architecture diagrams or descriptions
-    const hasArchitecture = content.toLowerCase().includes('architecture') || 
-                           content.toLowerCase().includes('diagram') ||
-                           content.includes('```mermaid');
-    
+    const hasArchitecture =
+      content.toLowerCase().includes('architecture') ||
+      content.toLowerCase().includes('diagram') ||
+      content.includes('```mermaid');
+
     if (!hasArchitecture) {
       warnings.push('Consider adding architecture diagrams or detailed architecture descriptions');
     }
 
     // Check for data models
-    const hasDataModels = content.toLowerCase().includes('data model') || 
-                         content.toLowerCase().includes('database') ||
-                         content.toLowerCase().includes('schema');
-    
+    const hasDataModels =
+      content.toLowerCase().includes('data model') ||
+      content.toLowerCase().includes('database') ||
+      content.toLowerCase().includes('schema');
+
     if (!hasDataModels) {
       warnings.push('Consider adding data model descriptions');
     }
 
     // Check for API design
-    const hasApiDesign = content.toLowerCase().includes('api') || 
-                        content.toLowerCase().includes('endpoint') ||
-                        content.toLowerCase().includes('interface');
-    
+    const hasApiDesign =
+      content.toLowerCase().includes('api') ||
+      content.toLowerCase().includes('endpoint') ||
+      content.toLowerCase().includes('interface');
+
     if (!hasApiDesign) {
       warnings.push('Consider adding API design specifications');
     }
@@ -669,7 +691,7 @@ export class SpecificationWorkflowService {
     // Check for checkbox format
     const checkboxPattern = /- \[ \]/g;
     const checkboxes = content.match(checkboxPattern) || [];
-    
+
     if (checkboxes.length === 0) {
       errors.push('No task checkboxes found. Use format: "- [ ] Task description"');
     }
@@ -677,14 +699,14 @@ export class SpecificationWorkflowService {
     // Check for requirement references
     const reqRefPattern = /_Requirements?: [\d\., ]+_/gi;
     const reqRefs = content.match(reqRefPattern) || [];
-    
+
     if (reqRefs.length === 0) {
       warnings.push('Consider adding requirement references to tasks: "_Requirements: 1.1, 1.2_"');
     }
 
     // Check for task hierarchy
     const hasHierarchy = content.includes('  - [ ]') || content.match(/\d+\.\d+/);
-    
+
     if (!hasHierarchy) {
       warnings.push('Consider organizing tasks in a hierarchical structure');
     }
@@ -698,7 +720,14 @@ export class SpecificationWorkflowService {
   }
 
   private checkTransitionPermission(
-    project: unknown,
+    project: SpecificationProject & {
+      owner: User;
+      team: Array<{
+        userId: string;
+        role: string;
+        user: User;
+      }>;
+    },
     userId: string
   ): boolean {
     // Project owner can always transition
@@ -708,21 +737,18 @@ export class SpecificationWorkflowService {
 
     // Team leads can transition
     const teamMember = project.team.find(
-      (member: unknown) => member.userId === userId && member.role === 'LEAD'
+      member => member.userId === userId && member.role === 'LEAD'
     );
 
     return !!teamMember;
   }
 
-  private async checkDocumentUpdatePermission(
-    projectId: string,
-    userId: string
-  ): Promise<boolean> {
-    const _project = await this.prisma.specificationProject.findUnique({
+  private async checkDocumentUpdatePermission(projectId: string, userId: string): Promise<boolean> {
+    const project = await this.prisma.specificationProject.findUnique({
       where: { id: projectId },
       include: {
         team: {
-          where: { 
+          where: {
             userId,
             status: 'ACTIVE',
           },
@@ -744,7 +770,7 @@ export class SpecificationWorkflowService {
   }
 
   private async recordPhaseTransition(
-    tx: unknown,
+    tx: any,
     projectId: string,
     fromPhase: SpecificationPhase,
     toPhase: SpecificationPhase,
@@ -761,7 +787,7 @@ export class SpecificationWorkflowService {
         userId,
         approvalComment: comment,
       };
-      
+
       await this.redis.setex(transitionKey, 86400 * 30, JSON.stringify(transition)); // 30 days
     }
   }
@@ -773,10 +799,10 @@ export class SpecificationWorkflowService {
 
     const pattern = `transition:${projectId}:*`;
     const keys = await this.redis.keys(pattern);
-    
+
     const transitions: PhaseTransition[] = [];
     for (const key of keys) {
-      const _data = await this.redis.get(key);
+      const data = await this.redis.get(key);
       if (data) {
         const transition = JSON.parse(data);
         transition.timestamp = new Date(transition.timestamp);
@@ -797,10 +823,10 @@ export class SpecificationWorkflowService {
 
     const pattern = `approval:${projectId}:${phase}:*`;
     const keys = await this.redis.keys(pattern);
-    
+
     const approvals: Approval[] = [];
     for (const key of keys) {
-      const _data = await this.redis.get(key);
+      const data = await this.redis.get(key);
       if (data) {
         const approval = JSON.parse(data);
         approval.timestamp = new Date(approval.timestamp);
@@ -850,7 +876,7 @@ export class SpecificationWorkflowService {
     }
 
     try {
-      const _document = await this.prisma.specificationDocument.findUnique({
+      const specificationDoc = await this.prisma.specificationDocument.findUnique({
         where: {
           projectId_phase: {
             projectId,
@@ -859,13 +885,13 @@ export class SpecificationWorkflowService {
         },
       });
 
-      if (!document) {
+      if (!specificationDoc) {
         return null;
       }
 
       // Get AI review
       const aiReview = await this.aiService.reviewSpecification(
-        document.content,
+        specificationDoc.content,
         this.mapPhaseToAIPhase(phase),
         projectId
       );
@@ -874,11 +900,11 @@ export class SpecificationWorkflowService {
       await this.prisma.aIReview.create({
         data: {
           id: aiReview.id,
-          documentId: document.id,
+          documentId: specificationDoc.id,
           overallScore: aiReview.overallScore,
           suggestions: aiReview.suggestions as any,
           completeness: aiReview.completenessCheck as any,
-          qualityMetrics: aiReview.qualityMetrics as any,
+          qualityMetrics: aiReview.qualityMetrics as unknown,
           appliedSuggestions: [],
         },
       });
@@ -889,7 +915,7 @@ export class SpecificationWorkflowService {
           userId,
           action: 'auto_ai_review',
           resource: 'document',
-          resourceId: document.id,
+          resourceId: specificationDoc.id,
           details: {
             phase,
             projectId,
@@ -904,7 +930,7 @@ export class SpecificationWorkflowService {
       return aiReview;
     } catch (error) {
       console.error('Auto AI review failed:', error);
-      
+
       // Log the failure
       await this.prisma.auditLog.create({
         data: {
@@ -939,13 +965,13 @@ export class SpecificationWorkflowService {
 
     try {
       const validation = await this.validatePhaseCompletion(projectId, phase);
-      
+
       if (!validation.aiReview) {
         return { isValid: true, score: 100, issues: [] };
       }
 
       const issues: string[] = [];
-      
+
       // Collect critical and high severity issues
       for (const suggestion of validation.aiReview.suggestions) {
         if (suggestion.severity === 'critical' || suggestion.severity === 'high') {

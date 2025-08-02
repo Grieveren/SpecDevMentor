@@ -1,8 +1,9 @@
 import { defineConfig } from '@playwright/test';
+import type { PlaywrightTestConfig } from '@playwright/test';
 import baseConfig from '../playwright.config';
 
 // Configuration for different test suites
-export const testSuites = {
+export const testSuites: Record<string, PlaywrightTestConfig> = {
   // Full end-to-end workflow tests
   e2e: {
     ...baseConfig,

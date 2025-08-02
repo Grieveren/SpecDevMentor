@@ -1,9 +1,11 @@
-import { Page } from '@playwright/test';
+import type { Page } from '@playwright/test';
+
+export type SpecificationPhase = 'REQUIREMENTS' | 'DESIGN' | 'TASKS' | 'IMPLEMENTATION';
 
 export interface TestProject {
   name: string;
   description: string;
-  phase: 'REQUIREMENTS' | 'DESIGN' | 'TASKS' | 'IMPLEMENTATION';
+  phase: SpecificationPhase;
 }
 
 export const testProjects: Record<string, TestProject> = {
@@ -25,9 +27,9 @@ export const testProjects: Record<string, TestProject> = {
 };
 
 export class ProjectHelper {
-  constructor(private page: Page) {}
+  constructor(private readonly page: Page) {}
 
-  async createProject(project: TestProject) {
+  async createProject(project: TestProject): Promise<void> {
     await this.page.goto('/dashboard');
     
     // Click create project button
@@ -47,18 +49,18 @@ export class ProjectHelper {
     await this.page.waitForSelector(`[data-testid="project-card-${project.name}"]`);
   }
 
-  async openProject(projectName: string) {
+  async openProject(projectName: string): Promise<void> {
     await this.page.goto('/dashboard');
     await this.page.click(`[data-testid="project-card-${projectName}"]`);
     await this.page.waitForSelector('[data-testid="specification-layout"]');
   }
 
-  async navigateToPhase(phase: string) {
+  async navigateToPhase(phase: string): Promise<void> {
     await this.page.click(`[data-testid="phase-nav-${phase.toLowerCase()}"]`);
     await this.page.waitForSelector(`[data-testid="${phase.toLowerCase()}-editor"]`);
   }
 
-  async updateDocument(content: string) {
+  async updateDocument(content: string): Promise<void> {
     // Clear existing content
     await this.page.click('[data-testid="document-editor"]');
     await this.page.keyboard.press('Control+A');
@@ -70,7 +72,7 @@ export class ProjectHelper {
     await this.page.waitForSelector('[data-testid="save-indicator-saved"]', { timeout: 5000 });
   }
 
-  async requestAIReview() {
+  async requestAIReview(): Promise<void> {
     await this.page.click('[data-testid="ai-review-button"]');
     await this.page.waitForSelector('[data-testid="ai-review-panel"]');
     
@@ -78,12 +80,12 @@ export class ProjectHelper {
     await this.page.waitForSelector('[data-testid="ai-review-score"]', { timeout: 30000 });
   }
 
-  async applySuggestion(suggestionIndex: number) {
+  async applySuggestion(suggestionIndex: number): Promise<void> {
     await this.page.click(`[data-testid="suggestion-${suggestionIndex}-apply"]`);
     await this.page.waitForSelector(`[data-testid="suggestion-${suggestionIndex}-applied"]`);
   }
 
-  async transitionPhase(targetPhase: string) {
+  async transitionPhase(targetPhase: string): Promise<void> {
     await this.page.click('[data-testid="phase-transition-button"]');
     await this.page.click(`[data-testid="transition-to-${targetPhase.toLowerCase()}"]`);
     

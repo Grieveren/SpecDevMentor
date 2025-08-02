@@ -1,26 +1,62 @@
 {
   "compilerOptions": {
+    // Target and module settings
     "target": "ES2022",
     "lib": ["ES2022"],
     "module": "ESNext",
     "moduleResolution": "bundler",
+    
+    // Module resolution and imports
     "allowImportingTsExtensions": true,
     "resolveJsonModule": true,
     "isolatedModules": true,
+    "esModuleInterop": true,
+    "allowSyntheticDefaultImports": true,
+    
+    // Emit settings
     "noEmit": true,
+    "declaration": true,
+    "sourceMap": true,
+    "incremental": true,
+    "tsBuildInfoFile": ".tsbuildinfo",
+    
+    // JSX settings
     "jsx": "react-jsx",
+    
+    // Type checking - strict mode with gradual migration
     "strict": true,
-    "noUnusedLocals": true,
-    "noUnusedParameters": true,
+    "noImplicitAny": false, // Temporary during migration
+    "noImplicitReturns": false, // Temporary during migration
+    "noUnusedLocals": false, // Temporary during migration
+    "noUnusedParameters": false, // Temporary during migration
     "noFallthroughCasesInSwitch": true,
+    "exactOptionalPropertyTypes": false, // Temporary during migration
+    
+    // Additional checks
     "skipLibCheck": true,
     "forceConsistentCasingInFileNames": true,
+    "noUncheckedIndexedAccess": false, // Temporary during migration
+    
+    // Path mapping
     "baseUrl": ".",
     "paths": {
-      "@/*": ["./src/*"]
+      "@shared/*": ["./shared/*"],
+      "@client/*": ["./client/src/*"],
+      "@server/*": ["./server/src/*"]
     }
   },
-  "include": [],
-  "exclude": ["node_modules", "dist", "build"],
-  "references": [{ "path": "./client" }, { "path": "./server" }]
+  "include": ["shared/**/*"],
+  "exclude": [
+    "node_modules",
+    "dist",
+    "build",
+    "**/*.test.ts",
+    "**/*.test.tsx",
+    "**/*.spec.ts",
+    "**/*.spec.tsx"
+  ],
+  "references": [
+    { "path": "./client" },
+    { "path": "./server" }
+  ]
 }

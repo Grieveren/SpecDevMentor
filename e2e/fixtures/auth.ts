@@ -1,11 +1,13 @@
-import { Page } from '@playwright/test';
+import type { Page } from '@playwright/test';
+
+export type UserRole = 'STUDENT' | 'DEVELOPER' | 'TEAM_LEAD' | 'ADMIN';
 
 export interface TestUser {
   id: string;
   email: string;
   name: string;
   password: string;
-  role: 'STUDENT' | 'DEVELOPER' | 'TEAM_LEAD' | 'ADMIN';
+  role: UserRole;
 }
 
 export const testUsers: Record<string, TestUser> = {
@@ -40,9 +42,9 @@ export const testUsers: Record<string, TestUser> = {
 };
 
 export class AuthHelper {
-  constructor(private page: Page) {}
+  constructor(private readonly page: Page) {}
 
-  async login(user: TestUser) {
+  async login(user: TestUser): Promise<void> {
     await this.page.goto('/login');
     
     // Fill login form
@@ -59,13 +61,13 @@ export class AuthHelper {
     await this.page.waitForSelector('[data-testid="user-menu"]');
   }
 
-  async logout() {
+  async logout(): Promise<void> {
     await this.page.click('[data-testid="user-menu"]');
     await this.page.click('[data-testid="logout-button"]');
     await this.page.waitForURL('/login');
   }
 
-  async register(user: Omit<TestUser, 'id'>) {
+  async register(user: Omit<TestUser, 'id'>): Promise<void> {
     await this.page.goto('/register');
     
     await this.page.fill('[data-testid="name-input"]', user.name);

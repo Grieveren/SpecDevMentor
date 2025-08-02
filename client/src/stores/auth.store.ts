@@ -8,23 +8,39 @@ import {
   LoginRequest,
   ResetPasswordRequest,
   ChangePasswordRequest,
+  AuthError,
+  AuthResponse,
 } from '../types/auth';
 import { authService, getStoredTokens, clearStoredTokens } from '../services/auth.service';
 
+// Enhanced error handling types
+interface AuthServiceError extends Error {
+  error?: string;
+  code?: string;
+  status?: number;
+}
+
+// Token validation response type
+interface TokenValidationResponse {
+  valid: boolean;
+  user?: User;
+  error?: string;
+}
+
 interface AuthActions {
   // Authentication actions
-  register: (_data: RegisterRequest) => Promise<void>;
-  login: (_data: LoginRequest) => Promise<void>;
+  register: (data: RegisterRequest) => Promise<void>;
+  login: (data: LoginRequest) => Promise<void>;
   logout: () => Promise<void>;
   refreshTokens: () => Promise<void>;
   
   // User actions
   getCurrentUser: () => Promise<void>;
-  changePassword: (_data: ChangePasswordRequest) => Promise<void>;
+  changePassword: (data: ChangePasswordRequest) => Promise<void>;
   
   // Password reset actions
   requestPasswordReset: (email: string) => Promise<void>;
-  resetPassword: (_data: ResetPasswordRequest) => Promise<void>;
+  resetPassword: (data: ResetPasswordRequest) => Promise<void>;
   
   // Email verification
   verifyEmail: (token: string) => Promise<void>;
@@ -54,11 +70,11 @@ export const useAuthStore = create<AuthStore>()(
       error: null,
 
       // Authentication actions
-      register: async (_data: RegisterRequest) => {
+      register: async (data: RegisterRequest): Promise<void> => {
         set({ isLoading: true, error: null });
         
         try {
-          const _response = await authService.register(data);
+          const response: AuthResponse = await authService.register(data);
           
           set({
             user: response.data.user,
@@ -66,20 +82,23 @@ export const useAuthStore = create<AuthStore>()(
             isAuthenticated: true,
             isLoading: false,
           });
-        } catch (_error: unknown) {
+        } catch (error: unknown) {
+          const authError = error as AuthServiceError;
+          const errorMessage = authError.error || authError.message || 'Registration failed';
+          
           set({
-            error: error.error || 'Registration failed',
+            error: errorMessage,
             isLoading: false,
           });
           throw error;
         }
       },
 
-      login: async (_data: LoginRequest) => {
+      login: async (data: LoginRequest): Promise<void> => {
         set({ isLoading: true, error: null });
         
         try {
-          const _response = await authService.login(data);
+          const response: AuthResponse = await authService.login(data);
           
           set({
             user: response.data.user,
@@ -87,21 +106,24 @@ export const useAuthStore = create<AuthStore>()(
             isAuthenticated: true,
             isLoading: false,
           });
-        } catch (_error: unknown) {
+        } catch (error: unknown) {
+          const authError = error as AuthServiceError;
+          const errorMessage = authError.error || authError.message || 'Login failed';
+          
           set({
-            error: error.error || 'Login failed',
+            error: errorMessage,
             isLoading: false,
           });
           throw error;
         }
       },
 
-      logout: async () => {
+      logout: async (): Promise<void> => {
         set({ isLoading: true });
         
         try {
           await authService.logout();
-        } catch (error) {
+        } catch (error: unknown) {
           console.error('Logout error:', error);
         } finally {
           set({
@@ -114,7 +136,7 @@ export const useAuthStore = create<AuthStore>()(
         }
       },
 
-      refreshTokens: async () => {
+      refreshTokens: async (): Promise<void> => {
         const { tokens } = get();
         
         if (!tokens?.refreshToken) {
@@ -122,9 +144,9 @@ export const useAuthStore = create<AuthStore>()(
         }
         
         try {
-          const newTokens = await authService.refreshTokens(tokens.refreshToken);
+          const newTokens: TokenPair = await authService.refreshTokens(tokens.refreshToken);
           set({ tokens: newTokens });
-        } catch (error) {
+        } catch (error: unknown) {
           // Clear auth state if refresh fails
           get().clearAuth();
           throw error;
@@ -132,24 +154,27 @@ export const useAuthStore = create<AuthStore>()(
       },
 
       // User actions
-      getCurrentUser: async () => {
+      getCurrentUser: async (): Promise<void> => {
         set({ isLoading: true, error: null });
         
         try {
-          const _user = await authService.getCurrentUser();
+          const user: User = await authService.getCurrentUser();
           set({
             user,
             isAuthenticated: true,
             isLoading: false,
           });
-        } catch (_error: unknown) {
+        } catch (error: unknown) {
+          const authError = error as AuthServiceError;
+          const errorMessage = authError.error || authError.message || 'Failed to get user';
+          
           set({
-            error: error.error || 'Failed to get user',
+            error: errorMessage,
             isLoading: false,
           });
           
           // If unauthorized, clear auth state
-          if (error.code === 'INVALID_TOKEN' || error.code === 'TOKEN_REVOKED') {
+          if (authError.code === 'INVALID_TOKEN' || authError.code === 'TOKEN_REVOKED') {
             get().clearAuth();
           }
           
@@ -157,15 +182,18 @@ export const useAuthStore = create<AuthStore>()(
         }
       },
 
-      changePassword: async (_data: ChangePasswordRequest) => {
+      changePassword: async (data: ChangePasswordRequest): Promise<void> => {
         set({ isLoading: true, error: null });
         
         try {
           await authService.changePassword(data);
           set({ isLoading: false });
-        } catch (_error: unknown) {
+        } catch (error: unknown) {
+          const authError = error as AuthServiceError;
+          const errorMessage = authError.error || authError.message || 'Password change failed';
+          
           set({
-            error: error.error || 'Password change failed',
+            error: errorMessage,
             isLoading: false,
           });
           throw error;
@@ -173,30 +201,36 @@ export const useAuthStore = create<AuthStore>()(
       },
 
       // Password reset actions
-      requestPasswordReset: async (email: string) => {
+      requestPasswordReset: async (email: string): Promise<void> => {
         set({ isLoading: true, error: null });
         
         try {
           await authService.requestPasswordReset(email);
           set({ isLoading: false });
-        } catch (_error: unknown) {
+        } catch (error: unknown) {
+          const authError = error as AuthServiceError;
+          const errorMessage = authError.error || authError.message || 'Password reset request failed';
+          
           set({
-            error: error.error || 'Password reset request failed',
+            error: errorMessage,
             isLoading: false,
           });
           throw error;
         }
       },
 
-      resetPassword: async (_data: ResetPasswordRequest) => {
+      resetPassword: async (data: ResetPasswordRequest): Promise<void> => {
         set({ isLoading: true, error: null });
         
         try {
           await authService.resetPassword(data);
           set({ isLoading: false });
-        } catch (_error: unknown) {
+        } catch (error: unknown) {
+          const authError = error as AuthServiceError;
+          const errorMessage = authError.error || authError.message || 'Password reset failed';
+          
           set({
-            error: error.error || 'Password reset failed',
+            error: errorMessage,
             isLoading: false,
           });
           throw error;
@@ -204,7 +238,7 @@ export const useAuthStore = create<AuthStore>()(
       },
 
       // Email verification
-      verifyEmail: async (token: string) => {
+      verifyEmail: async (token: string): Promise<void> => {
         set({ isLoading: true, error: null });
         
         try {
@@ -220,9 +254,12 @@ export const useAuthStore = create<AuthStore>()(
           } else {
             set({ isLoading: false });
           }
-        } catch (_error: unknown) {
+        } catch (error: unknown) {
+          const authError = error as AuthServiceError;
+          const errorMessage = authError.error || authError.message || 'Email verification failed';
+          
           set({
-            error: error.error || 'Email verification failed',
+            error: errorMessage,
             isLoading: false,
           });
           throw error;
@@ -253,7 +290,7 @@ export const useAuthStore = create<AuthStore>()(
         set({ error: null });
       },
 
-      clearAuth: () => {
+      clearAuth: (): void => {
         clearStoredTokens();
         set({
           user: null,
@@ -264,8 +301,8 @@ export const useAuthStore = create<AuthStore>()(
       },
 
       // Initialization
-      initializeAuth: async () => {
-        const tokens = getStoredTokens();
+      initializeAuth: async (): Promise<void> => {
+        const tokens: TokenPair | null = getStoredTokens();
         
         if (!tokens?.accessToken) {
           return;
@@ -275,14 +312,14 @@ export const useAuthStore = create<AuthStore>()(
         
         try {
           // Validate token and get current user
-          const validation = await authService.validateToken(tokens.accessToken);
+          const validation: TokenValidationResponse = await authService.validateToken(tokens.accessToken);
           
           if (validation.valid) {
             await get().getCurrentUser();
           } else {
             get().clearAuth();
           }
-        } catch (error) {
+        } catch (error: unknown) {
           console.error('Auth initialization error:', error);
           get().clearAuth();
         } finally {
@@ -327,3 +364,6 @@ export const useAuthActions = () => {
     initializeAuth: store.initializeAuth,
   };
 };
+
+// Export types for external use
+export type { AuthStore, AuthActions, AuthServiceError, TokenValidationResponse };

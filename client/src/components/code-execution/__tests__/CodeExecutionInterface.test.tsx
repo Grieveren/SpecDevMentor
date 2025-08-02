@@ -1,17 +1,24 @@
 import { render, screen, fireEvent, waitFor } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import { describe, it, expect, vi, beforeEach } from 'vitest';
+import type { MockedFunction } from 'vitest';
 import { CodeExecutionInterface } from '../CodeExecutionInterface';
+import type { CodeExecutionInterfaceProps } from '../CodeExecutionInterface';
 import { SupportedLanguage } from '../../../types/code-execution';
 import { codeExecutionService } from '../../../services/code-execution.service';
 
-// Mock the code execution service
+// Mock the code execution service with proper typing
+const mockExecuteCode = vi.fn() as MockedFunction<typeof codeExecutionService.executeCode>;
+const mockValidateCompliance = vi.fn() as MockedFunction<typeof codeExecutionService.validateCompliance>;
+const mockGetSupportedLanguages = vi.fn() as MockedFunction<typeof codeExecutionService.getSupportedLanguages>;
+const mockGetSystemStatus = vi.fn() as MockedFunction<typeof codeExecutionService.getSystemStatus>;
+
 vi.mock('../../../services/code-execution.service', () => ({
   codeExecutionService: {
-    executeCode: vi.fn(),
-    validateCompliance: vi.fn(),
-    getSupportedLanguages: vi.fn(),
-    getSystemStatus: vi.fn(),
+    executeCode: mockExecuteCode,
+    validateCompliance: mockValidateCompliance,
+    getSupportedLanguages: mockGetSupportedLanguages,
+    getSystemStatus: mockGetSystemStatus,
   },
 }));
 
@@ -47,14 +54,17 @@ const mockSpecifications = [
 ];
 
 describe('CodeExecutionInterface', () => {
-  const _user = userEvent.setup();
-
   beforeEach(() => {
     vi.clearAllMocks();
+    mockExecuteCode.mockClear();
+    mockValidateCompliance.mockClear();
+    mockGetSupportedLanguages.mockClear();
+    mockGetSystemStatus.mockClear();
   });
 
   it('should render with default state', () => {
-    render(<CodeExecutionInterface />);
+    const props: CodeExecutionInterfaceProps = {};
+    render(<CodeExecutionInterface {...props} />);
 
     expect(screen.getByText('Code Execution & Validation')).toBeInTheDocument();
     expect(screen.getByText('Execute Code')).toBeInTheDocument();
@@ -63,10 +73,12 @@ describe('CodeExecutionInterface', () => {
   });
 
   it('should allow code input and language selection', async () => {
-    render(<CodeExecutionInterface />);
+    const user = userEvent.setup();
+    const props: CodeExecutionInterfaceProps = {};
+    render(<CodeExecutionInterface {...props} />);
 
-    const codeEditor = screen.getByPlaceholderText(/Enter your javascript code here/);
-    const languageSelect = screen.getByRole('combobox');
+    const codeEditor = screen.getByPlaceholderText(/Enter your javascript code here/) as HTMLTextAreaElement;
+    const languageSelect = screen.getByRole('combobox') as HTMLSelectElement;
 
     // Type code
     await user.type(codeEditor, 'console.log("Hello, World!");');
@@ -78,12 +90,13 @@ describe('CodeExecutionInterface', () => {
   });
 
   it('should execute code when Execute Code button is clicked', async () => {
-    const mockExecuteCode = vi.mocked(codeExecutionService.executeCode);
+    const user = userEvent.setup();
     mockExecuteCode.mockResolvedValue(mockExecutionResult);
 
-    render(<CodeExecutionInterface />);
+    const props: CodeExecutionInterfaceProps = {};
+    render(<CodeExecutionInterface {...props} />);
 
-    const codeEditor = screen.getByPlaceholderText(/Enter your javascript code here/);
+    const codeEditor = screen.getByPlaceholderText(/Enter your javascript code here/) as HTMLTextAreaElement;
     const executeButton = screen.getByText('Execute Code');
 
     // Enter code
@@ -111,15 +124,14 @@ describe('CodeExecutionInterface', () => {
   });
 
   it('should validate compliance when specifications are provided', async () => {
-    const mockValidateCompliance = vi.mocked(codeExecutionService.validateCompliance);
+    const user = userEvent.setup();
     mockValidateCompliance.mockResolvedValue(mockComplianceResult);
 
-    render(
-      <CodeExecutionInterface 
-        specifications={mockSpecifications}
-        initialCode="function greet() { return 'Hello!'; }"
-      />
-    );
+    const props: CodeExecutionInterfaceProps = {
+      specifications: mockSpecifications,
+      initialCode: "function greet() { return 'Hello!'; }"
+    };
+    render(<CodeExecutionInterface {...props} />);
 
     const validateButton = screen.getByText('Validate Compliance');
 
@@ -147,12 +159,13 @@ describe('CodeExecutionInterface', () => {
   });
 
   it('should handle execution errors gracefully', async () => {
-    const mockExecuteCode = vi.mocked(codeExecutionService.executeCode);
+    const user = userEvent.setup();
     mockExecuteCode.mockRejectedValue(new Error('Execution failed'));
 
-    render(<CodeExecutionInterface />);
+    const props: CodeExecutionInterfaceProps = {};
+    render(<CodeExecutionInterface {...props} />);
 
-    const codeEditor = screen.getByPlaceholderText(/Enter your javascript code here/);
+    const codeEditor = screen.getByPlaceholderText(/Enter your javascript code here/) as HTMLTextAreaElement;
     const executeButton = screen.getByText('Execute Code');
 
     // Enter code
@@ -170,15 +183,14 @@ describe('CodeExecutionInterface', () => {
   });
 
   it('should handle compliance validation errors gracefully', async () => {
-    const mockValidateCompliance = vi.mocked(codeExecutionService.validateCompliance);
+    const user = userEvent.setup();
     mockValidateCompliance.mockRejectedValue(new Error('Validation failed'));
 
-    render(
-      <CodeExecutionInterface 
-        specifications={mockSpecifications}
-        initialCode="some code"
-      />
-    );
+    const props: CodeExecutionInterfaceProps = {
+      specifications: mockSpecifications,
+      initialCode: "some code"
+    };
+    render(<CodeExecutionInterface {...props} />);
 
     const validateButton = screen.getByText('Validate Compliance');
 
@@ -198,34 +210,38 @@ describe('CodeExecutionInterface', () => {
   });
 
   it('should disable buttons when code is empty', () => {
-    render(<CodeExecutionInterface />);
+    const props: CodeExecutionInterfaceProps = {};
+    render(<CodeExecutionInterface {...props} />);
 
     const executeButton = screen.getByRole('button', { name: /Execute Code/ });
     expect(executeButton).toBeDisabled();
   });
 
   it('should not show compliance tab when no specifications provided', () => {
-    render(<CodeExecutionInterface />);
+    const props: CodeExecutionInterfaceProps = {};
+    render(<CodeExecutionInterface {...props} />);
 
     expect(screen.queryByText('Compliance Report')).not.toBeInTheDocument();
     expect(screen.queryByText('Validate Compliance')).not.toBeInTheDocument();
   });
 
   it('should show compliance tab when specifications are provided', () => {
-    render(<CodeExecutionInterface specifications={mockSpecifications} />);
+    const props: CodeExecutionInterfaceProps = { specifications: mockSpecifications };
+    render(<CodeExecutionInterface {...props} />);
 
     expect(screen.getByText('Compliance Report')).toBeInTheDocument();
     expect(screen.getByText('Validate Compliance')).toBeInTheDocument();
   });
 
   it('should handle input and timeout settings', async () => {
-    const mockExecuteCode = vi.mocked(codeExecutionService.executeCode);
+    const user = userEvent.setup();
     mockExecuteCode.mockResolvedValue(mockExecutionResult);
 
-    render(<CodeExecutionInterface initialCode="console.log('test');" />);
+    const props: CodeExecutionInterfaceProps = { initialCode: "console.log('test');" };
+    render(<CodeExecutionInterface {...props} />);
 
-    const inputTextarea = screen.getByPlaceholderText('Enter input for your program...');
-    const timeoutInput = screen.getByRole('spinbutton', { name: /Timeout/ });
+    const inputTextarea = screen.getByPlaceholderText('Enter input for your program...') as HTMLTextAreaElement;
+    const timeoutInput = screen.getByRole('spinbutton', { name: /Timeout/ }) as HTMLInputElement;
     const executeButton = screen.getByText('Execute Code');
 
     // Set input and timeout
@@ -245,10 +261,10 @@ describe('CodeExecutionInterface', () => {
   });
 
   it('should support keyboard shortcut for execution', async () => {
-    const mockExecuteCode = vi.mocked(codeExecutionService.executeCode);
     mockExecuteCode.mockResolvedValue(mockExecutionResult);
 
-    render(<CodeExecutionInterface initialCode="console.log('test');" />);
+    const props: CodeExecutionInterfaceProps = { initialCode: "console.log('test');" };
+    render(<CodeExecutionInterface {...props} />);
 
     const container = screen.getByText('Code Execution & Validation').closest('div');
 
@@ -262,19 +278,17 @@ describe('CodeExecutionInterface', () => {
   });
 
   it('should show loading states during execution and validation', async () => {
-    const mockExecuteCode = vi.mocked(codeExecutionService.executeCode);
-    const mockValidateCompliance = vi.mocked(codeExecutionService.validateCompliance);
+    const user = userEvent.setup();
     
     // Make the promises never resolve to test loading state
     mockExecuteCode.mockImplementation(() => new Promise(() => {}));
     mockValidateCompliance.mockImplementation(() => new Promise(() => {}));
 
-    render(
-      <CodeExecutionInterface 
-        specifications={mockSpecifications}
-        initialCode="test code"
-      />
-    );
+    const props: CodeExecutionInterfaceProps = {
+      specifications: mockSpecifications,
+      initialCode: "test code"
+    };
+    render(<CodeExecutionInterface {...props} />);
 
     const executeButton = screen.getByText('Execute Code');
     const validateButton = screen.getByText('Validate Compliance');
@@ -287,7 +301,9 @@ describe('CodeExecutionInterface', () => {
   });
 
   it('should load example code when Load Example is clicked', async () => {
-    render(<CodeExecutionInterface />);
+    const user = userEvent.setup();
+    const props: CodeExecutionInterfaceProps = {};
+    render(<CodeExecutionInterface {...props} />);
 
     const loadExampleButton = screen.getByText('Load Example');
     await user.click(loadExampleButton);
@@ -301,12 +317,14 @@ describe('CodeExecutionInterface', () => {
   });
 
   it('should clear code when Clear button is clicked', async () => {
-    render(<CodeExecutionInterface initialCode="some initial code" />);
+    const user = userEvent.setup();
+    const props: CodeExecutionInterfaceProps = { initialCode: "some initial code" };
+    render(<CodeExecutionInterface {...props} />);
 
     const clearButton = screen.getByText('Clear');
     await user.click(clearButton);
 
-    const codeEditor = screen.getByPlaceholderText(/Enter your javascript code here/);
+    const codeEditor = screen.getByPlaceholderText(/Enter your javascript code here/) as HTMLTextAreaElement;
     expect(codeEditor).toHaveValue('');
   });
 });

@@ -99,7 +99,7 @@ export class WorkflowService {
     phase: SpecificationPhase
   ): Promise<PhaseValidationResult> {
     try {
-      const _response = await fetch(`/api/projects/${projectId}/workflow/validate/${phase}`, {
+      const response = await fetch(`/api/projects/${projectId}/workflow/validate/${phase}`, {
         method: 'GET',
         headers: {
           'Content-Type': 'application/json',
@@ -110,7 +110,7 @@ export class WorkflowService {
         throw new Error(`Validation failed: ${response.statusText}`);
       }
 
-      const _result = await response.json();
+      const result = await response.json();
       
       // Determine if can transition to next phase
       const currentPhaseIndex = this.phaseOrder.indexOf(phase);
@@ -135,9 +135,9 @@ export class WorkflowService {
     }
   }
 
-  async requestApproval(_request: ApprovalRequest): Promise<void> {
+  async requestApproval(request: ApprovalRequest): Promise<void> {
     try {
-      const _response = await fetch(`/api/projects/${request.projectId}/workflow/approve`, {
+      const response = await fetch(`/api/projects/${request.projectId}/workflow/approve`, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
@@ -159,9 +159,9 @@ export class WorkflowService {
     }
   }
 
-  async transitionPhase(_request: PhaseTransitionRequest): Promise<void> {
+  async transitionPhase(request: PhaseTransitionRequest): Promise<void> {
     try {
-      const _response = await fetch(`/api/projects/${request.projectId}/workflow/transition`, {
+      const response = await fetch(`/api/projects/${request.projectId}/workflow/transition`, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
@@ -185,7 +185,7 @@ export class WorkflowService {
 
   async getWorkflowState(projectId: string) {
     try {
-      const _response = await fetch(`/api/projects/${projectId}/workflow/state`, {
+      const response = await fetch(`/api/projects/${projectId}/workflow/state`, {
         method: 'GET',
         headers: {
           'Content-Type': 'application/json',
@@ -200,7 +200,7 @@ export class WorkflowService {
       
       // Convert date strings back to Date objects
       if (workflowState.phaseHistory) {
-        workflowState.phaseHistory = workflowState.phaseHistory.map((transition: unknown) => ({
+        workflowState.phaseHistory = workflowState.phaseHistory.map((transition: any) => ({
           ...transition,
           timestamp: new Date(transition.timestamp),
         }));
@@ -208,7 +208,7 @@ export class WorkflowService {
 
       if (workflowState.approvals) {
         Object.keys(workflowState.approvals).forEach(phase => {
-          workflowState.approvals[phase] = workflowState.approvals[phase].map((approval: unknown) => ({
+          workflowState.approvals[phase] = workflowState.approvals[phase].map((approval: any) => ({
             ...approval,
             timestamp: new Date(approval.timestamp),
           }));
@@ -309,7 +309,7 @@ export class WorkflowService {
     phase: SpecificationPhase
   ): Promise<AIValidationResult> {
     try {
-      const _response = await fetch(`/api/projects/${projectId}/workflow/ai-validation/${phase}`, {
+      const response = await fetch(`/api/projects/${projectId}/workflow/ai-validation/${phase}`, {
         method: 'GET',
         headers: {
           'Content-Type': 'application/json',
@@ -336,7 +336,7 @@ export class WorkflowService {
     phase: SpecificationPhase
   ): Promise<{ success: boolean; review?: AIReviewResult; error?: string }> {
     try {
-      const _response = await fetch(`/api/projects/${projectId}/workflow/ai-review/${phase}`, {
+      const response = await fetch(`/api/projects/${projectId}/workflow/ai-review/${phase}`, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
@@ -352,7 +352,7 @@ export class WorkflowService {
         };
       }
 
-      const _result = await response.json();
+      const result = await response.json();
       return {
         success: true,
         review: result.review,
@@ -376,7 +376,7 @@ export class WorkflowService {
     message: string;
   }> {
     try {
-      const _response = await fetch('/api/workflow/ai-status', {
+      const response = await fetch('/api/workflow/ai-status', {
         method: 'GET',
         headers: {
           'Content-Type': 'application/json',

@@ -11,6 +11,45 @@ import {
 } from '../types/project';
 import { projectService, ProjectApiError } from '../services/project.service';
 
+// Enhanced error handling types
+interface ProjectServiceError extends Error {
+  error?: string;
+  code?: string;
+  status?: number;
+}
+
+// Loading state management
+interface LoadingState {
+  projects: boolean;
+  currentProject: boolean;
+  creating: boolean;
+  updating: boolean;
+  deleting: boolean;
+  teamManagement: boolean;
+}
+
+interface ProjectActions {
+  // Filter and pagination actions
+  setFilters: (filters: ProjectFilters) => void;
+  
+  // Data loading actions
+  loadProjects: (pagination?: PaginationOptions) => Promise<void>;
+  loadProject: (id: string) => Promise<void>;
+  
+  // CRUD actions
+  createProject: (data: CreateProjectRequest) => Promise<Project>;
+  updateProject: (id: string, data: UpdateProjectRequest) => Promise<Project>;
+  deleteProject: (id: string) => Promise<void>;
+  
+  // Team management actions
+  addTeamMember: (projectId: string, data: AddTeamMemberRequest) => Promise<void>;
+  removeTeamMember: (projectId: string, memberId: string) => Promise<void>;
+  
+  // State management actions
+  clearError: () => void;
+  clearCurrentProject: () => void;
+}
+
 interface ProjectState {
   // State
   projects: Project[];
@@ -22,23 +61,13 @@ interface ProjectState {
     pages: number;
   };
   filters: ProjectFilters;
-  loading: boolean;
+  loading: LoadingState;
   error: string | null;
-
-  // Actions
-  setFilters: (filters: ProjectFilters) => void;
-  loadProjects: (pagination?: PaginationOptions) => Promise<void>;
-  loadProject: (id: string) => Promise<void>;
-  createProject: (_data: CreateProjectRequest) => Promise<Project>;
-  updateProject: (id: string, _data: UpdateProjectRequest) => Promise<Project>;
-  deleteProject: (id: string) => Promise<void>;
-  addTeamMember: (projectId: string, _data: AddTeamMemberRequest) => Promise<void>;
-  removeTeamMember: (projectId: string, memberId: string) => Promise<void>;
-  clearError: () => void;
-  clearCurrentProject: () => void;
 }
 
-export const useProjectStore = create<ProjectState>()(
+type ProjectStore = ProjectState & ProjectActions;
+
+export const useProjectStore = create<ProjectStore>()(
   devtools(
     (set, get) => ({
       // Initial state
@@ -51,107 +80,138 @@ export const useProjectStore = create<ProjectState>()(
         pages: 0,
       },
       filters: {},
-      loading: false,
+      loading: {
+        projects: false,
+        currentProject: false,
+        creating: false,
+        updating: false,
+        deleting: false,
+        teamManagement: false,
+      },
       error: null,
 
       // Actions
-      setFilters: (filters: ProjectFilters) => {
+      setFilters: (filters: ProjectFilters): void => {
         set({ filters }, false, 'setFilters');
       },
 
-      loadProjects: async (pagination?: PaginationOptions) => {
-        set({ loading: true, error: null }, false, 'loadProjects:start');
+      loadProjects: async (pagination?: PaginationOptions): Promise<void> => {
+        set(
+          (state) => ({
+            loading: { ...state.loading, projects: true },
+            error: null,
+          }),
+          false,
+          'loadProjects:start'
+        );
 
         try {
           const { filters } = get();
-          const paginationOptions = pagination || {
+          const paginationOptions: PaginationOptions = pagination || {
             page: get().pagination.page,
             limit: get().pagination.limit,
           };
 
-          const _result = await projectService.getProjects(filters, paginationOptions);
+          const result: PaginatedProjects = await projectService.getProjects(filters, paginationOptions);
 
           set(
-            {
+            (state) => ({
               projects: result.projects,
               pagination: result.pagination,
-              loading: false,
-            },
+              loading: { ...state.loading, projects: false },
+            }),
             false,
             'loadProjects:success'
           );
-        } catch (error) {
-          const errorMessage = error instanceof ProjectApiError 
-            ? error.message 
-            : 'Failed to load projects';
+        } catch (error: unknown) {
+          const projectError = error as ProjectServiceError;
+          const errorMessage = projectError instanceof ProjectApiError 
+            ? projectError.message 
+            : projectError.message || 'Failed to load projects';
 
           set(
-            {
-              loading: false,
+            (state) => ({
+              loading: { ...state.loading, projects: false },
               error: errorMessage,
-            },
+            }),
             false,
             'loadProjects:error'
           );
         }
       },
 
-      loadProject: async (id: string) => {
-        set({ loading: true, error: null }, false, 'loadProject:start');
+      loadProject: async (id: string): Promise<void> => {
+        set(
+          (state) => ({
+            loading: { ...state.loading, currentProject: true },
+            error: null,
+          }),
+          false,
+          'loadProject:start'
+        );
 
         try {
-          const _project = await projectService.getProject(id);
+          const project: Project = await projectService.getProject(id);
 
           set(
-            {
+            (state) => ({
               currentProject: project,
-              loading: false,
-            },
+              loading: { ...state.loading, currentProject: false },
+            }),
             false,
             'loadProject:success'
           );
-        } catch (error) {
-          const errorMessage = error instanceof ProjectApiError 
-            ? error.message 
-            : 'Failed to load project';
+        } catch (error: unknown) {
+          const projectError = error as ProjectServiceError;
+          const errorMessage = projectError instanceof ProjectApiError 
+            ? projectError.message 
+            : projectError.message || 'Failed to load project';
 
           set(
-            {
-              loading: false,
+            (state) => ({
+              loading: { ...state.loading, currentProject: false },
               error: errorMessage,
-            },
+            }),
             false,
             'loadProject:error'
           );
         }
       },
 
-      createProject: async (_data: CreateProjectRequest) => {
-        set({ loading: true, error: null }, false, 'createProject:start');
+      createProject: async (data: CreateProjectRequest): Promise<Project> => {
+        set(
+          (state) => ({
+            loading: { ...state.loading, creating: true },
+            error: null,
+          }),
+          false,
+          'createProject:start'
+        );
 
         try {
-          const _project = await projectService.createProject(data);
+          const project: Project = await projectService.createProject(data);
 
           set(
             (state) => ({
               projects: [project, ...state.projects],
-              loading: false,
+              loading: { ...state.loading, creating: false },
             }),
             false,
             'createProject:success'
           );
 
           return project;
-        } catch (error) {
-          const errorMessage = error instanceof ProjectApiError 
-            ? error.message 
-            : 'Failed to create project';
+        } catch (error: unknown) {
+          const projectError = error as ProjectServiceError;
+          const errorMessage = projectError instanceof ProjectApiError 
+            ? projectError.message 
+            : projectError.message || 'Failed to create project';
 
           set(
-            {
-              loading: false,
+            (state) => ({
+              loading: { ...state.loading, creating: false },
               error: errorMessage,
-            },
+            }),
             false,
             'createProject:error'
           );
@@ -160,33 +220,41 @@ export const useProjectStore = create<ProjectState>()(
         }
       },
 
-      updateProject: async (id: string, _data: UpdateProjectRequest) => {
-        set({ loading: true, error: null }, false, 'updateProject:start');
+      updateProject: async (id: string, data: UpdateProjectRequest): Promise<Project> => {
+        set(
+          (state) => ({
+            loading: { ...state.loading, updating: true },
+            error: null,
+          }),
+          false,
+          'updateProject:start'
+        );
 
         try {
-          const updatedProject = await projectService.updateProject(id, data);
+          const updatedProject: Project = await projectService.updateProject(id, data);
 
           set(
             (state) => ({
               projects: state.projects.map((p) => (p.id === id ? updatedProject : p)),
               currentProject: state.currentProject?.id === id ? updatedProject : state.currentProject,
-              loading: false,
+              loading: { ...state.loading, updating: false },
             }),
             false,
             'updateProject:success'
           );
 
           return updatedProject;
-        } catch (error) {
-          const errorMessage = error instanceof ProjectApiError 
-            ? error.message 
-            : 'Failed to update project';
+        } catch (error: unknown) {
+          const projectError = error as ProjectServiceError;
+          const errorMessage = projectError instanceof ProjectApiError 
+            ? projectError.message 
+            : projectError.message || 'Failed to update project';
 
           set(
-            {
-              loading: false,
+            (state) => ({
+              loading: { ...state.loading, updating: false },
               error: errorMessage,
-            },
+            }),
             false,
             'updateProject:error'
           );
@@ -195,8 +263,15 @@ export const useProjectStore = create<ProjectState>()(
         }
       },
 
-      deleteProject: async (id: string) => {
-        set({ loading: true, error: null }, false, 'deleteProject:start');
+      deleteProject: async (id: string): Promise<void> => {
+        set(
+          (state) => ({
+            loading: { ...state.loading, deleting: true },
+            error: null,
+          }),
+          false,
+          'deleteProject:start'
+        );
 
         try {
           await projectService.deleteProject(id);
@@ -205,21 +280,22 @@ export const useProjectStore = create<ProjectState>()(
             (state) => ({
               projects: state.projects.filter((p) => p.id !== id),
               currentProject: state.currentProject?.id === id ? null : state.currentProject,
-              loading: false,
+              loading: { ...state.loading, deleting: false },
             }),
             false,
             'deleteProject:success'
           );
-        } catch (error) {
-          const errorMessage = error instanceof ProjectApiError 
-            ? error.message 
-            : 'Failed to delete project';
+        } catch (error: unknown) {
+          const projectError = error as ProjectServiceError;
+          const errorMessage = projectError instanceof ProjectApiError 
+            ? projectError.message 
+            : projectError.message || 'Failed to delete project';
 
           set(
-            {
-              loading: false,
+            (state) => ({
+              loading: { ...state.loading, deleting: false },
               error: errorMessage,
-            },
+            }),
             false,
             'deleteProject:error'
           );
@@ -228,8 +304,15 @@ export const useProjectStore = create<ProjectState>()(
         }
       },
 
-      addTeamMember: async (projectId: string, _data: AddTeamMemberRequest) => {
-        set({ loading: true, error: null }, false, 'addTeamMember:start');
+      addTeamMember: async (projectId: string, data: AddTeamMemberRequest): Promise<void> => {
+        set(
+          (state) => ({
+            loading: { ...state.loading, teamManagement: true },
+            error: null,
+          }),
+          false,
+          'addTeamMember:start'
+        );
 
         try {
           await projectService.addTeamMember(projectId, data);
@@ -239,17 +322,24 @@ export const useProjectStore = create<ProjectState>()(
             await get().loadProject(projectId);
           }
 
-          set({ loading: false }, false, 'addTeamMember:success');
-        } catch (error) {
-          const errorMessage = error instanceof ProjectApiError 
-            ? error.message 
-            : 'Failed to add team member';
+          set(
+            (state) => ({
+              loading: { ...state.loading, teamManagement: false },
+            }),
+            false,
+            'addTeamMember:success'
+          );
+        } catch (error: unknown) {
+          const projectError = error as ProjectServiceError;
+          const errorMessage = projectError instanceof ProjectApiError 
+            ? projectError.message 
+            : projectError.message || 'Failed to add team member';
 
           set(
-            {
-              loading: false,
+            (state) => ({
+              loading: { ...state.loading, teamManagement: false },
               error: errorMessage,
-            },
+            }),
             false,
             'addTeamMember:error'
           );
@@ -258,8 +348,15 @@ export const useProjectStore = create<ProjectState>()(
         }
       },
 
-      removeTeamMember: async (projectId: string, memberId: string) => {
-        set({ loading: true, error: null }, false, 'removeTeamMember:start');
+      removeTeamMember: async (projectId: string, memberId: string): Promise<void> => {
+        set(
+          (state) => ({
+            loading: { ...state.loading, teamManagement: true },
+            error: null,
+          }),
+          false,
+          'removeTeamMember:start'
+        );
 
         try {
           await projectService.removeTeamMember(projectId, memberId);
@@ -269,17 +366,24 @@ export const useProjectStore = create<ProjectState>()(
             await get().loadProject(projectId);
           }
 
-          set({ loading: false }, false, 'removeTeamMember:success');
-        } catch (error) {
-          const errorMessage = error instanceof ProjectApiError 
-            ? error.message 
-            : 'Failed to remove team member';
+          set(
+            (state) => ({
+              loading: { ...state.loading, teamManagement: false },
+            }),
+            false,
+            'removeTeamMember:success'
+          );
+        } catch (error: unknown) {
+          const projectError = error as ProjectServiceError;
+          const errorMessage = projectError instanceof ProjectApiError 
+            ? projectError.message 
+            : projectError.message || 'Failed to remove team member';
 
           set(
-            {
-              loading: false,
+            (state) => ({
+              loading: { ...state.loading, teamManagement: false },
               error: errorMessage,
-            },
+            }),
             false,
             'removeTeamMember:error'
           );
@@ -288,11 +392,11 @@ export const useProjectStore = create<ProjectState>()(
         }
       },
 
-      clearError: () => {
+      clearError: (): void => {
         set({ error: null }, false, 'clearError');
       },
 
-      clearCurrentProject: () => {
+      clearCurrentProject: (): void => {
         set({ currentProject: null }, false, 'clearCurrentProject');
       },
     }),
@@ -309,7 +413,7 @@ export const useProjects = () => {
     projects: store.projects,
     pagination: store.pagination,
     filters: store.filters,
-    loading: store.loading,
+    loading: store.loading.projects,
     error: store.error,
   };
 };
@@ -318,7 +422,7 @@ export const useCurrentProject = () => {
   const store = useProjectStore();
   return {
     project: store.currentProject,
-    loading: store.loading,
+    loading: store.loading.currentProject,
     error: store.error,
   };
 };
@@ -337,4 +441,19 @@ export const useProjectActions = () => {
     clearError: store.clearError,
     clearCurrentProject: store.clearCurrentProject,
   };
+};
+
+// Additional convenience hooks for specific loading states
+export const useProjectLoadingStates = () => {
+  const store = useProjectStore();
+  return store.loading;
+};
+
+// Export types for external use
+export type { 
+  ProjectStore, 
+  ProjectState, 
+  ProjectActions, 
+  ProjectServiceError, 
+  LoadingState 
 };

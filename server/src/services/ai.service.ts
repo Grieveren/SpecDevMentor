@@ -1,7 +1,8 @@
-import OpenAI from 'openai';
-import { RateLimiterMemory } from 'rate-limiter-flexible';
 import crypto from 'crypto';
 import { Redis } from 'ioredis';
+import OpenAI from 'openai';
+import { RateLimiterMemory } from 'rate-limiter-flexible';
+import { AIServiceConfig, AIServiceError } from '../types/services.js';
 
 // Types and interfaces
 export interface AIReviewResult {
@@ -50,13 +51,13 @@ export interface ComplianceIssue {
   suggestion: string;
 }
 
-export type SuggestionCategory = 
-  | 'structure' 
-  | 'clarity' 
-  | 'completeness' 
-  | 'format' 
-  | 'best_practice' 
-  | 'security' 
+export type SuggestionCategory =
+  | 'structure'
+  | 'clarity'
+  | 'completeness'
+  | 'format'
+  | 'best_practice'
+  | 'security'
   | 'performance';
 
 export type SpecificationPhase = 'requirements' | 'design' | 'tasks';
@@ -97,8 +98,8 @@ interface AIServiceConfig {
 
 // Cache interface
 interface AICache {
-  get(_key: string): Promise<AIReviewResult | null>;
-  set(_key: string, _result: AIReviewResult, ttl?: number): Promise<void>;
+  get(key: string): Promise<AIReviewResult | null>;
+  set(key: string, result: AIReviewResult, ttl?: number): Promise<void>;
   invalidate(pattern: string): Promise<void>;
 }
 
@@ -106,7 +107,7 @@ interface AICache {
 class RedisAICache implements AICache {
   constructor(private redis: Redis) {}
 
-  async get(_key: string): Promise<AIReviewResult | null> {
+  async get(key: string): Promise<AIReviewResult | null> {
     try {
       const cached = await this.redis.get(`ai:${key}`);
       return cached ? JSON.parse(cached) : null;
@@ -116,7 +117,7 @@ class RedisAICache implements AICache {
     }
   }
 
-  async set(_key: string, _result: AIReviewResult, ttl: number = 3600): Promise<void> {
+  async set(key: string, result: AIReviewResult, ttl: number = 3600): Promise<void> {
     try {
       await this.redis.setex(`ai:${key}`, ttl, JSON.stringify(result));
     } catch (error) {
@@ -174,7 +175,7 @@ export class AIService {
     projectId?: string
   ): Promise<AIReviewResult> {
     const cacheKey = this.generateCacheKey(content, phase);
-    
+
     // Check cache first
     const cached = await this.cache.get(cacheKey);
     if (cached) {
@@ -183,17 +184,17 @@ export class AIService {
 
     // Sanitize content before sending to AI
     const sanitizedContent = this.sanitizeContent(content);
-    
+
     // Get appropriate prompt for the phase
     const prompt = this.getReviewPrompt(phase, sanitizedContent);
-    
+
     try {
       const _response = await this.generateCompletion(prompt);
       const _result = this.parseReviewResponse(response, phase);
-      
+
       // Cache the result
       await this.cache.set(cacheKey, result);
-      
+
       return result;
     } catch (error) {
       throw new AIServiceError(
@@ -210,7 +211,7 @@ export class AIService {
    */
   async validateEARSFormat(content: string): Promise<ComplianceIssue[]> {
     const prompt = this.getEARSValidationPrompt(content);
-    
+
     try {
       const _response = await this.generateCompletion(prompt);
       return this.parseComplianceResponse(response);
@@ -229,7 +230,7 @@ export class AIService {
    */
   async validateUserStories(content: string): Promise<ComplianceIssue[]> {
     const prompt = this.getUserStoryValidationPrompt(content);
-    
+
     try {
       const _response = await this.generateCompletion(prompt);
       return this.parseComplianceResponse(response);
@@ -249,7 +250,7 @@ export class AIService {
   private async generateCompletion(prompt: string): Promise<string> {
     // Apply rate limiting
     await this.rateLimiter.consume('ai-service');
-    
+
     // Estimate tokens and apply token rate limiting
     const estimatedTokens = Math.ceil(prompt.length / 4);
     await this.tokenRateLimiter.consume('ai-service', estimatedTokens);
@@ -272,14 +273,9 @@ export class AIService {
           true
         );
       }
-      
+
       if (error.status === 401) {
-        throw new AIServiceError(
-          'Invalid API key',
-          error,
-          AIErrorCode.API_KEY_INVALID,
-          false
-        );
+        throw new AIServiceError('Invalid API key', error, AIErrorCode.API_KEY_INVALID, false);
       }
 
       if (error.status === 400 && error.message?.includes('content_filter')) {
@@ -409,7 +405,7 @@ Focus on:
 
 Document:
 ${content}
-`
+`,
     };
 
     return prompts[phase];
@@ -476,13 +472,23 @@ ${content}
   private parseReviewResponse(_response: string, phase: SpecificationPhase): AIReviewResult {
     try {
       const parsed = JSON.parse(response);
-      
+
       return {
         id: crypto.randomUUID(),
         overallScore: parsed.overallScore || 0,
         suggestions: parsed.suggestions || [],
-        completenessCheck: parsed.completenessCheck || { score: 0, missingElements: [], recommendations: [] },
-        qualityMetrics: parsed.qualityMetrics || { clarity: 0, completeness: 0, consistency: 0, testability: 0, traceability: 0 },
+        completenessCheck: parsed.completenessCheck || {
+          score: 0,
+          missingElements: [],
+          recommendations: [],
+        },
+        qualityMetrics: parsed.qualityMetrics || {
+          clarity: 0,
+          completeness: 0,
+          consistency: 0,
+          testability: 0,
+          traceability: 0,
+        },
         complianceIssues: parsed.complianceIssues || [],
         generatedAt: new Date(),
       };
@@ -491,17 +497,25 @@ ${content}
       return {
         id: crypto.randomUUID(),
         overallScore: 50,
-        suggestions: [{
-          id: crypto.randomUUID(),
-          type: 'warning',
-          severity: 'medium',
-          title: 'AI Response Parsing Failed',
-          description: 'The AI service returned an invalid response format.',
-          reasoning: 'Technical issue with AI service response parsing',
-          category: 'structure'
-        }],
+        suggestions: [
+          {
+            id: crypto.randomUUID(),
+            type: 'warning',
+            severity: 'medium',
+            title: 'AI Response Parsing Failed',
+            description: 'The AI service returned an invalid response format.',
+            reasoning: 'Technical issue with AI service response parsing',
+            category: 'structure',
+          },
+        ],
         completenessCheck: { score: 50, missingElements: [], recommendations: [] },
-        qualityMetrics: { clarity: 50, completeness: 50, consistency: 50, testability: 50, traceability: 50 },
+        qualityMetrics: {
+          clarity: 50,
+          completeness: 50,
+          consistency: 50,
+          testability: 50,
+          traceability: 50,
+        },
         complianceIssues: [],
         generatedAt: new Date(),
       };
@@ -547,7 +561,7 @@ ${content}
 /**
  * Retry logic for AI service calls
  */
-export const withRetry = async <T,>(
+export const withRetry = async <T>(
   operation: () => Promise<T>,
   maxRetries: number = 3,
   backoffMs: number = 1000
