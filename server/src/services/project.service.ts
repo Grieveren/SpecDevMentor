@@ -15,7 +15,7 @@ import {
   InternalServerError,
   NotFoundError,
   ValidationError,
-} from '@shared/types/errors';
+} from '../../../shared/types';
 import Redis from 'ioredis';
 import { handleServiceError } from '../utils/error-handler';
 

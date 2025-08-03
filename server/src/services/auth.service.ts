@@ -5,7 +5,7 @@ import {
   ConflictError,
   InternalServerError,
   NotFoundError,
-} from '@shared/types/errors';
+} from '../../../shared/types';
 import bcrypt from 'bcryptjs';
 import crypto from 'crypto';
 import jwt from 'jsonwebtoken';

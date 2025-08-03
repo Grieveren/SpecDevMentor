@@ -1,4 +1,4 @@
-import { AppError, ErrorCode } from '../../../shared/types/errors.js';
+import { AppError, ErrorCode } from '../../../shared/types';
 
 /**
  * Decorator for handling service errors consistently
