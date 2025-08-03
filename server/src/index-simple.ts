@@ -6,6 +6,7 @@ import morgan from 'morgan';
 import dotenv from 'dotenv';
 import { createServer } from 'http';
 import { PrismaClient } from '@prisma/client';
+import bcrypt from 'bcryptjs';
 
 // Load environment variables
 dotenv.config();
@@ -119,6 +120,52 @@ app.get('/api/users', async (req, res) => {
 });
 
 // Basic auth endpoints
+app.post('/api/auth/register', async (req, res) => {
+  const { email, password, name } = req.body;
+
+  try {
+    // Check for existing user
+    const existingUser = await prisma.user.findUnique({ where: { email } });
+    if (existingUser) {
+      return res.status(400).json({
+        success: false,
+        error: 'User already exists',
+      });
+    }
+
+    // Hash password (simple demo implementation)
+    const hashedPassword = await bcrypt.hash(password, 10);
+
+    const user = await prisma.user.create({
+      data: {
+        email,
+        name,
+        password: hashedPassword,
+      },
+      select: {
+        id: true,
+        name: true,
+        email: true,
+        role: true,
+      },
+    });
+
+    res.status(201).json({
+      success: true,
+      data: {
+        user,
+        tokens: {
+          accessToken: 'demo-access-token',
+          refreshToken: 'demo-refresh-token',
+        },
+      },
+    });
+  } catch (error) {
+    console.error('Registration error:', error);
+    res.status(500).json({ success: false, error: 'Registration failed' });
+  }
+});
+
 app.post('/api/auth/login', async (req, res) => {
   const { email, password: _password } = req.body;
 
