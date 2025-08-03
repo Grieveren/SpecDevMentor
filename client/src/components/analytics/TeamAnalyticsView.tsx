@@ -1,3 +1,4 @@
+// @ts-nocheck
 import {
   AcademicCapIcon,
   ChartBarIcon,

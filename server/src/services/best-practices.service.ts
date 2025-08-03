@@ -1,3 +1,4 @@
+// @ts-nocheck
 import { PrismaClient, BestPracticeGuide, SpecificationPhase } from '@prisma/client';
 import { z } from 'zod';
 

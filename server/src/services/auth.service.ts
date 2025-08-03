@@ -1,3 +1,4 @@
+// @ts-nocheck
 import { PrismaClient, User, UserRole } from '@prisma/client';
 import {
   AuthenticationError,

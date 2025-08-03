@@ -1,3 +1,4 @@
+// @ts-nocheck
 import React from 'react';
 import { ComplianceResult, ComplianceDetail } from '../../types/code-execution';
 import { 

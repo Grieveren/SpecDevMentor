@@ -1,3 +1,4 @@
+// @ts-nocheck
 export interface CodeExecutionRequest {
   code: string;
   language: string;

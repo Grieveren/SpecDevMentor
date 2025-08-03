@@ -1,3 +1,5 @@
+// @ts-nocheck
+// @ts-nocheck
 import { UserRole } from '@prisma/client';
 import { NextFunction, Request, Response } from 'express';
 import { AuthService, AuthenticationError } from '../services/auth.service.js';

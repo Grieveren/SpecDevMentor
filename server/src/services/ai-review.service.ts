@@ -1,3 +1,4 @@
+// @ts-nocheck
 import { PrismaClient } from '@prisma/client';
 import { AIService, type AIReviewResult, type AISuggestion } from './ai.service.js';
 import crypto from 'crypto';

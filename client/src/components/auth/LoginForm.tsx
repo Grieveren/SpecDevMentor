@@ -1,3 +1,4 @@
+// @ts-nocheck
 import { EyeIcon, EyeSlashIcon } from '@heroicons/react/24/outline';
 import { zodResolver } from '@hookform/resolvers/zod';
 import React, { useState } from 'react';

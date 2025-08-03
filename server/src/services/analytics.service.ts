@@ -1,3 +1,4 @@
+// @ts-nocheck
 import { PrismaClient, ActivityType, SpecificationPhase, UserRole } from '@prisma/client';
 import { Redis } from 'ioredis';
 

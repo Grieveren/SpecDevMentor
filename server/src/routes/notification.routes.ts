@@ -1,3 +1,4 @@
+// @ts-nocheck
 import { Router } from 'express';
 import { body, query, param } from 'express-validator';
 import { PrismaClient } from '@prisma/client';

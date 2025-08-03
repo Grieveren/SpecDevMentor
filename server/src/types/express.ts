@@ -1,5 +1,6 @@
-import { UserRole } from '@prisma/client';
 import { NextFunction, Request, Response } from 'express';
+
+export type UserRole = 'STUDENT' | 'DEVELOPER' | 'TEAM_LEAD' | 'ADMIN';
 
 // JWT Payload interface
 export interface JWTPayload {

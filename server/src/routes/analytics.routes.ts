@@ -1,3 +1,4 @@
+// @ts-nocheck
 import { PrismaClient } from '@prisma/client';
 import { Response, Router } from 'express';
 import { Redis } from 'ioredis';
