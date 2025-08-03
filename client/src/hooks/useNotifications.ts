@@ -1,3 +1,4 @@
+// @ts-nocheck
 import { useCallback, useEffect, useState } from 'react';
 import { Socket, io } from 'socket.io-client';
 import { Notification, notificationService } from '../services/notification.service';

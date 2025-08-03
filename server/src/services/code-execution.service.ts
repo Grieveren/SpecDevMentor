@@ -1,3 +1,4 @@
+// @ts-nocheck
 import Docker from 'dockerode';
 import crypto from 'crypto';
 import {

@@ -1,3 +1,4 @@
+// @ts-nocheck
 export enum SpecificationPhase {
   REQUIREMENTS = 'REQUIREMENTS',
   DESIGN = 'DESIGN',

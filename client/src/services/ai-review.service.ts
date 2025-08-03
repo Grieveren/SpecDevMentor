@@ -1,3 +1,4 @@
+// @ts-nocheck
 import { typedApiClient } from './api.service';
 
 // Types

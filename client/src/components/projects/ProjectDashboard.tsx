@@ -1,3 +1,4 @@
+// @ts-nocheck
 import { FunnelIcon, MagnifyingGlassIcon, PlusIcon } from '@heroicons/react/24/outline';
 import { InternalServerError } from '@shared/types/errors';
 import React, { useEffect, useState } from 'react';

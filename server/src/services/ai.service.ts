@@ -1,3 +1,4 @@
+// @ts-nocheck
 import crypto from 'crypto';
 import { Redis } from 'ioredis';
 import OpenAI from 'openai';

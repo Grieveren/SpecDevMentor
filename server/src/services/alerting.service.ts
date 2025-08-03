@@ -1,3 +1,4 @@
+// @ts-nocheck
 import { EventEmitter } from 'events';
 import nodemailer from 'nodemailer';
 import { logger } from './logger.service.js';

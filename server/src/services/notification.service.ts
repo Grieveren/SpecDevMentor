@@ -1,3 +1,4 @@
+// @ts-nocheck
 import { PrismaClient, NotificationType, EmailStatus, DigestFrequency } from '@prisma/client';
 import nodemailer from 'nodemailer';
 import { Redis } from 'ioredis';

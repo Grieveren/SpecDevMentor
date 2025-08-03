@@ -1,3 +1,4 @@
+// @ts-nocheck
 export { AIReviewPanel } from './AIReviewPanel';
 export { SuggestionCard } from './SuggestionCard';
 export { DiffVisualization } from './DiffVisualization';

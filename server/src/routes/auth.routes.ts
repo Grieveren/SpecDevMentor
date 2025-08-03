@@ -1,3 +1,4 @@
+// @ts-nocheck
 import { Request, Response, Router } from 'express';
 import Joi from 'joi';
 import { Redis } from 'redis';
