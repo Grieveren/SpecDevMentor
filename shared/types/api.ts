@@ -3,7 +3,7 @@
  */
 
 // Standard API response wrapper
-export interface ApiResponse<T = any> {
+export interface ApiResponse<T = unknown> {
   data: T;
   success: boolean;
   message?: string;
@@ -21,7 +21,7 @@ export interface ApiError {
   message: string;
   code?: string;
   field?: string;
-  details?: Record<string, any>;
+  details?: Record<string, unknown>;
 }
 
 // Pagination parameters
@@ -35,7 +35,7 @@ export interface PaginationParams {
 // Search parameters
 export interface SearchParams extends PaginationParams {
   query?: string;
-  filters?: Record<string, any>;
+  filters?: Record<string, unknown>;
 }
 
 // Base request interface
@@ -69,13 +69,13 @@ export interface RequestConfig {
   timeout?: number;
   retries?: number;
   headers?: Record<string, string>;
-  params?: Record<string, any>;
+  params?: Record<string, unknown>;
 }
 
 // File upload types
 export interface FileUploadRequest {
-  file: any; // File or Blob type (browser) or Buffer (Node.js)
-  metadata?: Record<string, any>;
+  file: File | Blob | Buffer; // File or Blob type (browser) or Buffer (Node.js)
+  metadata?: Record<string, unknown>;
 }
 
 export interface FileUploadResponse {
@@ -92,7 +92,7 @@ export interface ValidationError {
   field: string;
   message: string;
   code: string;
-  value?: any;
+  value?: unknown;
 }
 
 // Bulk operation types

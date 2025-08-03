@@ -1,10 +1,8 @@
-// @ts-nocheck
-import { PrismaClient } from '@prisma/client';
+import { FileAttachment, PrismaClient } from '@prisma/client';
+import crypto from 'crypto';
+import fs from 'fs/promises';
 import multer from 'multer';
 import path from 'path';
-import fs from 'fs/promises';
-import crypto from 'crypto';
-import { Request } from 'express';
 
 interface FileUploadOptions {
   maxFileSize?: number;
@@ -65,7 +63,7 @@ export class FileUploadService {
         if (preserveOriginalName) {
           cb(null, file.originalname);
         } else {
-          const uniqueSuffix = Date.now() + '-' + Math.round(Math.random() * 1E9);
+          const uniqueSuffix = Date.now() + '-' + Math.round(Math.random() * 1e9);
           const ext = path.extname(file.originalname);
           cb(null, `${file.fieldname}-${uniqueSuffix}${ext}`);
         }
@@ -188,7 +186,7 @@ export class FileUploadService {
   /**
    * Get file by ID
    */
-  async getFile(fileId: string, userId?: string): Promise<any> {
+  async getFile(fileId: string, userId?: string): Promise<FileAttachment | null> {
     const _file = await this.prisma.fileAttachment.findUnique({
       where: { id: fileId },
       include: {
@@ -223,7 +221,7 @@ export class FileUploadService {
   /**
    * Get files for a document
    */
-  async getDocumentFiles(documentId: string, userId: string): Promise<any[]> {
+  async getDocumentFiles(documentId: string, userId: string): Promise<FileAttachment[]> {
     // First check if user has access to the document
     const _document = await this.prisma.specificationDocument.findUnique({
       where: { id: documentId },
@@ -244,7 +242,8 @@ export class FileUploadService {
       throw new Error('Document not found');
     }
 
-    const hasAccess = document.project.owner.id === userId ||
+    const hasAccess =
+      document.project.owner.id === userId ||
       document.project.team.some(member => member.user.id === userId);
 
     if (!hasAccess) {
@@ -275,13 +274,13 @@ export class FileUploadService {
     userId: string
   ): Promise<UploadedFileInfo> {
     const existingFile = await this.getFile(fileId, userId);
-    
+
     if (existingFile.uploaderId !== userId) {
       throw new Error('Only the file owner can update versions');
     }
 
     const checksum = await this.calculateChecksum(newFile.path);
-    
+
     // Get next version number
     const latestVersion = await this.prisma.fileVersion.findFirst({
       where: { attachmentId: fileId },
@@ -334,7 +333,7 @@ export class FileUploadService {
    */
   async deleteFile(fileId: string, userId: string): Promise<void> {
     const _file = await this.getFile(fileId, userId);
-    
+
     if (file.uploaderId !== userId) {
       throw new Error('Only the file owner can delete files');
     }
@@ -368,9 +367,12 @@ export class FileUploadService {
   /**
    * Get file stream for download
    */
-  async getFileStream(fileId: string, userId?: string): Promise<{ stream: unknown; file: unknown }> {
+  async getFileStream(
+    fileId: string,
+    userId?: string
+  ): Promise<{ stream: unknown; file: unknown }> {
     const _file = await this.getFile(fileId, userId);
-    
+
     // Check if file exists on filesystem
     try {
       await fs.access(file.path);
@@ -378,9 +380,8 @@ export class FileUploadService {
       throw new Error('File not found on storage');
     }
 
-    const fs_stream = require('fs');
-    const stream = fs_stream.createReadStream(file.path);
-    
+    const stream = createReadStream(file.path);
+
     return { stream, file };
   }
 
@@ -401,10 +402,10 @@ export class FileUploadService {
         for (const version of file.versions) {
           await fs.unlink(version.path);
         }
-        
+
         // Delete main file from filesystem
         await fs.unlink(file.path);
-        
+
         // Delete from database
         await this.prisma.fileAttachment.delete({
           where: { id: file.id },
@@ -425,7 +426,7 @@ export class FileUploadService {
     sizeByType: Record<string, number>;
   }> {
     const where = userId ? { uploaderId: userId } : {};
-    
+
     const files = await this.prisma.fileAttachment.findMany({
       where,
       select: { mimeType: true, size: true },
@@ -475,7 +476,10 @@ export class FileUploadService {
     return crypto.createHash('sha256').update(fileBuffer).digest('hex');
   }
 
-  private async findDuplicateFile(checksum: string, uploaderId: string): Promise<any> {
+  private async findDuplicateFile(
+    checksum: string,
+    uploaderId: string
+  ): Promise<FileAttachment | null> {
     return await this.prisma.fileAttachment.findFirst({
       where: {
         checksum,
@@ -486,13 +490,25 @@ export class FileUploadService {
 
   private isExecutableFile(filename: string): boolean {
     const executableExtensions = [
-      '.exe', '.bat', '.cmd', '.com', '.scr', '.pif',
-      '.sh', '.bash', '.zsh', '.fish',
-      '.app', '.dmg', '.pkg',
-      '.deb', '.rpm',
-      '.jar', '.war',
+      '.exe',
+      '.bat',
+      '.cmd',
+      '.com',
+      '.scr',
+      '.pif',
+      '.sh',
+      '.bash',
+      '.zsh',
+      '.fish',
+      '.app',
+      '.dmg',
+      '.pkg',
+      '.deb',
+      '.rpm',
+      '.jar',
+      '.war',
     ];
-    
+
     const ext = path.extname(filename).toLowerCase();
     return executableExtensions.includes(ext);
   }
@@ -521,8 +537,10 @@ export class FileUploadService {
       });
 
       if (document) {
-        return document.project.owner.id === userId ||
-          document.project.team.some(member => member.user.id === userId);
+        return (
+          document.project.owner.id === userId ||
+          document.project.team.some(member => member.user.id === userId)
+        );
       }
     }
 

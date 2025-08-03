@@ -1,12 +1,12 @@
-import express from 'express';
-import cors from 'cors';
-import helmet from 'helmet';
-import compression from 'compression';
-import morgan from 'morgan';
-import dotenv from 'dotenv';
-import { createServer } from 'http';
 import { PrismaClient } from '@prisma/client';
 import bcrypt from 'bcryptjs';
+import compression from 'compression';
+import cors from 'cors';
+import dotenv from 'dotenv';
+import express from 'express';
+import helmet from 'helmet';
+import { createServer } from 'http';
+import morgan from 'morgan';
 
 // Load environment variables
 dotenv.config();
@@ -119,41 +119,117 @@ app.get('/api/users', async (req, res) => {
   }
 });
 
+// Validation helper functions
+function validateEmail(email: string): boolean {
+  const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+  return emailRegex.test(email);
+}
+
+function validatePassword(password: string): { isValid: boolean; errors: string[] } {
+  const errors: string[] = [];
+
+  if (!password || password.length < 8) {
+    errors.push('Password must be at least 8 characters long');
+  }
+
+  if (!/[a-z]/.test(password)) {
+    errors.push('Password must contain at least one lowercase letter');
+  }
+
+  if (!/[A-Z]/.test(password)) {
+    errors.push('Password must contain at least one uppercase letter');
+  }
+
+  if (!/\d/.test(password)) {
+    errors.push('Password must contain at least one number');
+  }
+
+  if (!/[@$!%*?&]/.test(password)) {
+    errors.push('Password must contain at least one special character (@$!%*?&)');
+  }
+
+  return { isValid: errors.length === 0, errors };
+}
+
 // Basic auth endpoints
 app.post('/api/auth/register', async (req, res) => {
-  const { email, password, name } = req.body;
+  const { name, email, password } = req.body;
 
   try {
-    // Check for existing user
-    const existingUser = await prisma.user.findUnique({ where: { email } });
-    if (existingUser) {
+    // Validation errors array
+    const errors: string[] = [];
+
+    // Check required fields
+    if (!name || name.trim().length === 0) {
+      errors.push('Name is required');
+    } else if (name.trim().length < 2) {
+      errors.push('Name must be at least 2 characters long');
+    } else if (name.trim().length > 50) {
+      errors.push('Name cannot exceed 50 characters');
+    }
+
+    if (!email || email.trim().length === 0) {
+      errors.push('Email is required');
+    } else if (!validateEmail(email)) {
+      errors.push('Please provide a valid email address');
+    }
+
+    if (!password) {
+      errors.push('Password is required');
+    } else {
+      const passwordValidation = validatePassword(password);
+      if (!passwordValidation.isValid) {
+        errors.push(...passwordValidation.errors);
+      }
+    }
+
+    // If validation errors exist, return them
+    if (errors.length > 0) {
       return res.status(400).json({
         success: false,
-        error: 'User already exists',
+        message: 'Validation failed',
+        errors,
       });
     }
 
-    // Hash password (simple demo implementation)
-    const hashedPassword = await bcrypt.hash(password, 10);
+    // Check if user already exists
+    const existingUser = await prisma.user.findUnique({
+      where: { email: email.toLowerCase() },
+    });
+
+    if (existingUser) {
+      return res.status(409).json({
+        success: false,
+        message: 'User already exists with this email',
+        errors: ['Email is already registered'],
+      });
+    }
+
+    // Hash password (production implementation)
+    const hashedPassword = await bcrypt.hash(password, 12);
 
     const user = await prisma.user.create({
       data: {
-        email,
-        name,
+        name: name.trim(),
+        email: email.toLowerCase(),
         password: hashedPassword,
-      },
-      select: {
-        id: true,
-        name: true,
-        email: true,
-        role: true,
+        role: 'DEVELOPER',
       },
     });
 
     res.status(201).json({
       success: true,
+      message: 'User registered successfully',
       data: {
-        user,
+        user: {
+          id: user.id,
+          name: user.name,
+          email: user.email,
+          role: user.role,
+          isVerified: user.isVerified,
+          createdAt: user.createdAt.toISOString(),
+          updatedAt: user.updatedAt.toISOString(),
+        },
         tokens: {
           accessToken: 'demo-access-token',
           refreshToken: 'demo-refresh-token',
@@ -162,7 +238,11 @@ app.post('/api/auth/register', async (req, res) => {
     });
   } catch (error) {
     console.error('Registration error:', error);
-    res.status(500).json({ success: false, error: 'Registration failed' });
+    res.status(500).json({
+      success: false,
+      message: 'Registration failed',
+      errors: ['Internal server error'],
+    });
   }
 });
 
@@ -178,6 +258,9 @@ app.post('/api/auth/login', async (req, res) => {
         email: true,
         role: true,
         password: true,
+        isVerified: true,
+        createdAt: true,
+        updatedAt: true,
       },
     });
 
@@ -199,6 +282,9 @@ app.post('/api/auth/login', async (req, res) => {
           name: user.name,
           email: user.email,
           role: user.role,
+          isVerified: user.isVerified,
+          createdAt: user.createdAt.toISOString(),
+          updatedAt: user.updatedAt.toISOString(),
         },
         tokens: {
           accessToken: 'demo-access-token',
