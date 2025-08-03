@@ -74,7 +74,7 @@ export interface RequestConfig {
 
 // File upload types
 export interface FileUploadRequest {
-  file: File | Blob | Buffer; // File or Blob type (browser) or Buffer (Node.js)
+  file: unknown; // File or Blob type (browser) or Buffer (Node.js)
   metadata?: Record<string, unknown>;
 }
 
