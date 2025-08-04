@@ -187,7 +187,7 @@ describe('PerformanceMonitoringService', () => {
     });
 
     it('should return null for non-existent rule', async () => {
-      const _result = await service.updateAlertRule('non-existent', { threshold: 1500 });
+      const result = await service.updateAlertRule('non-existent', { threshold: 1500 });
       expect(result).toBeNull();
     });
   });

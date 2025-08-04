@@ -384,7 +384,7 @@ export class PerformanceMonitoringService extends EventEmitter {
     }
   }
 
-  private evaluateCondition(_value: number, condition: string, threshold: number): boolean {
+  private evaluateCondition(value: number, condition: string, threshold: number): boolean {
     switch (condition) {
       case 'greater_than':
         return value > threshold;
@@ -427,7 +427,7 @@ export class PerformanceMonitoringService extends EventEmitter {
     this.emit('alertTriggered', alert);
   }
 
-  private calculateSeverity(_value: number, threshold: number, condition: string): Alert['severity'] {
+  private calculateSeverity(value: number, threshold: number, condition: string): Alert['severity'] {
     const deviation = Math.abs(value - threshold) / threshold;
     
     if (deviation > 0.5) return 'critical';
