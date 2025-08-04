@@ -1,30 +1,27 @@
 {
   "enabled": true,
   "name": "Code Quality Analyzer",
-  "description": "Listen to source code files in the repository. When changes are detected, analyze the modified code for potential improvements, including code smells, design patterns, and best practices. Generate suggestions for improving code quality while maintaining the existing functionality. Focus on readability, maintainability, and performance optimizations.",
+  "description": "Listen to source code files in the repository. When changes are detected, analyze the modified code for potential improvements, including code smells, design patterns, and best practices. Generate suggestions for improving code quality while maintaining the existing functionality. Focus on readability, maintainability, and performance optimizations. Implement the proposed changes.",
   "version": "1",
   "when": {
     "type": "fileEdited",
     "patterns": [
-      "**/*.ts",
-      "**/*.tsx",
-      "**/*.js",
-      "**/*.jsx",
-      "**/*.py",
-      "**/*.java",
-      "**/*.cpp",
-      "**/*.c",
-      "**/*.cs",
-      "**/*.go",
-      "**/*.rs",
-      "**/*.php",
-      "**/*.rb",
-      "**/*.swift",
-      "**/*.kt"
+      "client/src/**/*.{ts",
+      "tsx",
+      "js",
+      "jsx}",
+      "server/src/**/*.{ts",
+      "js}",
+      "shared/**/*.{ts",
+      "js}",
+      "*.{ts",
+      "tsx",
+      "js",
+      "jsx}"
     ]
   },
   "then": {
     "type": "askAgent",
-    "prompt": "Analyze the modified source code files for code quality improvements. Review the changes for:\n\n1. **Code Smells**: Identify long methods, large classes, duplicate code, complex conditionals, and other anti-patterns\n2. **Design Patterns**: Suggest appropriate design patterns that could improve the code structure\n3. **Best Practices**: Check adherence to language-specific best practices and coding standards\n4. **Readability**: Evaluate variable naming, function clarity, and code organization\n5. **Maintainability**: Assess code complexity, coupling, and cohesion\n6. **Performance**: Identify potential performance bottlenecks and optimization opportunities\n7. **Security**: Look for common security vulnerabilities and unsafe practices\n8. **Testing**: Suggest areas that need better test coverage or improved testability\n\nFor each issue found, provide:\n- Clear description of the problem\n- Specific line numbers or code sections affected\n- Concrete suggestions for improvement\n- Example of improved code where helpful\n- Priority level (Low/Medium/High/Critical)\n\nFocus on actionable feedback that maintains existing functionality while improving code quality. Consider the project's architecture patterns and coding standards when making recommendations."
+    "prompt": "A source code file has been modified. Please analyze the changed code for potential improvements including:\n\n1. **Code Smells Detection**: Identify long methods, duplicate code, large classes, inappropriate intimacy, and other code smells\n2. **Design Patterns**: Suggest appropriate design patterns that could improve the code structure\n3. **Best Practices**: Check for TypeScript best practices, React patterns, Node.js conventions, and project-specific standards\n4. **Performance Optimizations**: Look for opportunities to improve performance, memory usage, and bundle size\n5. **Readability & Maintainability**: Suggest improvements for code clarity, naming conventions, and documentation\n6. **Security Considerations**: Identify potential security vulnerabilities or areas for improvement\n\nFor each suggestion:\n- Explain the current issue and why it should be improved\n- Provide the specific code changes needed\n- Explain the benefits of the proposed change\n- Ensure the changes maintain existing functionality\n\nFocus on actionable improvements that align with the project's architecture standards, TypeScript patterns, React best practices, and the specific patterns used in this CodeMentor AI platform.\n\nAfter analysis, implement the most critical improvements while preserving all existing functionality."
   }
 }

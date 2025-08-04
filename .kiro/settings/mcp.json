@@ -42,7 +42,9 @@
         "BRAVE_API_KEY": "${env:BRAVE_API_KEY}"
       },
       "disabled": false,
-      "autoApprove": []
+      "autoApprove": [
+        "brave_web_search"
+      ]
     },
     "browser": {
       "command": "uvx",
