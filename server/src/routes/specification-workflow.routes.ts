@@ -1,12 +1,12 @@
 // @ts-nocheck
 import { Router } from 'express';
-import { PrismaClient } from '@prisma/client';
+import type { Router as ExpressRouter } from 'express';import { PrismaClient } from '@prisma/client';
 import Redis from 'ioredis';
 import { authenticateToken } from '../middleware/auth.middleware';
 import { SpecificationWorkflowService } from '../services/specification-workflow.service';
 import { createAIService } from '../services/ai.service';
 
-const router = Router();
+const router: ExpressRouter = Router();
 const prisma = new PrismaClient();
 const redis = new Redis(process.env.REDIS_URL || 'redis://localhost:6379');
 

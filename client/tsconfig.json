@@ -1,5 +1,4 @@
 {
-  "extends": "../tsconfig.json",
   "compilerOptions": {
     // React-specific settings
     "target": "ES2020",
@@ -9,21 +8,19 @@
     "moduleResolution": "bundler",
 
     // Module resolution
-    "allowImportingTsExtensions": true,
+    "allowImportingTsExtensions": false,
     "resolveJsonModule": true,
     "isolatedModules": true,
     "esModuleInterop": true,
     "allowSyntheticDefaultImports": true,
 
     // Emit settings for client
-    "noEmit": false,
-    "declaration": true,
+    "noEmit": true,
+    "declaration": false,
     "sourceMap": true,
     "incremental": true,
-    "composite": true,
     "outDir": "./dist",
-    "rootDir": "..",
-    "tsBuildInfoFile": "./dist/.tsbuildinfo",
+    "tsBuildInfoFile": "./.tsbuildinfo",
 
     // JSX settings
     "jsx": "react-jsx",

@@ -1,11 +1,11 @@
 // @ts-nocheck
 import { PrismaClient } from '@prisma/client';
 import { Response, Router } from 'express';
-import { Redis } from 'ioredis';
+import type { Router as ExpressRouter } from 'express';import { Redis } from 'ioredis';
 import Joi from 'joi';
 import { AnalyticsService } from '../services/analytics.service.js';
 
-const router = Router();
+const router: ExpressRouter = Router();
 const prisma = new PrismaClient();
 const redis = new Redis(process.env.REDIS_URL || 'redis://localhost:6379');
 const analyticsService = new AnalyticsService(prisma, redis);

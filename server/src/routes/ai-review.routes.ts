@@ -1,13 +1,13 @@
 // @ts-nocheck
 import { Router } from 'express';
-import { body, param, query } from 'express-validator';
+import type { Router as ExpressRouter } from 'express';import { body, param, query } from 'express-validator';
 import { authenticateToken } from '../middleware/auth.middleware.js';
 import { validateRequest } from '../middleware/validation.middleware.js';
 import { AIReviewService } from '../services/ai-review.service.js';
 import { createAIService } from '../services/ai.service.js';
 import { Redis } from 'ioredis';
 
-const router = Router();
+const router: ExpressRouter = Router();
 
 // Initialize services
 const redis = new Redis(process.env.REDIS_URL || 'redis://localhost:6379');

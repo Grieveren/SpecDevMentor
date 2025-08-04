@@ -1,13 +1,13 @@
 // @ts-nocheck
 import { PrismaClient } from '@prisma/client';
 import { NextFunction, Request, Response, Router } from 'express';
-import { body, param, query, validationResult } from 'express-validator';
+import type { Router as ExpressRouter } from 'express';import { body, param, query, validationResult } from 'express-validator';
 import Redis from 'ioredis';
-import { AuthService, AuthenticationError } from '../services/auth.service.js';
+import { AuthService } from '../services/auth.service.js';
+import { AuthenticationError } from '../../../shared/types';
 import {
   AddTeamMemberRequest,
   CreateProjectRequest,
-  ProjectError,
   ProjectService,
   UpdateProjectRequest,
 } from '../services/project.service.js';
@@ -20,7 +20,7 @@ import {
   Middleware,
 } from '../types/express.js';
 
-const router = Router();
+const router: ExpressRouter = Router();
 
 // Initialize services
 const prisma = new PrismaClient();
@@ -94,13 +94,14 @@ const handleProjectError: ErrorMiddleware = (
   res: Response,
   next: NextFunction
 ): void => {
-  if (error instanceof ProjectError) {
+  // Handle known error types from shared/types
+  if (error instanceof Error && 'code' in error && 'statusCode' in error) {
     const errorResponse: ApiError = {
       success: false,
       message: error.message,
-      code: error.code,
+      code: (error as any).code,
     };
-    res.status(error.statusCode).json(errorResponse);
+    res.status((error as any).statusCode).json(errorResponse);
     return;
   }
 

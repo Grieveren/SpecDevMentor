@@ -1,15 +1,16 @@
 // @ts-nocheck
 import { Request, Response, Router } from 'express';
+import type { Router as ExpressRouter } from 'express';
 import Joi from 'joi';
 import { Redis } from 'redis';
 import { AuthMiddleware, createAuthRateLimit } from '../middleware/auth.middleware.js';
 import {
   AuthService,
-  AuthenticationError,
   LoginRequest,
   RegisterRequest,
   TokenPair,
 } from '../services/auth.service.js';
+import { AuthenticationError } from '../../../shared/types';
 import {
   ApiError,
   ApiResponse,
@@ -19,7 +20,7 @@ import {
   ValidationErrorDetail,
 } from '../types/express.js';
 
-const router = Router();
+const router: ExpressRouter = Router();
 
 // Validation schemas
 const registerSchema = Joi.object({
@@ -78,7 +79,7 @@ const authRateLimit = createAuthRateLimit();
 const loginRateLimit = authRateLimit({ maxAttempts: 5, windowMs: 15 * 60 * 1000 }); // 5 attempts per 15 minutes
 const registerRateLimit = authRateLimit({ maxAttempts: 3, windowMs: 60 * 60 * 1000 }); // 3 attempts per hour
 
-export const createAuthRoutes = (redis: Redis) => {
+export const createAuthRoutes = (redis: Redis): ExpressRouter => {
   const authService = new AuthService(redis);
   const authMiddleware = new AuthMiddleware(authService);
 

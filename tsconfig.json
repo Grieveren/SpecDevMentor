@@ -7,7 +7,7 @@
     "moduleResolution": "bundler",
     
     // Module resolution and imports
-    "allowImportingTsExtensions": true,
+    "allowImportingTsExtensions": false,
     "resolveJsonModule": true,
     "isolatedModules": true,
     "esModuleInterop": true,
@@ -54,9 +54,5 @@
     "**/*.test.tsx",
     "**/*.spec.ts",
     "**/*.spec.tsx"
-  ],
-  "references": [
-    { "path": "./client" },
-    { "path": "./server" }
   ]
 }

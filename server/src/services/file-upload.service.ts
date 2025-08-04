@@ -1,6 +1,7 @@
 import { FileAttachment, PrismaClient } from '@prisma/client';
 import crypto from 'crypto';
 import fs from 'fs/promises';
+import { createReadStream } from 'fs';
 import multer from 'multer';
 import path from 'path';
 
@@ -119,7 +120,7 @@ export class FileUploadService {
             mimeType: existingFile.mimeType,
             size: existingFile.size,
             path: existingFile.path,
-            url: existingFile.url,
+            url: existingFile.url || undefined,
             checksum: existingFile.checksum,
           });
           continue;
@@ -165,7 +166,7 @@ export class FileUploadService {
           mimeType: fileRecord.mimeType,
           size: fileRecord.size,
           path: fileRecord.path,
-          url: fileRecord.url,
+          url: fileRecord.url || undefined,
           checksum: fileRecord.checksum,
         });
       } catch (error) {
@@ -203,19 +204,19 @@ export class FileUploadService {
       },
     });
 
-    if (!file) {
+    if (!_file) {
       throw new Error('File not found');
     }
 
     // Check permissions
-    if (userId && !file.isPublic) {
-      const hasAccess = await this.checkFileAccess(file, userId);
+    if (userId && !_file.isPublic) {
+      const hasAccess = await this.checkFileAccess(_file, userId);
       if (!hasAccess) {
         throw new Error('Access denied');
       }
     }
 
-    return file;
+    return _file;
   }
 
   /**
@@ -238,13 +239,13 @@ export class FileUploadService {
       },
     });
 
-    if (!document) {
+    if (!_document) {
       throw new Error('Document not found');
     }
 
     const hasAccess =
-      document.project.owner.id === userId ||
-      document.project.team.some(member => member.user.id === userId);
+      _document.project.owner.id === userId ||
+      _document.project.team.some(member => member.user.id === userId);
 
     if (!hasAccess) {
       throw new Error('Access denied');
@@ -275,7 +276,7 @@ export class FileUploadService {
   ): Promise<UploadedFileInfo> {
     const existingFile = await this.getFile(fileId, userId);
 
-    if (existingFile.uploaderId !== userId) {
+    if (existingFile && existingFile.uploaderId !== userId) {
       throw new Error('Only the file owner can update versions');
     }
 
@@ -323,7 +324,7 @@ export class FileUploadService {
       mimeType: updatedFile.mimeType,
       size: updatedFile.size,
       path: updatedFile.path,
-      url: updatedFile.url,
+      url: updatedFile.url || undefined,
       checksum: updatedFile.checksum,
     };
   }
@@ -334,7 +335,7 @@ export class FileUploadService {
   async deleteFile(fileId: string, userId: string): Promise<void> {
     const _file = await this.getFile(fileId, userId);
 
-    if (file.uploaderId !== userId) {
+    if (_file && _file.uploaderId !== userId) {
       throw new Error('Only the file owner can delete files');
     }
 
@@ -353,9 +354,13 @@ export class FileUploadService {
 
     // Delete main file from filesystem
     try {
-      await fs.unlink(file.path);
+      if (_file) {
+        await fs.unlink(_file.path);
+      }
     } catch (error) {
-      console.error(`Failed to delete main file ${file.path}:`, error);
+      if (_file) {
+        console.error(`Failed to delete main file ${_file.path}:`, error);
+      }
     }
 
     // Delete from database (cascade will handle versions)
@@ -375,14 +380,15 @@ export class FileUploadService {
 
     // Check if file exists on filesystem
     try {
-      await fs.access(file.path);
+      if (_file) {
+        await fs.access(_file.path);
+      }
     } catch (error) {
       throw new Error('File not found on storage');
     }
 
-    const stream = createReadStream(file.path);
-
-    return { stream, file };
+    const stream = _file ? createReadStream(_file.path) : null;
+    return { stream, file: _file };
   }
 
   /**
@@ -513,7 +519,7 @@ export class FileUploadService {
     return executableExtensions.includes(ext);
   }
 
-  private async checkFileAccess(file: unknown, userId: string): Promise<boolean> {
+  private async checkFileAccess(file: any, userId: string): Promise<boolean> {
     // File owner always has access
     if (file.uploaderId === userId) {
       return true;
@@ -536,10 +542,10 @@ export class FileUploadService {
         },
       });
 
-      if (document) {
+      if (_document) {
         return (
-          document.project.owner.id === userId ||
-          document.project.team.some(member => member.user.id === userId)
+          _document.project.owner.id === userId ||
+          _document.project.team.some(member => member.user.id === userId)
         );
       }
     }

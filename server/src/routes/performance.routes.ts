@@ -1,13 +1,13 @@
 // @ts-nocheck
 import { Router, Request, Response } from 'express';
-import { PrismaClient } from '@prisma/client';
+import type { Router as ExpressRouter } from 'express';import { PrismaClient } from '@prisma/client';
 import { Redis } from 'ioredis';
 import { PerformanceMonitoringService } from '../services/performance-monitoring.service';
 import { authMiddleware } from '../middleware/auth.middleware';
 import { validationMiddleware } from '../middleware/validation.middleware';
 import Joi from 'joi';
 
-const router = Router();
+const router: ExpressRouter = Router();
 const prisma = new PrismaClient();
 const redis = new Redis(process.env.REDIS_URL || 'redis://localhost:6379');
 const performanceService = new PerformanceMonitoringService(prisma, redis);

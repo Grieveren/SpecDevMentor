@@ -96,8 +96,8 @@ importers:
         specifier: ^1.14.0
         version: 1.14.0
       zod:
-        specifier: ^3.21.4
-        version: 3.21.4
+        specifier: ^3.23.8
+        version: 3.23.8
       zustand:
         specifier: ^4.4.1
         version: 4.4.1(@types/react@18.2.15)(react@18.2.0)
@@ -162,6 +162,9 @@ importers:
       tailwindcss:
         specifier: ^3.3.3
         version: 3.3.3
+      typescript:
+        specifier: ^5.1.6
+        version: 5.1.6
       vite:
         specifier: ^4.4.5
         version: 4.4.5(@types/node@20.4.5)
@@ -224,7 +227,7 @@ importers:
         version: 6.9.4
       openai:
         specifier: ^5.10.2
-        version: 5.10.2(zod@3.21.4)
+        version: 5.10.2(zod@3.23.8)
       rate-limiter-flexible:
         specifier: ^2.4.2
         version: 2.4.2
@@ -238,8 +241,8 @@ importers:
         specifier: ^3.10.0
         version: 3.10.0
       zod:
-        specifier: ^3.21.4
-        version: 3.21.4
+        specifier: ^3.23.8
+        version: 3.23.8
     devDependencies:
       '@types/bcryptjs':
         specifier: ^2.4.2
@@ -298,6 +301,9 @@ importers:
       tsx:
         specifier: ^3.12.7
         version: 3.12.7
+      typescript:
+        specifier: ^5.1.6
+        version: 5.1.6
       vitest:
         specifier: ^0.34.1
         version: 0.34.1(@vitest/ui@0.34.1)(jsdom@22.1.0)
@@ -5180,7 +5186,7 @@ packages:
       mimic-fn: 4.0.0
     dev: true
 
-  /openai@5.10.2(zod@3.21.4):
+  /openai@5.10.2(zod@3.23.8):
     resolution: {integrity: sha512-n+vi74LzHtvlKcDPn9aApgELGiu5CwhaLG40zxLTlFQdoSJCLACORIPC2uVQ3JEYAbqapM+XyRKFy2Thej7bIw==}
     hasBin: true
     peerDependencies:
@@ -5192,7 +5198,7 @@ packages:
       zod:
         optional: true
     dependencies:
-      zod: 3.21.4
+      zod: 3.23.8
     dev: false
 
   /optionator@0.9.4:
@@ -7251,8 +7257,8 @@ packages:
     engines: {node: '>=12.20'}
     dev: true
 
-  /zod@3.21.4:
-    resolution: {integrity: sha512-m46AKbrzKVzOzs/DZgVnG5H55N1sv1M8qZU3A8RIKbs3mrACDNeIOeilDymVb2HdmP8uwshOCF4uJ8uM9rCqJw==}
+  /zod@3.23.8:
+    resolution: {integrity: sha512-XBx9AXhXktjUqnepgTiE5flcKIYWi/rme0Eaj+5Y0lftuGBq+jyRu/md4WnuxqgP1ubdpNCsYEYPxrzVHD8d6g==}
     dev: false
 
   /zustand@4.4.1(@types/react@18.2.15)(react@18.2.0):

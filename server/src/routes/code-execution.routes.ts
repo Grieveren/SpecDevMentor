@@ -1,12 +1,12 @@
 // @ts-nocheck
 import { Router } from 'express';
-import { body, validationResult } from 'express-validator';
+import type { Router as ExpressRouter } from 'express';import { body, validationResult } from 'express-validator';
 import { CodeExecutionService } from '../services/code-execution.service.js';
 import { SpecificationComplianceService } from '../services/specification-compliance.service.js';
 import { authMiddleware } from '../middleware/auth.middleware.js';
 import { SupportedLanguage } from '../types/code-execution.js';
 
-const router = Router();
+const router: ExpressRouter = Router();
 const codeExecutionService = new CodeExecutionService();
 const complianceService = new SpecificationComplianceService();
 

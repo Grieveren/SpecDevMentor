@@ -6,6 +6,7 @@
   "workspaces": [
     "client",
     "server",
+    "shared",
     "packages/*"
   ],
   "scripts": {
@@ -46,11 +47,12 @@
     "type-check:strict": "tsc --noEmit --strict && pnpm --recursive type-check:strict",
     "type-check:incremental": "tsc --noEmit --incremental && pnpm --recursive type-check:incremental",
     "build:validate": "pnpm type-check && pnpm lint && pnpm test && pnpm build",
+    "build:validate:pipeline": "./scripts/validate-build.sh",
     "build:analyze": "pnpm --filter client analyze && pnpm build:server",
     "build:performance": "time pnpm build && pnpm build:size-check",
     "build:size-check": "pnpm --filter client build:size-check",
     "clean": "pnpm --recursive clean && rm -f .tsbuildinfo",
-    "clean:build": "rm -rf client/dist server/dist .tsbuildinfo client/.tsbuildinfo server/dist/.tsbuildinfo",
+    "clean:build": "rm -rf client/dist server/dist shared/dist .tsbuildinfo client/.tsbuildinfo server/.tsbuildinfo shared/.tsbuildinfo",
     "docker:up": "docker-compose up -d",
     "docker:down": "docker-compose down",
     "docker:logs": "docker-compose logs -f",

@@ -1,12 +1,12 @@
 // @ts-nocheck
 import { Router } from 'express';
-import { PrismaClient } from '@prisma/client';
+import type { Router as ExpressRouter } from 'express';import { PrismaClient } from '@prisma/client';
 import { LearningService } from '../services/learning.service';
 import { authMiddleware } from '../middleware/auth.middleware';
 import { validateRequest } from '../middleware/validation.middleware';
 import { z } from 'zod';
 
-const router = Router();
+const router: ExpressRouter = Router();
 const prisma = new PrismaClient();
 const learningService = new LearningService(prisma);
 

@@ -1,0 +1,14 @@
+{
+  "name": "@codementor-ai/shared",
+  "version": "1.0.0",
+  "description": "Shared types and utilities for CodeMentor AI platform",
+  "type": "module",
+  "main": "index.js",
+  "scripts": {
+    "type-check": "tsc --noEmit",
+    "clean": "rm -rf node_modules"
+  },
+  "devDependencies": {
+    "typescript": "^5.1.6"
+  }
+}

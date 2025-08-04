@@ -1,12 +1,12 @@
 // @ts-nocheck
 import { Router } from 'express';
-import { param, query } from 'express-validator';
+import type { Router as ExpressRouter } from 'express';import { param, query } from 'express-validator';
 import { PrismaClient } from '@prisma/client';
 import { FileUploadService } from '../services/file-upload.service.js';
 import { authMiddleware } from '../middleware/auth.middleware.js';
 import { validationMiddleware } from '../middleware/validation.middleware.js';
 
-const router = Router();
+const router: ExpressRouter = Router();
 const prisma = new PrismaClient();
 const fileUploadService = new FileUploadService(prisma);
 

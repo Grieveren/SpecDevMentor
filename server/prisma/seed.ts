@@ -6,9 +6,12 @@ import {
   ProjectStatus,
 } from '@prisma/client';
 import bcrypt from 'bcryptjs';
+
 const prisma = new PrismaClient();
-async function main() {
+
+async function main(): Promise<void> {
   console.log('🌱 Seeding database...');
+  
   // Create admin user
   const adminPassword = await bcrypt.hash('admin123', 12);
   const adminUser = await prisma.user.upsert({
@@ -22,6 +25,7 @@ async function main() {
       isVerified: true,
     },
   });
+
   // Create developer user
   const devPassword = await bcrypt.hash('dev123', 12);
   const devUser = await prisma.user.upsert({
@@ -35,6 +39,7 @@ async function main() {
       isVerified: true,
     },
   });
+
   // Create team lead user
   const teamLeadPassword = await bcrypt.hash('lead123', 12);
   const teamLeadUser = await prisma.user.upsert({
@@ -48,6 +53,7 @@ async function main() {
       isVerified: true,
     },
   });
+
   // Create sample learning modules
   const requirementsModule = await prisma.learningModule.upsert({
     where: { id: 'requirements-basics' },
@@ -96,6 +102,7 @@ async function main() {
       isPublished: true,
     },
   });
+
   const designModule = await prisma.learningModule.upsert({
     where: { id: 'design-fundamentals' },
     update: {},
@@ -137,6 +144,7 @@ async function main() {
       isPublished: true,
     },
   });
+
   // Create sample projects
   const sampleProject = await prisma.specificationProject.create({
     data: {
@@ -277,6 +285,7 @@ interface Product {
       },
     },
   });
+
   // Create another sample project
   const blogProject = await prisma.specificationProject.create({
     data: {
@@ -340,6 +349,7 @@ Simple blog platform with clean architecture and focus on content creation.
       },
     },
   });
+
   // Create user progress records
   await prisma.userProgress.create({
     data: {
@@ -350,6 +360,7 @@ Simple blog platform with clean architecture and focus on content creation.
       lastAccessed: new Date(),
     },
   });
+
   console.log('✅ Database seeded successfully');
   console.log(`👤 Admin user: admin@codementor-ai.com / admin123`);
   console.log(`👤 Developer user: developer@codementor-ai.com / dev123`);
@@ -357,6 +368,7 @@ Simple blog platform with clean architecture and focus on content creation.
   console.log(`📁 Created ${2} sample projects`);
   console.log(`📚 Created ${2} learning modules`);
 }
+
 main()
   .catch(e => {
     console.error(e);
@@ -365,3 +377,4 @@ main()
   .finally(async () => {
     await prisma.$disconnect();
   });
+

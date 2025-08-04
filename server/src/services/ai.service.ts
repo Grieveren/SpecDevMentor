@@ -63,19 +63,6 @@ export type SuggestionCategory =
 
 export type SpecificationPhase = 'requirements' | 'design' | 'tasks';
 
-// Error classes
-export class AIServiceError extends Error {
-  constructor(
-    message: string,
-    public originalError?: unknown,
-    public errorCode?: AIErrorCode,
-    public retryable: boolean = false
-  ) {
-    super(message);
-    this.name = 'AIServiceError';
-  }
-}
-
 export enum AIErrorCode {
   RATE_LIMIT_EXCEEDED = 'RATE_LIMIT_EXCEEDED',
   API_KEY_INVALID = 'API_KEY_INVALID',
@@ -200,9 +187,8 @@ export class AIService {
     } catch (error) {
       throw new AIServiceError(
         `Failed to review ${phase} specification`,
-        error,
         this.mapErrorCode(error),
-        this.isRetryableError(error)
+        error
       );
     }
   }
@@ -219,9 +205,8 @@ export class AIService {
     } catch (error) {
       throw new AIServiceError(
         'Failed to validate EARS format',
-        error,
         this.mapErrorCode(error),
-        this.isRetryableError(error)
+        error
       );
     }
   }
@@ -238,9 +223,8 @@ export class AIService {
     } catch (error) {
       throw new AIServiceError(
         'Failed to validate user stories',
-        error,
         this.mapErrorCode(error),
-        this.isRetryableError(error)
+        error
       );
     }
   }
@@ -269,30 +253,27 @@ export class AIService {
       if (error.status === 429) {
         throw new AIServiceError(
           'Rate limit exceeded',
-          error,
           AIErrorCode.RATE_LIMIT_EXCEEDED,
-          true
+          error
         );
       }
 
       if (error.status === 401) {
-        throw new AIServiceError('Invalid API key', error, AIErrorCode.API_KEY_INVALID, false);
+        throw new AIServiceError('Invalid API key', AIErrorCode.API_KEY_INVALID, error);
       }
 
       if (error.status === 400 && error.message?.includes('content_filter')) {
         throw new AIServiceError(
           'Content filtered by OpenAI',
-          error,
           AIErrorCode.CONTENT_FILTERED,
-          false
+          error
         );
       }
 
       throw new AIServiceError(
         'OpenAI API request failed',
-        error,
         AIErrorCode.SERVICE_UNAVAILABLE,
-        true
+        error
       );
     }
   }
@@ -575,7 +556,7 @@ export const withRetry = async <T>(
     } catch (error) {
       lastError = error as Error;
 
-      if (error instanceof AIServiceError && !error.retryable) {
+      if (error instanceof AIServiceError) {
         throw error;
       }
 

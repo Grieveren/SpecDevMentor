@@ -1,6 +1,6 @@
 // @ts-nocheck
 import { Router, Request, Response } from 'express';
-import { authMiddleware } from '../middleware/auth.middleware.js';
+import type { Router as ExpressRouter } from 'express';import { authMiddleware } from '../middleware/auth.middleware.js';
 import { HealthService } from '../services/health.service.js';
 import { errorTracker } from '../services/error-tracking.service.js';
 import { alertingService } from '../services/alerting.service.js';
@@ -8,7 +8,7 @@ import { logger } from '../services/logger.service.js';
 import { PrismaClient } from '@prisma/client';
 import Redis from 'ioredis';
 
-const router = Router();
+const router: ExpressRouter = Router();
 
 // Initialize services
 const prisma = new PrismaClient();

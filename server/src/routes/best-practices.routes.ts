@@ -1,11 +1,11 @@
 // @ts-nocheck
 import { Router } from 'express';
-import { PrismaClient } from '@prisma/client';
+import type { Router as ExpressRouter } from 'express';import { PrismaClient } from '@prisma/client';
 import { authenticateToken } from '../middleware/auth.middleware';
 import { BestPracticesService } from '../services/best-practices.service';
 import { z } from 'zod';
 
-const router = Router();
+const router: ExpressRouter = Router();
 const prisma = new PrismaClient();
 const bestPracticesService = new BestPracticesService(prisma);
 

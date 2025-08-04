@@ -2,7 +2,8 @@
 // @ts-nocheck
 import { UserRole } from '@prisma/client';
 import { NextFunction, Request, Response } from 'express';
-import { AuthService, AuthenticationError } from '../services/auth.service.js';
+import { AuthService } from '../services/auth.service.js';
+import { AuthenticationError } from '../../../shared/types';
 import {
   ApiError,
   AuthMiddleware as AuthMiddlewareType,

@@ -1,6 +1,6 @@
 // @ts-nocheck
 import { Router } from 'express';
-import { body, query, param } from 'express-validator';
+import type { Router as ExpressRouter } from 'express';import { body, query, param } from 'express-validator';
 import { PrismaClient } from '@prisma/client';
 import { Redis } from 'ioredis';
 import { Server as SocketIOServer } from 'socket.io';
@@ -8,7 +8,7 @@ import { NotificationService } from '../services/notification.service.js';
 import { authMiddleware } from '../middleware/auth.middleware.js';
 import { validationMiddleware } from '../middleware/validation.middleware.js';
 
-const router = Router();
+const router: ExpressRouter = Router();
 
 // Initialize services (these would typically be injected)
 const prisma = new PrismaClient();
@@ -16,7 +16,7 @@ const redis = new Redis(process.env.REDIS_URL);
 let notificationService: NotificationService;
 
 // Initialize notification service with Socket.IO server
-export const initializeNotificationRoutes = (io: SocketIOServer) => {
+export const initializeNotificationRoutes = (io: SocketIOServer): ExpressRouter => {
   notificationService = new NotificationService(prisma, redis, io);
   return router;
 };

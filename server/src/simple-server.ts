@@ -1,12 +1,12 @@
 // Simple Express server for testing basic functionality
-import express from 'express';
+import express, { Request, Response, NextFunction } from 'express';
 import cors from 'cors';
 import dotenv from 'dotenv';
 
 // Load environment variables
 dotenv.config();
 
-const app = express();
+import type { Application } from 'express';const app: Application = express();
 const PORT = process.env.PORT || 3001;
 
 // Middleware
@@ -14,8 +14,9 @@ app.use(cors({
   origin: process.env.CORS_ORIGIN || 'http://localhost:5173',
   credentials: true
 }));
+
 // Add request logging middleware
-app.use((req, res, next) => {
+app.use((req: Request, res: Response, next: NextFunction) => {
   console.log(`${new Date().toISOString()} - ${req.method} ${req.url}`);
   console.log('Headers:', req.headers);
   if (req.body && Object.keys(req.body).length > 0) {
@@ -28,7 +29,7 @@ app.use(express.json({ limit: '10mb' }));
 app.use(express.urlencoded({ extended: true }));
 
 // Basic health check
-app.get('/health', (req, res) => {
+app.get('/health', (req: Request, res: Response) => {
   res.json({ 
     status: 'OK', 
     timestamp: new Date().toISOString(),
@@ -38,7 +39,7 @@ app.get('/health', (req, res) => {
 });
 
 // Mock authentication endpoints (with and without /api prefix)
-app.post('/api/auth/register', (req, res) => {
+app.post('/api/auth/register', (req: Request, res: Response) => {
   try {
     console.log('📝 Registration request received at /api/auth/register:', {
       body: req.body,
@@ -72,7 +73,7 @@ app.post('/api/auth/register', (req, res) => {
         }
       }
     });
-  } catch (error) {
+  } catch (error: any) {
     console.error('Registration error:', error);
     res.status(500).json({
       error: 'Internal server error',
@@ -82,7 +83,7 @@ app.post('/api/auth/register', (req, res) => {
 });
 
 // Also handle routes without /api prefix
-app.post('/auth/register', (req, res) => {
+app.post('/auth/register', (req: Request, res: Response) => {
   console.log('📝 Registration request received at /auth/register:', {
     body: req.body,
     headers: req.headers['content-type']
@@ -105,24 +106,7 @@ app.post('/auth/register', (req, res) => {
   });
 });
 
-app.post('/api/auth/login', (req, res) => {
-  const { email, password } = req.body;
-  
-  // Simulate login
-  res.json({
-    success: true,
-    message: 'Login successful',
-    user: {
-      id: 'user_123',
-      username: 'demo_user',
-      email,
-      role: 'STUDENT'
-    },
-    token: 'mock_jwt_token_12345'
-  });
-});
-
-app.post('/auth/login', (req, res) => {
+app.post('/auth/login', (req: Request, res: Response) => {
   console.log('📝 Login request received at /auth/login:', req.body);
   
   const { email, password } = req.body;
@@ -147,7 +131,7 @@ app.post('/auth/login', (req, res) => {
 });
 
 // Add /api/auth/login route
-app.post('/api/auth/login', (req, res) => {
+app.post('/api/auth/login', (req: Request, res: Response) => {
   console.log('📝 Login request received at /api/auth/login:', req.body);
   
   const { email, password } = req.body;
@@ -172,7 +156,7 @@ app.post('/api/auth/login', (req, res) => {
 });
 
 // Add token validation route
-app.post('/api/auth/validate', (req, res) => {
+app.post('/api/auth/validate', (req: Request, res: Response) => {
   console.log('📝 Token validation request received');
   
   const authHeader = req.headers.authorization;
@@ -199,7 +183,7 @@ app.post('/api/auth/validate', (req, res) => {
 });
 
 // Mock projects endpoint
-app.get('/api/projects', (req, res) => {
+app.get('/api/projects', (req: Request, res: Response) => {
   console.log('📋 Projects request received');
   
   res.json({
@@ -236,7 +220,7 @@ app.get('/api/projects', (req, res) => {
   });
 });
 
-app.post('/api/projects', (req, res) => {
+app.post('/api/projects', (req: Request, res: Response) => {
   console.log('📋 Create project request received:', req.body);
   
   const { name, description } = req.body;
@@ -258,7 +242,7 @@ app.post('/api/projects', (req, res) => {
 });
 
 // Catch all for unhandled routes
-app.use('*', (req, res) => {
+app.use('*', (req: Request, res: Response) => {
   res.status(404).json({
     success: false,
     message: `Route ${req.method} ${req.originalUrl} not found`,
@@ -273,7 +257,7 @@ app.use('*', (req, res) => {
 });
 
 // Error handling
-app.use((err, req, res, next) => {
+app.use((err: any, req: Request, res: Response, next: NextFunction) => {
   console.error('Server Error:', err);
   res.status(500).json({
     success: false,

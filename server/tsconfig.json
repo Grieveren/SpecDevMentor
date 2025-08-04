@@ -11,17 +11,14 @@
     "esModuleInterop": true,
     "allowSyntheticDefaultImports": true,
     "resolveJsonModule": true,
+    "allowImportingTsExtensions": false,
     
     // Emit settings for server
-    "noEmit": false,
-    "declaration": true,
-    "declarationMap": true,
+    "noEmit": true,
     "sourceMap": true,
-    "composite": true,
     "outDir": "./dist",
-    "rootDir": "..",
     "incremental": true,
-    "tsBuildInfoFile": "./dist/.tsbuildinfo",
+    "tsBuildInfoFile": "./.tsbuildinfo",
     
     // Type checking - gradual migration
     "strict": true,

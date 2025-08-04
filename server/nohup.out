@@ -1,0 +1,19 @@
+warn(prisma) Conflict for env vars NODE_ENV, PORT, CLIENT_URL, SERVER_URL, DATABASE_URL, REDIS_URL, JWT_SECRET, REFRESH_SECRET, OPENAI_API_KEY, OPENAI_MODEL, OPENAI_MAX_TOKENS, OPENAI_TEMPERATURE, MAX_FILE_SIZE, UPLOAD_DIR, RATE_LIMIT_WINDOW_MS, RATE_LIMIT_MAX_REQUESTS, ENCRYPTION_SALT, SESSION_SECRET, CORS_ORIGIN, LOG_LEVEL, LOG_FILE, ERROR_LOG_FILE, ENABLE_AI_REVIEW, ENABLE_CODE_EXECUTION, ENABLE_COLLABORATION, ENABLE_ANALYTICS, ENABLE_LEARNING, SEED_DATABASE in ../.env and .env
+Env vars from .env overwrite the ones from ../.env
+      
+
+🚀 SpecDevMentor Production Server running on http://localhost:3001
+📋 Health check: http://localhost:3001/health
+🌐 CORS enabled for: http://localhost:3000
+🗄️  Database: PostgreSQL with Prisma ORM
+🔐 JWT Authentication enabled
+
+📚 Available endpoints:
+   POST /api/auth/register - User registration with real database
+   POST /api/auth/login - User login with password verification
+   POST /api/auth/validate - Token validation
+   GET /api/projects - List user's projects
+   POST /api/projects - Create new project
+
+✨ Full production features enabled!
+Shutting down gracefully...

@@ -1,6 +1,6 @@
 // @ts-nocheck
 import { Router } from 'express';
-import { query } from 'express-validator';
+import type { Router as ExpressRouter } from 'express';import { query } from 'express-validator';
 import { PrismaClient } from '@prisma/client';
 import { Redis } from 'ioredis';
 import { SearchService } from '../services/search.service.js';
@@ -8,7 +8,7 @@ import { authMiddleware } from '../middleware/auth.middleware.js';
 import { validationMiddleware } from '../middleware/validation.middleware.js';
 import RedisClient from '../utils/redis.js';
 
-const router = Router();
+const router: ExpressRouter = Router();
 const prisma = new PrismaClient();
 
 // Initialize search service
