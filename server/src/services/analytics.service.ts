@@ -164,20 +164,20 @@ export class AnalyticsServiceImpl implements AnalyticsService {
     try {
       await this.prisma.userActivity.create({
         data: {
-          userId: data.userId,
-          action: data.action,
-          resource: data.resource,
-          resourceId: data.resourceId,
-          metadata: data.metadata || {},
-          duration: data.duration,
-          sessionId: data.sessionId,
-          ipAddress: data.ipAddress,
-          userAgent: data.userAgent,
+          userId: _data.userId,
+          action: _data.action,
+          resource: _data.resource,
+          resourceId: _data.resourceId,
+          metadata: _data.metadata || {},
+          duration: _data.duration,
+          sessionId: _data.sessionId,
+          ipAddress: _data.ipAddress,
+          userAgent: _data.userAgent,
         },
       });
 
       // Update real-time metrics in Redis
-      await this.updateRealTimeMetrics(data);
+      await this.updateRealTimeMetrics(_data);
     } catch (error) {
       console.error('Failed to track user activity:', error);
       // Don't throw - analytics shouldn't break the main flow
@@ -189,9 +189,9 @@ export class AnalyticsServiceImpl implements AnalyticsService {
       const existingMetric = await this.prisma.workflowMetrics.findUnique({
         where: {
           projectId_phase_userId: {
-            projectId: data.projectId,
-            phase: data.phase,
-            userId: data.userId,
+            projectId: _data.projectId,
+            phase: _data.phase,
+            userId: _data.userId,
           },
         },
       });
@@ -199,7 +199,7 @@ export class AnalyticsServiceImpl implements AnalyticsService {
       if (existingMetric) {
         const updateData: unknown = {};
 
-        switch (data.action) {
+        switch (_data.action) {
           case 'completed':
             updateData.completedAt = new Date();
             updateData.timeSpent = existingMetric.startedAt
@@ -210,45 +210,45 @@ export class AnalyticsServiceImpl implements AnalyticsService {
             updateData.reviewCycles = existingMetric.reviewCycles + 1;
             break;
           case 'quality_updated':
-            updateData.qualityScore = data.qualityScore;
+            updateData.qualityScore = _data.qualityScore;
             break;
         }
 
-        if (data.collaboratorCount !== undefined) {
-          updateData.collaboratorCount = data.collaboratorCount;
+        if (_data.collaboratorCount !== undefined) {
+          updateData.collaboratorCount = _data.collaboratorCount;
         }
-        if (data.commentCount !== undefined) {
-          updateData.commentCount = data.commentCount;
+        if (_data.commentCount !== undefined) {
+          updateData.commentCount = _data.commentCount;
         }
-        if (data.revisionCount !== undefined) {
-          updateData.revisionCount = data.revisionCount;
+        if (_data.revisionCount !== undefined) {
+          updateData.revisionCount = _data.revisionCount;
         }
-        if (data.aiSuggestionsApplied !== undefined) {
-          updateData.aiSuggestionsApplied = data.aiSuggestionsApplied;
+        if (_data.aiSuggestionsApplied !== undefined) {
+          updateData.aiSuggestionsApplied = _data.aiSuggestionsApplied;
         }
 
         await this.prisma.workflowMetrics.update({
           where: {
             projectId_phase_userId: {
-              projectId: data.projectId,
-              phase: data.phase,
-              userId: data.userId,
+              projectId: _data.projectId,
+              phase: _data.phase,
+              userId: _data.userId,
             },
           },
           data: updateData,
         });
-      } else if (data.action === 'started') {
+      } else if (_data.action === 'started') {
         await this.prisma.workflowMetrics.create({
           data: {
-            projectId: data.projectId,
-            userId: data.userId,
-            phase: data.phase,
+            projectId: _data.projectId,
+            userId: _data.userId,
+            phase: _data.phase,
             startedAt: new Date(),
-            qualityScore: data.qualityScore,
-            collaboratorCount: data.collaboratorCount || 0,
-            commentCount: data.commentCount || 0,
-            revisionCount: data.revisionCount || 0,
-            aiSuggestionsApplied: data.aiSuggestionsApplied || 0,
+            qualityScore: _data.qualityScore,
+            collaboratorCount: _data.collaboratorCount || 0,
+            commentCount: _data.commentCount || 0,
+            revisionCount: _data.revisionCount || 0,
+            aiSuggestionsApplied: _data.aiSuggestionsApplied || 0,
           },
         });
       }
@@ -452,9 +452,11 @@ export class AnalyticsServiceImpl implements AnalyticsService {
       },
     });
 
-    if (!project) {
+    if (!_project) {
       throw new Error('Project not found');
     }
+
+    const project = _project;
 
     const teamSize = project.team.length + 1; // Include owner
     const latestMetrics = project.teamPerformanceMetrics[0];
@@ -557,9 +559,11 @@ export class AnalyticsServiceImpl implements AnalyticsService {
       },
     });
 
-    if (!user) {
+    if (!_user) {
       throw new Error('User not found');
     }
+
+    const user = _user;
 
     const totalProjects = user.ownedProjects.length + user.teamMemberships.length;
     const completedProjects = user.workflowMetrics?.filter(m => m.completedAt).length || 0;
@@ -645,7 +649,7 @@ export class AnalyticsServiceImpl implements AnalyticsService {
 
   // Private helper methods
   private async updateRealTimeMetrics(_data: TrackActivityData): Promise<void> {
-    const key = `analytics:realtime:${data.action}`;
+    const key = `analytics:realtime:${_data.action}`;
     await this.redis.incr(key);
     await this.redis.expire(key, 3600); // Expire after 1 hour
   }

@@ -82,7 +82,7 @@ export class BestPracticesService {
   constructor(private prisma: PrismaClient) {}
 
   async createGuide(_data: CreateGuideRequest): Promise<BestPracticeGuide> {
-    const validatedData = createGuideSchema.parse(data);
+    const validatedData = createGuideSchema.parse(_data);
 
     const guide = await this.prisma.bestPracticeGuide.create({
       data: {
@@ -96,7 +96,7 @@ export class BestPracticesService {
   }
 
   async updateGuide(guideId: string, _data: UpdateGuideRequest): Promise<BestPracticeGuide> {
-    const validatedData = updateGuideSchema.parse(data);
+    const validatedData = updateGuideSchema.parse(_data);
 
     const guide = await this.prisma.bestPracticeGuide.update({
       where: { id: guideId },

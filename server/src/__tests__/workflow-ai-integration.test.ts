@@ -146,14 +146,14 @@ This is a test requirements document.
       );
 
       // Verify AI review is included in result
-      expect(result.aiReview).toEqual(mockAIReview);
-      expect(result.aiValidationScore).toBe(85);
+      expect(_result.aiReview).toEqual(mockAIReview);
+      expect(_result.aiValidationScore).toBe(85);
 
       // Verify AI suggestions are included as warnings/errors
-      expect(result.warnings.some(warning => 
+      expect(_result.warnings.some(warning => 
         warning.includes('AI: Add more detailed acceptance criteria')
       )).toBe(true);
-      expect(result.warnings.some(warning => 
+      expect(_result.warnings.some(warning => 
         warning.includes('AI Compliance: Some acceptance criteria could use better EARS format')
       )).toBe(true);
     });
@@ -170,9 +170,9 @@ This is a test requirements document.
       );
 
       // Verify AI failure doesn't break validation
-      expect(result.warnings).toContain('AI validation temporarily unavailable');
-      expect(result.aiReview).toBeUndefined();
-      expect(result.aiValidationScore).toBeUndefined();
+      expect(_result.warnings).toContain('AI validation temporarily unavailable');
+      expect(_result.aiReview).toBeUndefined();
+      expect(_result.aiValidationScore).toBeUndefined();
     });
 
     it('should adjust completion percentage based on AI validation', async () => {
@@ -188,8 +188,8 @@ This is a test requirements document.
       );
 
       // Verify completion percentage is affected by AI score
-      expect(result.completionPercentage).toBeLessThan(100);
-      expect(result.aiValidationScore).toBe(60);
+      expect(_result.completionPercentage).toBeLessThan(100);
+      expect(_result.aiValidationScore).toBe(60);
     });
   });
 
@@ -246,7 +246,7 @@ This is a test requirements document.
         },
       });
 
-      expect(result).toEqual(mockAIReview);
+      expect(_result).toEqual(mockAIReview);
     });
 
     it('should handle AI review failures and log them', async () => {
@@ -279,7 +279,7 @@ This is a test requirements document.
         },
       });
 
-      expect(result).toBeNull();
+      expect(_result).toBeNull();
     });
 
     it('should return null if document not found', async () => {
@@ -293,7 +293,7 @@ This is a test requirements document.
         'user-1'
       );
 
-      expect(result).toBeNull();
+      expect(_result).toBeNull();
       expect(aiService.reviewSpecification).not.toHaveBeenCalled();
     });
   });
@@ -311,9 +311,9 @@ This is a test requirements document.
       );
 
       // Verify result
-      expect(result.isValid).toBe(true); // Score 85 >= 70 and no high severity issues
-      expect(result.score).toBe(85);
-      expect(result.issues).toEqual([]);
+      expect(_result.isValid).toBe(true); // Score 85 >= 70 and no high severity issues
+      expect(_result.score).toBe(85);
+      expect(_result.issues).toEqual([]);
     });
 
     it('should identify high severity issues as validation failures', async () => {
@@ -344,11 +344,11 @@ This is a test requirements document.
       );
 
       // Verify result
-      expect(result.isValid).toBe(false);
-      expect(result.score).toBe(85);
-      expect(result.issues).toHaveLength(2);
-      expect(result.issues[0]).toContain('Add more detailed acceptance criteria');
-      expect(result.issues[1]).toContain('ears_format');
+      expect(_result.isValid).toBe(false);
+      expect(_result.score).toBe(85);
+      expect(_result.issues).toHaveLength(2);
+      expect(_result.issues[0]).toContain('Add more detailed acceptance criteria');
+      expect(_result.issues[1]).toContain('ears_format');
     });
 
     it('should return default values when AI service is not available', async () => {
@@ -362,9 +362,9 @@ This is a test requirements document.
       );
 
       // Verify default result
-      expect(result.isValid).toBe(true);
-      expect(result.score).toBe(100);
-      expect(result.issues).toEqual([]);
+      expect(_result.isValid).toBe(true);
+      expect(_result.score).toBe(100);
+      expect(_result.issues).toEqual([]);
     });
   });
 

@@ -66,7 +66,7 @@ describe('BestPracticesService', () => {
           examples: guideData.examples,
         },
       });
-      expect(result).toEqual(mockGuide);
+      expect(_result).toEqual(mockGuide);
     });
 
     it('should validate guide data', async () => {
@@ -120,9 +120,9 @@ describe('BestPracticesService', () => {
           { createdAt: 'asc' },
         ],
       });
-      expect(result).toHaveLength(2);
-      expect(result[0].tips).toEqual([]);
-      expect(result[0].examples).toEqual([]);
+      expect(_result).toHaveLength(2);
+      expect(_result[0].tips).toEqual([]);
+      expect(_result[0].examples).toEqual([]);
     });
   });
 
@@ -171,10 +171,10 @@ describe('BestPracticesService', () => {
       const content = 'As a user, I want to login so that I can access my account';
       const _result = await bestPracticesService.getContextualGuidance('REQUIREMENTS', content);
 
-      expect(result.tips).toHaveLength(1);
-      expect(result.tips[0].title).toBe('Use user stories');
-      expect(result.examples).toHaveLength(1);
-      expect(result.recommendations).toContain('Add acceptance criteria to make requirements testable');
+      expect(_result.tips).toHaveLength(1);
+      expect(_result.tips[0].title).toBe('Use user stories');
+      expect(_result.examples).toHaveLength(1);
+      expect(_result.recommendations).toContain('Add acceptance criteria to make requirements testable');
     });
 
     it('should return recommendations based on content analysis', async () => {
@@ -195,8 +195,8 @@ describe('BestPracticesService', () => {
       const content = 'The system should handle user login';
       const _result = await bestPracticesService.getContextualGuidance('REQUIREMENTS', content);
 
-      expect(result.recommendations).toContain('Consider adding user stories to better capture user needs');
-      expect(result.recommendations).toContain('Add acceptance criteria to make requirements testable');
+      expect(_result.recommendations).toContain('Consider adding user stories to better capture user needs');
+      expect(_result.recommendations).toContain('Add acceptance criteria to make requirements testable');
     });
   });
 
@@ -212,8 +212,8 @@ describe('BestPracticesService', () => {
 
       const _result = await bestPracticesService.analyzeDocumentQuality('REQUIREMENTS', content);
 
-      expect(result.score).toBeLessThan(100);
-      expect(result.issues).toEqual(
+      expect(_result.score).toBeLessThan(100);
+      expect(_result.issues).toEqual(
         expect.arrayContaining([
           expect.objectContaining({
             type: 'warning',
@@ -229,7 +229,7 @@ describe('BestPracticesService', () => {
           }),
         ])
       );
-      expect(result.improvements).toContain('Use EARS format (WHEN/IF/THEN) for clearer acceptance criteria');
+      expect(_result.improvements).toContain('Use EARS format (WHEN/IF/THEN) for clearer acceptance criteria');
     });
 
     it('should analyze design document quality', async () => {
@@ -238,7 +238,7 @@ describe('BestPracticesService', () => {
       const content = 'This is a basic design document without architecture details.';
       const _result = await bestPracticesService.analyzeDocumentQuality('DESIGN', content);
 
-      expect(result.issues).toEqual(
+      expect(_result.issues).toEqual(
         expect.arrayContaining([
           expect.objectContaining({
             message: 'Define system components and their responsibilities',
@@ -251,7 +251,7 @@ describe('BestPracticesService', () => {
           }),
         ])
       );
-      expect(result.improvements).toContain('Include error handling strategy in the design');
+      expect(_result.improvements).toContain('Include error handling strategy in the design');
     });
 
     it('should analyze tasks document quality', async () => {
@@ -264,7 +264,7 @@ describe('BestPracticesService', () => {
 
       const _result = await bestPracticesService.analyzeDocumentQuality('TASKS', content);
 
-      expect(result.issues).toEqual(
+      expect(_result.issues).toEqual(
         expect.arrayContaining([
           expect.objectContaining({
             type: 'warning',
@@ -272,7 +272,7 @@ describe('BestPracticesService', () => {
           }),
         ])
       );
-      expect(result.improvements).toContain('Include testing tasks to ensure quality');
+      expect(_result.improvements).toContain('Include testing tasks to ensure quality');
     });
 
     it('should analyze implementation document quality', async () => {
@@ -281,7 +281,7 @@ describe('BestPracticesService', () => {
       const content = 'Implementation will involve coding the features.';
       const _result = await bestPracticesService.analyzeDocumentQuality('IMPLEMENTATION', content);
 
-      expect(result.issues).toEqual(
+      expect(_result.issues).toEqual(
         expect.arrayContaining([
           expect.objectContaining({
             type: 'warning',
@@ -289,8 +289,8 @@ describe('BestPracticesService', () => {
           }),
         ])
       );
-      expect(result.improvements).toContain('Include code review process in implementation workflow');
-      expect(result.improvements).toContain('Consider deployment strategy and environment setup');
+      expect(_result.improvements).toContain('Include code review process in implementation workflow');
+      expect(_result.improvements).toContain('Consider deployment strategy and environment setup');
     });
   });
 
@@ -323,7 +323,7 @@ describe('BestPracticesService', () => {
         where: { id: guideId },
         data: updateData,
       });
-      expect(result).toEqual(mockUpdatedGuide);
+      expect(_result).toEqual(mockUpdatedGuide);
     });
   });
 
