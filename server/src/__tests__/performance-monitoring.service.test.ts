@@ -276,7 +276,7 @@ describe('PerformanceMonitoringService', () => {
       };
 
       (mockRedis.hset as any).mockResolvedValue(1);
-      const rule = await service.createAlertRule(ruleData);
+      const _rule = await service.createAlertRule(ruleData);
 
       // Simulate triggering an alert by recording metrics that exceed threshold
       const metric = {

@@ -1,20 +1,12 @@
-// @ts-nocheck
 import { PrismaClient } from '@prisma/client';
 import { Redis } from 'ioredis';
 import { EventEmitter } from 'events';
-import { 
-  PerformanceMonitoringConfig, 
-  ServiceError, 
-  ServiceLifecycle, 
-  ServiceHealthCheck, 
-  ServiceMetrics 
-} from '../types/services.js';
 
 interface PerformanceMetric {
   metricType: string;
   value: number;
   unit: string;
-  tags?: Record<string, any>;
+  tags?: Record<string, unknown>;
   timestamp?: Date;
 }
 
@@ -427,7 +419,7 @@ export class PerformanceMonitoringService extends EventEmitter {
     this.emit('alertTriggered', alert);
   }
 
-  private calculateSeverity(value: number, threshold: number, condition: string): Alert['severity'] {
+  private calculateSeverity(value: number, threshold: number, _condition: string): Alert['severity'] {
     const deviation = Math.abs(value - threshold) / threshold;
     
     if (deviation > 0.5) return 'critical';
@@ -482,8 +474,8 @@ export class PerformanceMonitoringService extends EventEmitter {
     return { start: startDate || start, end };
   }
 
-  private calculateAggregatedMetrics(metrics: any[]): PerformanceReport['metrics'] {
-    const metricsByType = metrics.reduce((acc, metric) => {
+  private calculateAggregatedMetrics(metrics: unknown[]): PerformanceReport['metrics'] {
+    const metricsByType = metrics.reduce((acc, metric: any) => {
       if (!acc[metric.metricType]) acc[metric.metricType] = [];
       acc[metric.metricType].push(metric.value);
       return acc;
@@ -502,20 +494,20 @@ export class PerformanceMonitoringService extends EventEmitter {
     };
   }
 
-  private async calculateTrends(metrics: any[], period: string): Promise<PerformanceReport['trends']> {
+  private async calculateTrends(metrics: unknown[], _period: string): Promise<PerformanceReport['trends']> {
     // Simplified trend calculation
     const metricTypes = ['response_time', 'error_rate', 'throughput', 'active_users'];
     const trends: PerformanceReport['trends'] = [];
 
     for (const metricType of metricTypes) {
-      const typeMetrics = metrics.filter(m => m.metricType === metricType);
+      const typeMetrics = metrics.filter((m: any) => m.metricType === metricType);
       if (typeMetrics.length < 2) continue;
 
       const firstHalf = typeMetrics.slice(0, Math.floor(typeMetrics.length / 2));
       const secondHalf = typeMetrics.slice(Math.floor(typeMetrics.length / 2));
 
-      const firstAvg = firstHalf.reduce((sum, m) => sum + m.value, 0) / firstHalf.length;
-      const secondAvg = secondHalf.reduce((sum, m) => sum + m.value, 0) / secondHalf.length;
+      const firstAvg = firstHalf.reduce((sum, m: any) => sum + m.value, 0) / firstHalf.length;
+      const secondAvg = secondHalf.reduce((sum, m: any) => sum + m.value, 0) / secondHalf.length;
 
       const changePercent = ((secondAvg - firstAvg) / firstAvg) * 100;
       

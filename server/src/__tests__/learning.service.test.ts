@@ -49,7 +49,7 @@ describe('LearningService', () => {
       expect(mockPrisma.learningModule.create).toHaveBeenCalledWith({
         data: validModuleData,
       });
-      expect(result).toEqual(mockModule);
+      expect(_result).toEqual(mockModule);
     });
 
     it('should validate prerequisites exist before creating module', async () => {
@@ -127,7 +127,7 @@ describe('LearningService', () => {
         where: { isPublished: true },
         orderBy: [{ difficulty: 'asc' }, { createdAt: 'asc' }],
       });
-      expect(result).toEqual(mockModules);
+      expect(_result).toEqual(mockModules);
     });
 
     it('should filter modules by phase and difficulty', async () => {
@@ -183,7 +183,7 @@ describe('LearningService', () => {
         },
         orderBy: { lastAccessed: 'desc' },
       });
-      expect(result).toEqual(mockProgress);
+      expect(_result).toEqual(mockProgress);
     });
   });
 
@@ -242,7 +242,7 @@ describe('LearningService', () => {
 
       const _result = await learningService.validatePrerequisites(userId, moduleId);
 
-      expect(result).toEqual({
+      expect(_result).toEqual({
         canAccess: true,
         missingPrerequisites: [],
         completedPrerequisites: [],
@@ -261,7 +261,7 @@ describe('LearningService', () => {
 
       const _result = await learningService.validatePrerequisites(userId, moduleId);
 
-      expect(result).toEqual({
+      expect(_result).toEqual({
         canAccess: true,
         missingPrerequisites: [],
         completedPrerequisites: ['prereq-1', 'prereq-2'],
@@ -277,7 +277,7 @@ describe('LearningService', () => {
 
       const _result = await learningService.validatePrerequisites(userId, moduleId);
 
-      expect(result).toEqual({
+      expect(_result).toEqual({
         canAccess: false,
         missingPrerequisites: ['prereq-2'],
         completedPrerequisites: ['prereq-1'],
@@ -305,7 +305,7 @@ describe('LearningService', () => {
 
       const _result = await learningService.assessSkill(userId, moduleId, skillId, responses);
 
-      expect(result).toMatchObject({
+      expect(_result).toMatchObject({
         skillId,
         skillName: 'Requirements Analysis',
         level: DifficultyLevel.BEGINNER,
@@ -315,8 +315,8 @@ describe('LearningService', () => {
         competencies: expect.any(Array),
       });
 
-      expect(result.competencies).toHaveLength(3);
-      expect(result.competencies[0]).toMatchObject({
+      expect(_result.competencies).toHaveLength(3);
+      expect(_result.competencies[0]).toMatchObject({
         competencyId: 'clarity',
         name: 'Clarity and Precision',
         score: expect.any(Number),
@@ -356,7 +356,7 @@ describe('LearningService', () => {
 
       const _result = await learningService.getLessonContent(moduleId, lessonId);
 
-      expect(result).toEqual(lessonContent);
+      expect(_result).toEqual(lessonContent);
     });
 
     it('should return null if lesson not found', async () => {
@@ -365,7 +365,7 @@ describe('LearningService', () => {
 
       const _result = await learningService.getLessonContent('module-1', 'nonexistent');
 
-      expect(result).toBeNull();
+      expect(_result).toBeNull();
     });
 
     it('should return null if module not found', async () => {
@@ -373,7 +373,7 @@ describe('LearningService', () => {
 
       const _result = await learningService.getLessonContent('nonexistent', 'lesson-1');
 
-      expect(result).toBeNull();
+      expect(_result).toBeNull();
     });
   });
 
@@ -401,7 +401,7 @@ describe('LearningService', () => {
 
       const _result = await learningService.getExercise(moduleId, exerciseId);
 
-      expect(result).toEqual(exercise);
+      expect(_result).toEqual(exercise);
     });
 
     it('should return null if exercise not found', async () => {
@@ -410,7 +410,7 @@ describe('LearningService', () => {
 
       const _result = await learningService.getExercise('module-1', 'nonexistent');
 
-      expect(result).toBeNull();
+      expect(_result).toBeNull();
     });
   });
 });
