@@ -7,6 +7,8 @@ import jwt from 'jsonwebtoken';
 import projectRoutes from '../routes/project.routes.js';
 import { authMiddleware } from '../middleware/auth.middleware.js';
 
+let response: any;
+
 // Test database
 const prisma = new PrismaClient({
   datasources: {
@@ -97,7 +99,7 @@ describe('Project Routes Integration Tests', () => {
         teamMemberIds: [testUsers[1].id],
       };
 
-      const _response = await request(app)
+       response = await request(app)
         .post('/api/projects')
         .set('Authorization', `Bearer ${authTokens[0]}`)
         .send(projectData)
@@ -135,7 +137,7 @@ describe('Project Routes Integration Tests', () => {
     });
 
     it('should validate required fields', async () => {
-      const _response = await request(app)
+       response = await request(app)
         .post('/api/projects')
         .set('Authorization', `Bearer ${authTokens[0]}`)
         .send({}) // Missing name
@@ -153,7 +155,7 @@ describe('Project Routes Integration Tests', () => {
         description: 'Valid description',
       };
 
-      const _response = await request(app)
+       response = await request(app)
         .post('/api/projects')
         .set('Authorization', `Bearer ${authTokens[0]}`)
         .send(projectData)
@@ -210,7 +212,7 @@ describe('Project Routes Integration Tests', () => {
     });
 
     it('should return projects for authenticated user', async () => {
-      const _response = await request(app)
+       response = await request(app)
         .get('/api/projects')
         .set('Authorization', `Bearer ${authTokens[0]}`)
         .expect(200);
@@ -232,7 +234,7 @@ describe('Project Routes Integration Tests', () => {
     });
 
     it('should return projects where user is team member', async () => {
-      const _response = await request(app)
+       response = await request(app)
         .get('/api/projects')
         .set('Authorization', `Bearer ${authTokens[1]}`) // Team member
         .expect(200);
@@ -242,7 +244,7 @@ describe('Project Routes Integration Tests', () => {
     });
 
     it('should support search filtering', async () => {
-      const _response = await request(app)
+       response = await request(app)
         .get('/api/projects?search=First')
         .set('Authorization', `Bearer ${authTokens[0]}`)
         .expect(200);
@@ -252,7 +254,7 @@ describe('Project Routes Integration Tests', () => {
     });
 
     it('should support status filtering', async () => {
-      const _response = await request(app)
+       response = await request(app)
         .get('/api/projects?status=COMPLETED')
         .set('Authorization', `Bearer ${authTokens[0]}`)
         .expect(200);
@@ -262,7 +264,7 @@ describe('Project Routes Integration Tests', () => {
     });
 
     it('should support pagination', async () => {
-      const _response = await request(app)
+       response = await request(app)
         .get('/api/projects?page=1&limit=1')
         .set('Authorization', `Bearer ${authTokens[0]}`)
         .expect(200);
@@ -313,7 +315,7 @@ describe('Project Routes Integration Tests', () => {
     });
 
     it('should return project details for owner', async () => {
-      const _response = await request(app)
+       response = await request(app)
         .get(`/api/projects/${testProject.id}`)
         .set('Authorization', `Bearer ${authTokens[0]}`)
         .expect(200);
@@ -335,7 +337,7 @@ describe('Project Routes Integration Tests', () => {
     });
 
     it('should return 404 for non-existent project', async () => {
-      const _response = await request(app)
+       response = await request(app)
         .get('/api/projects/non-existent-id')
         .set('Authorization', `Bearer ${authTokens[0]}`)
         .expect(404);
@@ -348,7 +350,7 @@ describe('Project Routes Integration Tests', () => {
     });
 
     it('should deny access to unauthorized user', async () => {
-      const _response = await request(app)
+       response = await request(app)
         .get(`/api/projects/${testProject.id}`)
         .set('Authorization', `Bearer ${authTokens[2]}`) // Other user
         .expect(404);
@@ -378,7 +380,7 @@ describe('Project Routes Integration Tests', () => {
         status: ProjectStatus.COMPLETED,
       };
 
-      const _response = await request(app)
+       response = await request(app)
         .put(`/api/projects/${testProject.id}`)
         .set('Authorization', `Bearer ${authTokens[0]}`)
         .send(updateData)
@@ -401,7 +403,7 @@ describe('Project Routes Integration Tests', () => {
         name: 'Partially Updated Name',
       };
 
-      const _response = await request(app)
+       response = await request(app)
         .put(`/api/projects/${testProject.id}`)
         .set('Authorization', `Bearer ${authTokens[0]}`)
         .send(updateData)
@@ -416,7 +418,7 @@ describe('Project Routes Integration Tests', () => {
         name: 'Unauthorized Update',
       };
 
-      const _response = await request(app)
+       response = await request(app)
         .put(`/api/projects/${testProject.id}`)
         .set('Authorization', `Bearer ${authTokens[2]}`) // Other user
         .send(updateData)
@@ -440,7 +442,7 @@ describe('Project Routes Integration Tests', () => {
     });
 
     it('should delete project successfully', async () => {
-      const _response = await request(app)
+       response = await request(app)
         .delete(`/api/projects/${testProject.id}`)
         .set('Authorization', `Bearer ${authTokens[0]}`)
         .expect(200);
@@ -458,7 +460,7 @@ describe('Project Routes Integration Tests', () => {
     });
 
     it('should deny deletion to non-owner', async () => {
-      const _response = await request(app)
+       response = await request(app)
         .delete(`/api/projects/${testProject.id}`)
         .set('Authorization', `Bearer ${authTokens[1]}`) // Team member
         .expect(404);
@@ -487,7 +489,7 @@ describe('Project Routes Integration Tests', () => {
           role: 'MEMBER',
         };
 
-        const _response = await request(app)
+         response = await request(app)
           .post(`/api/projects/${testProject.id}/team`)
           .set('Authorization', `Bearer ${authTokens[0]}`)
           .send(teamMemberData)
@@ -527,7 +529,7 @@ describe('Project Routes Integration Tests', () => {
           role: 'LEAD',
         };
 
-        const _response = await request(app)
+         response = await request(app)
           .post(`/api/projects/${testProject.id}/team`)
           .set('Authorization', `Bearer ${authTokens[0]}`)
           .send(teamMemberData)
@@ -542,7 +544,7 @@ describe('Project Routes Integration Tests', () => {
           role: 'MEMBER',
         };
 
-        const _response = await request(app)
+         response = await request(app)
           .post(`/api/projects/${testProject.id}/team`)
           .set('Authorization', `Bearer ${authTokens[1]}`) // Non-owner
           .send(teamMemberData)
@@ -566,7 +568,7 @@ describe('Project Routes Integration Tests', () => {
       });
 
       it('should remove team member successfully', async () => {
-        const _response = await request(app)
+         response = await request(app)
           .delete(`/api/projects/${testProject.id}/team/${testUsers[1].id}`)
           .set('Authorization', `Bearer ${authTokens[0]}`)
           .expect(200);
@@ -589,7 +591,7 @@ describe('Project Routes Integration Tests', () => {
       });
 
       it('should prevent removing project owner', async () => {
-        const _response = await request(app)
+         response = await request(app)
           .delete(`/api/projects/${testProject.id}/team/${testUsers[0].id}`)
           .set('Authorization', `Bearer ${authTokens[0]}`)
           .expect(400);
@@ -631,7 +633,7 @@ describe('Project Routes Integration Tests', () => {
     });
 
     it('should return project analytics', async () => {
-      const _response = await request(app)
+       response = await request(app)
         .get(`/api/projects/${testProject.id}/analytics`)
         .set('Authorization', `Bearer ${authTokens[0]}`)
         .expect(200);
@@ -646,7 +648,7 @@ describe('Project Routes Integration Tests', () => {
     });
 
     it('should deny access to unauthorized user', async () => {
-      const _response = await request(app)
+       response = await request(app)
         .get(`/api/projects/${testProject.id}/analytics`)
         .set('Authorization', `Bearer ${authTokens[2]}`) // Other user
         .expect(404);

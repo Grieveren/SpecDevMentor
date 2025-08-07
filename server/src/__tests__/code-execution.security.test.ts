@@ -365,7 +365,7 @@ while (true) {
 
       const startTime = Date.now();
       
-      const _result = await service.executeCode({
+       const result = await service.executeCode({
         code: infiniteLoopCode,
         language: SupportedLanguage.JAVASCRIPT,
         timeout: 5000, // 5 seconds
@@ -388,7 +388,7 @@ for (let i = 0; i < 1000000; i++) {
       `;
 
       // This should either complete or be killed by memory limits
-      const _result = await service.executeCode({
+       const result = await service.executeCode({
         code: memoryIntensiveCode,
         language: SupportedLanguage.JAVASCRIPT,
         timeout: 10000,
@@ -410,7 +410,7 @@ let globalVar = 'test1';
 // // console.log(typeof globalVar === 'undefined' ? 'isolated' : 'not isolated');
       `;
 
-      const [result1, result2] = await Promise.all([
+       const [result1, result2] = await Promise.all([
         service.executeCode({
           code: code1,
           language: SupportedLanguage.JAVASCRIPT,
@@ -447,7 +447,7 @@ const message = 'Hello, World!';
 // // console.log(message);
       `;
 
-      const _result = await service.executeCode({
+       result = await service.executeCode({
         code: safeCode,
         language: SupportedLanguage.JAVASCRIPT,
       });
@@ -464,7 +464,7 @@ message = 'Hello, Python!'
 print(message)
       `;
 
-      const _result = await service.executeCode({
+       result = await service.executeCode({
         code: safeCode,
         language: SupportedLanguage.PYTHON,
       });
@@ -480,7 +480,7 @@ print(message)
 // // console.log('missing quote);
       `;
 
-      const _result = await service.executeCode({
+       result = await service.executeCode({
         code: invalidCode,
         language: SupportedLanguage.JAVASCRIPT,
       });
@@ -495,7 +495,7 @@ print(message)
 throw new Error('Runtime error');
       `;
 
-      const _result = await service.executeCode({
+       result = await service.executeCode({
         code: errorCode,
         language: SupportedLanguage.JAVASCRIPT,
       });

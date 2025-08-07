@@ -13,6 +13,7 @@ describe('Workflow-AI Integration', () => {
   let redis: Redis;
   let aiService: unknown;
   let workflowService: SpecificationWorkflowService;
+  let result: any;
 
   const mockProject = {
     id: 'project-1',
@@ -133,7 +134,7 @@ This is a test requirements document.
       (aiService.reviewSpecification as any).mockResolvedValue(mockAIReview);
 
       // Execute
-      const _result = await workflowService.validatePhaseCompletion(
+       result = await workflowService.validatePhaseCompletion(
         'project-1',
         SpecificationPhase.REQUIREMENTS
       );
@@ -146,14 +147,14 @@ This is a test requirements document.
       );
 
       // Verify AI review is included in result
-      expect(_result.aiReview).toEqual(mockAIReview);
-      expect(_result.aiValidationScore).toBe(85);
+      expect(result.aiReview).toEqual(mockAIReview);
+      expect(result.aiValidationScore).toBe(85);
 
       // Verify AI suggestions are included as warnings/errors
-      expect(_result.warnings.some(warning => 
+      expect(result.warnings.some((warning: string) => 
         warning.includes('AI: Add more detailed acceptance criteria')
       )).toBe(true);
-      expect(_result.warnings.some(warning => 
+      expect(result.warnings.some((warning: string) => 
         warning.includes('AI Compliance: Some acceptance criteria could use better EARS format')
       )).toBe(true);
     });
@@ -164,15 +165,15 @@ This is a test requirements document.
       (aiService.reviewSpecification as any).mockRejectedValue(new Error('AI service unavailable'));
 
       // Execute
-      const _result = await workflowService.validatePhaseCompletion(
+       result = await workflowService.validatePhaseCompletion(
         'project-1',
         SpecificationPhase.REQUIREMENTS
       );
 
       // Verify AI failure doesn't break validation
-      expect(_result.warnings).toContain('AI validation temporarily unavailable');
-      expect(_result.aiReview).toBeUndefined();
-      expect(_result.aiValidationScore).toBeUndefined();
+      expect(result.warnings).toContain('AI validation temporarily unavailable');
+      expect(result.aiReview).toBeUndefined();
+      expect(result.aiValidationScore).toBeUndefined();
     });
 
     it('should adjust completion percentage based on AI validation', async () => {
@@ -182,14 +183,14 @@ This is a test requirements document.
       (aiService.reviewSpecification as any).mockResolvedValue(lowScoreAIReview);
 
       // Execute
-      const _result = await workflowService.validatePhaseCompletion(
+       result = await workflowService.validatePhaseCompletion(
         'project-1',
         SpecificationPhase.REQUIREMENTS
       );
 
       // Verify completion percentage is affected by AI score
-      expect(_result.completionPercentage).toBeLessThan(100);
-      expect(_result.aiValidationScore).toBe(60);
+      expect(result.completionPercentage).toBeLessThan(100);
+      expect(result.aiValidationScore).toBe(60);
     });
   });
 
@@ -202,7 +203,7 @@ This is a test requirements document.
       (prisma.auditLog.create as any).mockResolvedValue({});
 
       // Execute
-      const _result = await workflowService.triggerAutoAIReview(
+       result = await workflowService.triggerAutoAIReview(
         'project-1',
         SpecificationPhase.REQUIREMENTS,
         'user-1'
@@ -246,7 +247,7 @@ This is a test requirements document.
         },
       });
 
-      expect(_result).toEqual(mockAIReview);
+      expect(result).toEqual(mockAIReview);
     });
 
     it('should handle AI review failures and log them', async () => {
@@ -256,7 +257,7 @@ This is a test requirements document.
       (prisma.auditLog.create as any).mockResolvedValue({});
 
       // Execute
-      const _result = await workflowService.triggerAutoAIReview(
+       result = await workflowService.triggerAutoAIReview(
         'project-1',
         SpecificationPhase.REQUIREMENTS,
         'user-1'
@@ -279,7 +280,7 @@ This is a test requirements document.
         },
       });
 
-      expect(_result).toBeNull();
+      expect(result).toBeNull();
     });
 
     it('should return null if document not found', async () => {
@@ -287,13 +288,13 @@ This is a test requirements document.
       (prisma.specificationDocument.findUnique as any).mockResolvedValue(null);
 
       // Execute
-      const _result = await workflowService.triggerAutoAIReview(
+       result = await workflowService.triggerAutoAIReview(
         'project-1',
         SpecificationPhase.REQUIREMENTS,
         'user-1'
       );
 
-      expect(_result).toBeNull();
+      expect(result).toBeNull();
       expect(aiService.reviewSpecification).not.toHaveBeenCalled();
     });
   });
@@ -305,15 +306,15 @@ This is a test requirements document.
       (aiService.reviewSpecification as any).mockResolvedValue(mockAIReview);
 
       // Execute
-      const _result = await workflowService.getPhaseAIValidation(
+       result = await workflowService.getPhaseAIValidation(
         'project-1',
         SpecificationPhase.REQUIREMENTS
       );
 
       // Verify result
-      expect(_result.isValid).toBe(true); // Score 85 >= 70 and no high severity issues
-      expect(_result.score).toBe(85);
-      expect(_result.issues).toEqual([]);
+      expect(result.isValid).toBe(true); // Score 85 >= 70 and no high severity issues
+      expect(result.score).toBe(85);
+      expect(result.issues).toEqual([]);
     });
 
     it('should identify high severity issues as validation failures', async () => {
@@ -338,17 +339,17 @@ This is a test requirements document.
       (aiService.reviewSpecification as any).mockResolvedValue(highSeverityReview);
 
       // Execute
-      const _result = await workflowService.getPhaseAIValidation(
+       result = await workflowService.getPhaseAIValidation(
         'project-1',
         SpecificationPhase.REQUIREMENTS
       );
 
       // Verify result
-      expect(_result.isValid).toBe(false);
-      expect(_result.score).toBe(85);
-      expect(_result.issues).toHaveLength(2);
-      expect(_result.issues[0]).toContain('Add more detailed acceptance criteria');
-      expect(_result.issues[1]).toContain('ears_format');
+      expect(result.isValid).toBe(false);
+      expect(result.score).toBe(85);
+      expect(result.issues).toHaveLength(2);
+      expect(result.issues[0]).toContain('Add more detailed acceptance criteria');
+      expect(result.issues[1]).toContain('ears_format');
     });
 
     it('should return default values when AI service is not available', async () => {
@@ -356,15 +357,15 @@ This is a test requirements document.
       const serviceWithoutAI = new SpecificationWorkflowService(prisma, redis);
 
       // Execute
-      const _result = await serviceWithoutAI.getPhaseAIValidation(
+       result = await serviceWithoutAI.getPhaseAIValidation(
         'project-1',
         SpecificationPhase.REQUIREMENTS
       );
 
       // Verify default result
-      expect(_result.isValid).toBe(true);
-      expect(_result.score).toBe(100);
-      expect(_result.issues).toEqual([]);
+      expect(result.isValid).toBe(true);
+      expect(result.score).toBe(100);
+      expect(result.issues).toEqual([]);
     });
   });
 

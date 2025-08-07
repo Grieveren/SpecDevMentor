@@ -11,6 +11,7 @@ describe('HealthService', () => {
   let healthService: HealthService;
   let mockPrisma: unknown;
   let mockRedis: unknown;
+  let result: any;
 
   beforeEach(() => {
     mockPrisma = {
@@ -125,7 +126,7 @@ describe('HealthService', () => {
       mockPrisma.$queryRaw.mockResolvedValue([{ '?column?': 1 }]);
       mockRedis.ping.mockResolvedValue('PONG');
 
-      const _result = await healthService.checkStartup();
+       result = await healthService.checkStartup();
 
       expect(result).toBe(true);
     });
@@ -134,7 +135,7 @@ describe('HealthService', () => {
       mockPrisma.$queryRaw.mockRejectedValue(new Error('Connection failed'));
       mockRedis.ping.mockResolvedValue('PONG');
 
-      const _result = await healthService.checkStartup();
+       result = await healthService.checkStartup();
 
       expect(result).toBe(false);
     });
@@ -143,7 +144,7 @@ describe('HealthService', () => {
       mockPrisma.$queryRaw.mockResolvedValue([{ '?column?': 1 }]);
       mockRedis.ping.mockRejectedValue(new Error('Connection refused'));
 
-      const _result = await healthService.checkStartup();
+       result = await healthService.checkStartup();
 
       expect(result).toBe(false);
     });

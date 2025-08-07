@@ -7,6 +7,8 @@ import { Server as SocketIOServer } from 'socket.io';
 import { initializeNotificationRoutes } from '../routes/notification.routes.js';
 import { authMiddleware } from '../middleware/auth.middleware.js';
 
+let response: any;
+
 // Mock dependencies
 vi.mock('@prisma/client');
 vi.mock('ioredis');
@@ -76,7 +78,7 @@ describe('Notification Routes', () => {
 
       mockNotificationService.getUserNotifications.mockResolvedValue(mockResponse);
 
-      const _response = await request(app)
+       response = await request(app)
         .get('/api/notifications')
         .expect(200);
 
@@ -112,7 +114,7 @@ describe('Notification Routes', () => {
     it('should handle service errors', async () => {
       mockNotificationService.getUserNotifications.mockRejectedValue(new Error('Service error'));
 
-      const _response = await request(app)
+       response = await request(app)
         .get('/api/notifications')
         .expect(500);
 
@@ -127,7 +129,7 @@ describe('Notification Routes', () => {
     it('should return unread count', async () => {
       mockNotificationService.getUnreadCount.mockResolvedValue(5);
 
-      const _response = await request(app)
+       response = await request(app)
         .get('/api/notifications/unread-count')
         .expect(200);
 
@@ -144,7 +146,7 @@ describe('Notification Routes', () => {
     it('should mark notification as read', async () => {
       mockNotificationService.markAsRead.mockResolvedValue();
 
-      const _response = await request(app)
+       response = await request(app)
         .patch('/api/notifications/notif1/read')
         .expect(200);
 
@@ -167,7 +169,7 @@ describe('Notification Routes', () => {
     it('should mark all notifications as read', async () => {
       mockNotificationService.markAllAsRead.mockResolvedValue();
 
-      const _response = await request(app)
+       response = await request(app)
         .patch('/api/notifications/read-all')
         .expect(200);
 
@@ -194,7 +196,7 @@ describe('Notification Routes', () => {
 
       mockNotificationService.getUserNotificationSettings.mockResolvedValue(mockSettings);
 
-      const _response = await request(app)
+       response = await request(app)
         .get('/api/notifications/settings')
         .expect(200);
 
@@ -216,7 +218,7 @@ describe('Notification Routes', () => {
 
       mockNotificationService.updateNotificationSettings.mockResolvedValue();
 
-      const _response = await request(app)
+       response = await request(app)
         .put('/api/notifications/settings')
         .send(settingsUpdate)
         .expect(200);
@@ -258,7 +260,7 @@ describe('Notification Routes', () => {
 
       mockNotificationService.sendNotification.mockResolvedValue();
 
-      const _response = await request(app)
+       response = await request(app)
         .post('/api/notifications/test')
         .send(testNotification)
         .expect(200);
@@ -279,7 +281,7 @@ describe('Notification Routes', () => {
         message: 'This is a test',
       };
 
-      const _response = await request(app)
+       response = await request(app)
         .post('/api/notifications/test')
         .send(testNotification)
         .expect(403);

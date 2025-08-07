@@ -2,6 +2,8 @@ import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest';
 import { Redis } from 'ioredis';
 import OpenAI from 'openai';
 import { 
+
+let result: any;
   AIService, 
   AIServiceError, 
   AIErrorCode, 
@@ -135,7 +137,7 @@ describe('AIService', () => {
       // Mock cache set
       mockRedis.setex.mockResolvedValue('OK');
 
-      const _result = await aiService.reviewSpecification(mockContent, 'requirements');
+       result = await aiService.reviewSpecification(mockContent, 'requirements');
 
       expect(result).toBeDefined();
       expect(result.overallScore).toBe(85);
@@ -161,7 +163,7 @@ describe('AIService', () => {
       // Mock cache hit
       mockRedis.get.mockResolvedValue(JSON.stringify(cachedResult));
 
-      const _result = await aiService.reviewSpecification(mockContent, 'requirements');
+       result = await aiService.reviewSpecification(mockContent, 'requirements');
 
       expect(result.overallScore).toBe(90);
       expect(mockOpenAI.chat.completions.create).not.toHaveBeenCalled();
@@ -198,7 +200,7 @@ Token: ABCDEFGHIJKLMNOPQRSTUVWXYZ123456
         choices: [{ message: { content: 'Invalid JSON response' } }]
       });
 
-      const _result = await aiService.reviewSpecification(mockContent, 'requirements');
+       result = await aiService.reviewSpecification(mockContent, 'requirements');
 
       expect(result.overallScore).toBe(50);
       expect(result.suggestions).toHaveLength(1);
@@ -233,7 +235,7 @@ Token: ABCDEFGHIJKLMNOPQRSTUVWXYZ123456
     it('should validate EARS format and return compliance issues', async () => {
       mockOpenAI.chat.completions.create.mockResolvedValue(mockComplianceResponse);
 
-      const _result = await aiService.validateEARSFormat(mockContent);
+       result = await aiService.validateEARSFormat(mockContent);
 
       expect(result).toHaveLength(1);
       expect(result[0].type).toBe('ears_format');
@@ -255,7 +257,7 @@ Token: ABCDEFGHIJKLMNOPQRSTUVWXYZ123456
         choices: [{ message: { content: '[]' } }]
       });
 
-      const _result = await aiService.validateEARSFormat(mockContent);
+       result = await aiService.validateEARSFormat(mockContent);
 
       expect(result).toHaveLength(0);
     });
@@ -265,7 +267,7 @@ Token: ABCDEFGHIJKLMNOPQRSTUVWXYZ123456
         choices: [{ message: { content: 'Invalid JSON' } }]
       });
 
-      const _result = await aiService.validateEARSFormat(mockContent);
+       result = await aiService.validateEARSFormat(mockContent);
 
       expect(result).toHaveLength(0);
     });
@@ -298,7 +300,7 @@ Token: ABCDEFGHIJKLMNOPQRSTUVWXYZ123456
     it('should validate user stories and return compliance issues', async () => {
       mockOpenAI.chat.completions.create.mockResolvedValue(mockUserStoryResponse);
 
-      const _result = await aiService.validateUserStories(mockContent);
+       result = await aiService.validateUserStories(mockContent);
 
       expect(result).toHaveLength(1);
       expect(result[0].type).toBe('user_story');
@@ -339,7 +341,7 @@ Token: ABCDEFGHIJKLMNOPQRSTUVWXYZ123456
       });
 
       // Should not throw error despite cache failures
-      const _result = await aiService.reviewSpecification(mockContent, 'requirements');
+       result = await aiService.reviewSpecification(mockContent, 'requirements');
       
       expect(result.overallScore).toBe(75);
       expect(mockOpenAI.chat.completions.create).toHaveBeenCalledOnce();
@@ -358,7 +360,7 @@ describe('withRetry', () => {
       return 'success';
     });
 
-    const _result = await withRetry(operation, 3, 10);
+     result = await withRetry(operation, 3, 10);
 
     expect(result).toBe('success');
     expect(operation).toHaveBeenCalledTimes(3);

@@ -1,6 +1,8 @@
 import { describe, it, expect, beforeEach, afterEach, vi } from 'vitest';
 import { NotificationService } from '../services/notification.service.js';
 
+let result: any;
+
 // Mock dependencies
 vi.mock('@prisma/client', () => ({
   PrismaClient: vi.fn(),
@@ -245,7 +247,7 @@ describe('NotificationService', () => {
       mockPrisma.notification.findMany.mockResolvedValue(mockNotifications);
       mockPrisma.notification.count.mockResolvedValue(1);
 
-      const _result = await notificationService.getUserNotifications('user1', {
+       result = await notificationService.getUserNotifications('user1', {
         page: 1,
         limit: 10,
       });

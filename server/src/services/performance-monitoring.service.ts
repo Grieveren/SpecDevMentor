@@ -1,4 +1,4 @@
-import { PrismaClient } from '@prisma/client';
+import { PrismaClient, Prisma } from '@prisma/client';
 import { Redis } from 'ioredis';
 import { EventEmitter } from 'events';
 
@@ -87,7 +87,7 @@ export class PerformanceMonitoringService extends EventEmitter {
           metricType: metric.metricType,
           value: metric.value,
           unit: metric.unit,
-          tags: metric.tags || {},
+          tags: (metric.tags ?? {}) as Prisma.InputJsonValue,
           timestamp: metric.timestamp || new Date(),
         },
       });
@@ -264,7 +264,14 @@ export class PerformanceMonitoringService extends EventEmitter {
       threshold?: number;
     }>;
   }> {
-    const checks = [];
+    type HealthCheck = {
+      name: string;
+      status: 'pass' | 'fail' | 'warn';
+      message: string;
+      value?: number;
+      threshold?: number;
+    };
+    const checks: HealthCheck[] = [];
     let overallStatus: 'healthy' | 'warning' | 'critical' = 'healthy';
 
     // Check response time
@@ -273,15 +280,18 @@ export class PerformanceMonitoringService extends EventEmitter {
       const avgResponseTime = responseTimeMetrics
         .slice(-10)
         .reduce((sum, m) => sum + m.value, 0) / Math.min(10, responseTimeMetrics.length);
-      
-      const responseTimeCheck = {
+
+      const responseTimeStatus: HealthCheck['status'] =
+        avgResponseTime > 1000 ? 'fail' : avgResponseTime > 500 ? 'warn' : 'pass';
+
+      const responseTimeCheck: HealthCheck = {
         name: 'Response Time',
-        status: avgResponseTime > 1000 ? 'fail' : avgResponseTime > 500 ? 'warn' : 'pass' as const,
+        status: responseTimeStatus,
         message: `Average response time: ${avgResponseTime.toFixed(0)}ms`,
         value: avgResponseTime,
         threshold: 500,
       };
-      
+
       checks.push(responseTimeCheck);
       if (responseTimeCheck.status === 'fail') overallStatus = 'critical';
       else if (responseTimeCheck.status === 'warn' && overallStatus === 'healthy') overallStatus = 'warning';
@@ -293,15 +303,18 @@ export class PerformanceMonitoringService extends EventEmitter {
       const avgErrorRate = errorRateMetrics
         .slice(-10)
         .reduce((sum, m) => sum + m.value, 0) / Math.min(10, errorRateMetrics.length);
-      
-      const errorRateCheck = {
+
+      const errorRateStatus: HealthCheck['status'] =
+        avgErrorRate > 5 ? 'fail' : avgErrorRate > 2 ? 'warn' : 'pass';
+
+      const errorRateCheck: HealthCheck = {
         name: 'Error Rate',
-        status: avgErrorRate > 5 ? 'fail' : avgErrorRate > 2 ? 'warn' : 'pass' as const,
+        status: errorRateStatus,
         message: `Error rate: ${avgErrorRate.toFixed(2)}%`,
         value: avgErrorRate,
         threshold: 2,
       };
-      
+
       checks.push(errorRateCheck);
       if (errorRateCheck.status === 'fail') overallStatus = 'critical';
       else if (errorRateCheck.status === 'warn' && overallStatus === 'healthy') overallStatus = 'warning';
@@ -311,15 +324,18 @@ export class PerformanceMonitoringService extends EventEmitter {
     const memoryMetrics = this.metricBuffer.get('memory_usage') || [];
     if (memoryMetrics.length > 0) {
       const currentMemory = memoryMetrics[memoryMetrics.length - 1].value;
-      
-      const memoryCheck = {
+
+      const memoryStatus: HealthCheck['status'] =
+        currentMemory > 90 ? 'fail' : currentMemory > 80 ? 'warn' : 'pass';
+
+      const memoryCheck: HealthCheck = {
         name: 'Memory Usage',
-        status: currentMemory > 90 ? 'fail' : currentMemory > 80 ? 'warn' : 'pass' as const,
+        status: memoryStatus,
         message: `Memory usage: ${currentMemory.toFixed(1)}%`,
         value: currentMemory,
         threshold: 80,
       };
-      
+
       checks.push(memoryCheck);
       if (memoryCheck.status === 'fail') overallStatus = 'critical';
       else if (memoryCheck.status === 'warn' && overallStatus === 'healthy') overallStatus = 'warning';
@@ -474,12 +490,14 @@ export class PerformanceMonitoringService extends EventEmitter {
     return { start: startDate || start, end };
   }
 
-  private calculateAggregatedMetrics(metrics: unknown[]): PerformanceReport['metrics'] {
-    const metricsByType = metrics.reduce((acc, metric: any) => {
+  private calculateAggregatedMetrics(
+    metrics: Array<{ metricType: string; value: number }>
+  ): PerformanceReport['metrics'] {
+    const metricsByType = metrics.reduce<Record<string, number[]>>((acc, metric) => {
       if (!acc[metric.metricType]) acc[metric.metricType] = [];
       acc[metric.metricType].push(metric.value);
       return acc;
-    }, {} as Record<string, number[]>);
+    }, {});
 
     const avg = (values: number[]) => values.length ? values.reduce((a, b) => a + b, 0) / values.length : 0;
 
@@ -494,20 +512,23 @@ export class PerformanceMonitoringService extends EventEmitter {
     };
   }
 
-  private async calculateTrends(metrics: unknown[], _period: string): Promise<PerformanceReport['trends']> {
+  private async calculateTrends(
+    metrics: Array<{ metricType: string; value: number }>,
+    _period: string
+  ): Promise<PerformanceReport['trends']> {
     // Simplified trend calculation
     const metricTypes = ['response_time', 'error_rate', 'throughput', 'active_users'];
     const trends: PerformanceReport['trends'] = [];
 
     for (const metricType of metricTypes) {
-      const typeMetrics = metrics.filter((m: any) => m.metricType === metricType);
+      const typeMetrics = metrics.filter(m => m.metricType === metricType);
       if (typeMetrics.length < 2) continue;
 
       const firstHalf = typeMetrics.slice(0, Math.floor(typeMetrics.length / 2));
       const secondHalf = typeMetrics.slice(Math.floor(typeMetrics.length / 2));
 
-      const firstAvg = firstHalf.reduce((sum, m: any) => sum + m.value, 0) / firstHalf.length;
-      const secondAvg = secondHalf.reduce((sum, m: any) => sum + m.value, 0) / secondHalf.length;
+      const firstAvg = firstHalf.reduce((sum, m) => sum + m.value, 0) / firstHalf.length;
+      const secondAvg = secondHalf.reduce((sum, m) => sum + m.value, 0) / secondHalf.length;
 
       const changePercent = ((secondAvg - firstAvg) / firstAvg) * 100;
       

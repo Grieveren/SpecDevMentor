@@ -3,6 +3,8 @@ import { FileUploadService } from '../services/file-upload.service.js';
 import fs from 'fs/promises';
 import path from 'path';
 
+let result: any;
+
 // Mock dependencies
 vi.mock('@prisma/client', () => ({
   PrismaClient: vi.fn(),
@@ -78,7 +80,7 @@ describe('FileUploadService', () => {
         url: null,
       });
 
-      const _result = await fileUploadService.processUploadedFiles(
+       result = await fileUploadService.processUploadedFiles(
         mockFiles,
         'user1',
         'doc1'
@@ -166,7 +168,7 @@ describe('FileUploadService', () => {
 
       mockPrisma.fileAttachment.findFirst.mockResolvedValue(existingFile);
 
-      const _result = await fileUploadService.processUploadedFiles(
+       result = await fileUploadService.processUploadedFiles(
         mockFiles,
         'user1'
       );
@@ -196,7 +198,7 @@ describe('FileUploadService', () => {
 
       mockPrisma.fileAttachment.findUnique.mockResolvedValue(mockFile);
 
-      const _result = await fileUploadService.getFile('file1', 'user1');
+       result = await fileUploadService.getFile('file1', 'user1');
 
       expect(result).toEqual(mockFile);
       expect(mockPrisma.fileAttachment.findUnique).toHaveBeenCalledWith({
@@ -248,7 +250,7 @@ describe('FileUploadService', () => {
       mockPrisma.specificationDocument.findUnique.mockResolvedValue(mockDocument);
       mockPrisma.fileAttachment.findMany.mockResolvedValue(mockFiles);
 
-      const _result = await fileUploadService.getDocumentFiles('doc1', 'user1');
+       result = await fileUploadService.getDocumentFiles('doc1', 'user1');
 
       expect(result).toEqual(mockFiles);
       expect(mockPrisma.fileAttachment.findMany).toHaveBeenCalledWith({
@@ -327,7 +329,7 @@ describe('FileUploadService', () => {
       // Mock getFile method
       vi.spyOn(fileUploadService, 'getFile').mockResolvedValue(existingFile);
 
-      const _result = await fileUploadService.updateFileVersion('file1', newFile, 'user1');
+       result = await fileUploadService.updateFileVersion('file1', newFile, 'user1');
 
       expect(result).toEqual({
         id: 'file1',
@@ -396,7 +398,7 @@ describe('FileUploadService', () => {
 
       mockPrisma.fileAttachment.findMany.mockResolvedValue(mockFiles);
 
-      const _result = await fileUploadService.getStorageStats('user1');
+       result = await fileUploadService.getStorageStats('user1');
 
       expect(result).toEqual({
         totalFiles: 3,

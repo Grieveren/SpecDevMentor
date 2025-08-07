@@ -153,24 +153,26 @@ export class LoggerService {
       })
     );
 
-    return winston.createLogger({
+    // In test environment, disable exception/rejection handlers to avoid process.exit
+    const baseConfig: any = {
       level: logLevel,
       transports,
-      // Handle uncaught exceptions
-      exceptionHandlers: [
-        new winston.transports.File({
+    };
+    if (this.environment !== 'test') {
+      baseConfig.exceptionHandlers = [
+        new (winston.transports as any).File({
           filename: path.join(logDir, 'exceptions.log'),
           format: structuredFormat,
         }),
-      ],
-      // Handle unhandled promise rejections
-      rejectionHandlers: [
-        new winston.transports.File({
+      ];
+      baseConfig.rejectionHandlers = [
+        new (winston.transports as any).File({
           filename: path.join(logDir, 'rejections.log'),
           format: structuredFormat,
         }),
-      ],
-    });
+      ];
+    }
+    return winston.createLogger(baseConfig);
   }
 
   // Core logging methods
@@ -195,7 +197,7 @@ export class LoggerService {
   }
 
   // Specialized logging methods
-  logRequest(_req: Request, _res: Response, responseTime: number): void {
+  logRequest(req: Request, res: Response, responseTime: number): void {
     const context: LogContext = {
       method: req.method,
       url: req.originalUrl,
@@ -218,7 +220,7 @@ export class LoggerService {
     }
   }
 
-  logError(_error: Error, context?: LogContext): void {
+  logError(error: Error, context?: LogContext): void {
     const errorContext: LogContext = {
       ...context,
       error: {
@@ -246,7 +248,7 @@ export class LoggerService {
     }
   }
 
-  logCacheOperation(operation: string, _key: string, hit: boolean, duration: number, context?: LogContext): void {
+  logCacheOperation(operation: string, key: string, hit: boolean, duration: number, context?: LogContext): void {
     const cacheContext: LogContext = {
       ...context,
       operation,
@@ -272,7 +274,7 @@ export class LoggerService {
     this.info(`AI ${operation}: ${model} - ${tokens} tokens, ${duration}ms`, aiContext);
   }
 
-  logSecurityEvent(_event: string, severity: 'low' | 'medium' | 'high' | 'critical', context?: LogContext): void {
+  logSecurityEvent(event: string, severity: 'low' | 'medium' | 'high' | 'critical', context?: LogContext): void {
     const securityContext: LogContext = {
       ...context,
       event,
@@ -291,7 +293,7 @@ export class LoggerService {
     }
   }
 
-  logPerformanceMetric(metric: string, _value: number, unit: string, context?: LogContext): void {
+  logPerformanceMetric(metric: string, value: number, unit: string, context?: LogContext): void {
     const perfContext: LogContext = {
       ...context,
       metric,
@@ -303,7 +305,7 @@ export class LoggerService {
     this.info(`Performance metric: ${metric} = ${value}${unit}`, perfContext);
   }
 
-  logBusinessEvent(_event: string, data: Record<string, any>, context?: LogContext): void {
+  logBusinessEvent(event: string, data: Record<string, any>, context?: LogContext): void {
     const businessContext: LogContext = {
       ...context,
       event,
@@ -371,7 +373,7 @@ export class LoggerService {
 export const logger = new LoggerService();
 
 // Express middleware for request logging
-export const requestLoggingMiddleware = (_req: Request, _res: Response, _next: Function) => {
+export const requestLoggingMiddleware = (req: Request, res: Response, next: Function) => {
   const startTime = Date.now();
   
   // Generate request ID
@@ -388,8 +390,8 @@ export const requestLoggingMiddleware = (_req: Request, _res: Response, _next: F
   });
   
   // Override res.end to log response
-  const originalEnd = res.end;
-  res.end = function(chunk: unknown, encoding: unknown) {
+  const originalEnd = res.end as any;
+  (res as any).end = function(chunk: unknown, encoding: unknown) {
     const responseTime = Date.now() - startTime;
     logger.logRequest(req, res, responseTime);
     originalEnd.call(this, chunk, encoding);
@@ -399,7 +401,7 @@ export const requestLoggingMiddleware = (_req: Request, _res: Response, _next: F
 };
 
 // Error logging middleware
-export const errorLoggingMiddleware = (_error: Error, _req: Request, _res: Response, _next: Function) => {
+export const errorLoggingMiddleware = (error: Error, req: Request, _res: Response, next: Function) => {
   logger.logError(error, {
     requestId: (req as any).requestId,
     method: req.method,
@@ -408,6 +410,5 @@ export const errorLoggingMiddleware = (_error: Error, _req: Request, _res: Respo
     userAgent: req.get('User-Agent'),
     userId: (req as any).user?.id,
   });
-  
   next(error);
 };

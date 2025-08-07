@@ -5,6 +5,8 @@ import { PrismaClient } from '@prisma/client';
 import aiReviewRoutes from '../routes/ai-review.routes.js';
 import { authenticateToken } from '../middleware/auth.middleware.js';
 
+let response: any;
+
 // Mock dependencies
 vi.mock('@prisma/client');
 vi.mock('../services/ai.service.js');
@@ -46,7 +48,7 @@ describe('AI Review Routes', () => {
         projectId: 'project-123',
       };
 
-      const _response = await request(app)
+       response = await request(app)
         .post('/api/ai-review/request')
         .send(requestData)
         .expect(201);
@@ -56,7 +58,7 @@ describe('AI Review Routes', () => {
     });
 
     it('should validate required fields', async () => {
-      const _response = await request(app)
+       response = await request(app)
         .post('/api/ai-review/request')
         .send({})
         .expect(400);
@@ -73,7 +75,7 @@ describe('AI Review Routes', () => {
         content: 'Test content',
       };
 
-      const _response = await request(app)
+       response = await request(app)
         .post('/api/ai-review/request')
         .send(requestData)
         .expect(400);
@@ -87,7 +89,7 @@ describe('AI Review Routes', () => {
     it('should get AI review by ID', async () => {
       const reviewId = 'review-123';
 
-      const _response = await request(app)
+       response = await request(app)
         .get(`/api/ai-review/${reviewId}`)
         .expect(200);
 
@@ -95,7 +97,7 @@ describe('AI Review Routes', () => {
     });
 
     it('should validate review ID parameter', async () => {
-      const _response = await request(app)
+       response = await request(app)
         .get('/api/ai-review/')
         .expect(404);
     });
@@ -105,7 +107,7 @@ describe('AI Review Routes', () => {
     it('should get document reviews with default pagination', async () => {
       const documentId = 'doc-123';
 
-      const _response = await request(app)
+       response = await request(app)
         .get(`/api/ai-review/document/${documentId}`)
         .expect(200);
 
@@ -115,7 +117,7 @@ describe('AI Review Routes', () => {
     it('should handle pagination parameters', async () => {
       const documentId = 'doc-123';
 
-      const _response = await request(app)
+       response = await request(app)
         .get(`/api/ai-review/document/${documentId}`)
         .query({ limit: '5', offset: '10' })
         .expect(200);
@@ -126,7 +128,7 @@ describe('AI Review Routes', () => {
     it('should validate pagination parameters', async () => {
       const documentId = 'doc-123';
 
-      const _response = await request(app)
+       response = await request(app)
         .get(`/api/ai-review/document/${documentId}`)
         .query({ limit: '100', offset: '-1' })
         .expect(400);
@@ -143,7 +145,7 @@ describe('AI Review Routes', () => {
         documentContent: 'Original content to be modified',
       };
 
-      const _response = await request(app)
+       response = await request(app)
         .post(`/api/ai-review/${reviewId}/apply-suggestion`)
         .send(requestData)
         .expect(200);
@@ -155,7 +157,7 @@ describe('AI Review Routes', () => {
     it('should validate required fields for suggestion application', async () => {
       const reviewId = 'review-123';
 
-      const _response = await request(app)
+       response = await request(app)
         .post(`/api/ai-review/${reviewId}/apply-suggestion`)
         .send({})
         .expect(400);
@@ -172,7 +174,7 @@ describe('AI Review Routes', () => {
         suggestionId: 'suggestion-123',
       };
 
-      const _response = await request(app)
+       response = await request(app)
         .post(`/api/ai-review/${reviewId}/rollback-suggestion`)
         .send(requestData)
         .expect(200);
@@ -184,7 +186,7 @@ describe('AI Review Routes', () => {
     it('should validate required fields for rollback', async () => {
       const reviewId = 'review-123';
 
-      const _response = await request(app)
+       response = await request(app)
         .post(`/api/ai-review/${reviewId}/rollback-suggestion`)
         .send({})
         .expect(400);
@@ -200,7 +202,7 @@ describe('AI Review Routes', () => {
         content: 'WHEN user clicks submit THEN system SHALL validate form',
       };
 
-      const _response = await request(app)
+       response = await request(app)
         .post('/api/ai-review/validate-ears')
         .send(requestData)
         .expect(200);
@@ -210,7 +212,7 @@ describe('AI Review Routes', () => {
     });
 
     it('should validate content field for EARS validation', async () => {
-      const _response = await request(app)
+       response = await request(app)
         .post('/api/ai-review/validate-ears')
         .send({})
         .expect(400);
@@ -226,7 +228,7 @@ describe('AI Review Routes', () => {
         content: 'As a user, I want to login, so that I can access my account',
       };
 
-      const _response = await request(app)
+       response = await request(app)
         .post('/api/ai-review/validate-user-stories')
         .send(requestData)
         .expect(200);
@@ -236,7 +238,7 @@ describe('AI Review Routes', () => {
     });
 
     it('should validate content field for user story validation', async () => {
-      const _response = await request(app)
+       response = await request(app)
         .post('/api/ai-review/validate-user-stories')
         .send({})
         .expect(400);
@@ -256,7 +258,7 @@ describe('AI Review Routes', () => {
         content: 'Test content',
       };
 
-      const _response = await request(app)
+       response = await request(app)
         .post('/api/ai-review/request')
         .send(requestData);
 
@@ -271,7 +273,7 @@ describe('AI Review Routes', () => {
         res.status(401).json({ error: 'Unauthorized' });
       });
 
-      const _response = await request(app)
+       response = await request(app)
         .post('/api/ai-review/request')
         .send({
           documentId: 'doc-123',

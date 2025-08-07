@@ -5,6 +5,8 @@ import { Client as SocketIOClient } from 'socket.io-client';
 import Redis from 'ioredis';
 import jwt from 'jsonwebtoken';
 import {
+
+let result: any;
   CollaborationService,
   OperationalTransform,
   ConflictResolver,
@@ -141,7 +143,7 @@ describe('OperationalTransform', () => {
         documentId: 'doc1',
       };
 
-      const _result = OperationalTransform.apply(content, operation);
+       result = OperationalTransform.apply(content, operation);
       expect(result).toBe('Hello beautiful world');
     });
 
@@ -157,7 +159,7 @@ describe('OperationalTransform', () => {
         documentId: 'doc1',
       };
 
-      const _result = OperationalTransform.apply(content, operation);
+       result = OperationalTransform.apply(content, operation);
       expect(result).toBe('Hello world');
     });
 
@@ -172,7 +174,7 @@ describe('OperationalTransform', () => {
         documentId: 'doc1',
       };
 
-      const _result = OperationalTransform.apply(content, operation);
+       result = OperationalTransform.apply(content, operation);
       expect(result).toBe(content);
     });
   });

@@ -3,7 +3,6 @@ import crypto from 'crypto';
 import { Redis } from 'ioredis';
 import OpenAI from 'openai';
 import { RateLimiterMemory } from 'rate-limiter-flexible';
-import { AIServiceConfig, AIServiceError } from '../types/services.js';
 
 // Types and interfaces
 export interface AIReviewResult {
@@ -70,6 +69,19 @@ export enum AIErrorCode {
   TOKEN_LIMIT_EXCEEDED = 'TOKEN_LIMIT_EXCEEDED',
   SERVICE_UNAVAILABLE = 'SERVICE_UNAVAILABLE',
   TIMEOUT = 'TIMEOUT',
+}
+
+// Local AI error class tailored for AI service retries (matches tests)
+export class AIServiceError extends Error {
+  code: AIErrorCode;
+  retryable: boolean;
+
+  constructor(message: string, _unused: unknown = null, code: AIErrorCode, retryable = false) {
+    super(message);
+    this.name = 'AIServiceError';
+    this.code = code;
+    this.retryable = retryable;
+  }
 }
 
 // Configuration interface
@@ -177,19 +189,17 @@ export class AIService {
     const prompt = this.getReviewPrompt(phase, sanitizedContent);
 
     try {
-      const _response = await this.generateCompletion(prompt);
-      const _result = this.parseReviewResponse(response, phase);
+      const response = await this.generateCompletion(prompt);
+      const result = this.parseReviewResponse(response, phase);
 
       // Cache the result
       await this.cache.set(cacheKey, result);
 
       return result;
-    } catch (error) {
-      throw new AIServiceError(
-        `Failed to review ${phase} specification`,
-        this.mapErrorCode(error),
-        error
-      );
+    } catch (_error) {
+      const code = this.mapErrorCode(_error);
+      const retryable = [AIErrorCode.RATE_LIMIT_EXCEEDED, AIErrorCode.SERVICE_UNAVAILABLE, AIErrorCode.TIMEOUT].includes(code);
+      throw new AIServiceError(`Failed to review ${phase} specification`, null, code, retryable);
     }
   }
 
@@ -200,14 +210,12 @@ export class AIService {
     const prompt = this.getEARSValidationPrompt(content);
 
     try {
-      const _response = await this.generateCompletion(prompt);
+      const response = await this.generateCompletion(prompt);
       return this.parseComplianceResponse(response);
-    } catch (error) {
-      throw new AIServiceError(
-        'Failed to validate EARS format',
-        this.mapErrorCode(error),
-        error
-      );
+    } catch (_error) {
+      const code = this.mapErrorCode(_error);
+      const retryable = [AIErrorCode.RATE_LIMIT_EXCEEDED, AIErrorCode.SERVICE_UNAVAILABLE, AIErrorCode.TIMEOUT].includes(code);
+      throw new AIServiceError('Failed to validate EARS format', null, code, retryable);
     }
   }
 
@@ -218,14 +226,12 @@ export class AIService {
     const prompt = this.getUserStoryValidationPrompt(content);
 
     try {
-      const _response = await this.generateCompletion(prompt);
+      const response = await this.generateCompletion(prompt);
       return this.parseComplianceResponse(response);
-    } catch (error) {
-      throw new AIServiceError(
-        'Failed to validate user stories',
-        this.mapErrorCode(error),
-        error
-      );
+    } catch (_error) {
+      const code = this.mapErrorCode(_error);
+      const retryable = [AIErrorCode.RATE_LIMIT_EXCEEDED, AIErrorCode.SERVICE_UNAVAILABLE, AIErrorCode.TIMEOUT].includes(code);
+      throw new AIServiceError('Failed to validate user stories', null, code, retryable);
     }
   }
 
@@ -241,40 +247,25 @@ export class AIService {
     await this.tokenRateLimiter.consume('ai-service', estimatedTokens);
 
     try {
-      const _response = await this.client.chat.completions.create({
+      const response = await this.client.chat.completions.create({
         model: this.config.model,
         messages: [{ role: 'user', content: prompt }],
         max_tokens: this.config.maxTokens,
         temperature: this.config.temperature,
       });
-
       return response.choices[0]?.message?.content || '';
-    } catch (_error: unknown) {
-      if (error.status === 429) {
-        throw new AIServiceError(
-          'Rate limit exceeded',
-          AIErrorCode.RATE_LIMIT_EXCEEDED,
-          error
-        );
+    } catch (_error: any) {
+      const status = _error?.status;
+      if (status === 429) {
+        throw new AIServiceError('Rate limit exceeded', null, AIErrorCode.RATE_LIMIT_EXCEEDED, true);
       }
-
-      if (error.status === 401) {
-        throw new AIServiceError('Invalid API key', AIErrorCode.API_KEY_INVALID, error);
+      if (status === 401) {
+        throw new AIServiceError('Invalid API key', null, AIErrorCode.API_KEY_INVALID, false);
       }
-
-      if (error.status === 400 && error.message?.includes('content_filter')) {
-        throw new AIServiceError(
-          'Content filtered by OpenAI',
-          AIErrorCode.CONTENT_FILTERED,
-          error
-        );
+      if (status === 400 && _error?.message?.includes('content_filter')) {
+        throw new AIServiceError('Content filtered by OpenAI', null, AIErrorCode.CONTENT_FILTERED, false);
       }
-
-      throw new AIServiceError(
-        'OpenAI API request failed',
-        AIErrorCode.SERVICE_UNAVAILABLE,
-        error
-      );
+      throw new AIServiceError('OpenAI API request failed', null, AIErrorCode.SERVICE_UNAVAILABLE, true);
     }
   }
 
@@ -451,7 +442,7 @@ ${content}
   /**
    * Parse AI review response
    */
-  private parseReviewResponse(_response: string, phase: SpecificationPhase): AIReviewResult {
+  private parseReviewResponse(response: string, _phase: SpecificationPhase): AIReviewResult {
     try {
       const parsed = JSON.parse(response);
 
@@ -474,7 +465,7 @@ ${content}
         complianceIssues: parsed.complianceIssues || [],
         generatedAt: new Date(),
       };
-    } catch (error) {
+    } catch (_error) {
       // Fallback if JSON parsing fails
       return {
         id: crypto.randomUUID(),
@@ -507,10 +498,10 @@ ${content}
   /**
    * Parse compliance response
    */
-  private parseComplianceResponse(_response: string): ComplianceIssue[] {
+  private parseComplianceResponse(response: string): ComplianceIssue[] {
     try {
       return JSON.parse(response) || [];
-    } catch (error) {
+    } catch (_error) {
       return [];
     }
   }
@@ -518,25 +509,22 @@ ${content}
   /**
    * Map error to error code
    */
-  private mapErrorCode(_error: unknown): AIErrorCode {
-    if (error.status === 429) return AIErrorCode.RATE_LIMIT_EXCEEDED;
-    if (error.status === 401) return AIErrorCode.API_KEY_INVALID;
-    if (error.message?.includes('content_filter')) return AIErrorCode.CONTENT_FILTERED;
-    if (error.message?.includes('token')) return AIErrorCode.TOKEN_LIMIT_EXCEEDED;
-    if (error.code === 'ECONNABORTED') return AIErrorCode.TIMEOUT;
+  private mapErrorCode(error: any): AIErrorCode {
+    if (error?.status === 429) return AIErrorCode.RATE_LIMIT_EXCEEDED;
+    if (error?.status === 401) return AIErrorCode.API_KEY_INVALID;
+    if (error?.message?.includes?.('content_filter')) return AIErrorCode.CONTENT_FILTERED;
+    if (error?.message?.includes?.('token')) return AIErrorCode.TOKEN_LIMIT_EXCEEDED;
+    if (error?.code === 'ECONNABORTED') return AIErrorCode.TIMEOUT;
     return AIErrorCode.SERVICE_UNAVAILABLE;
   }
 
   /**
    * Check if error is retryable
    */
-  private isRetryableError(_error: unknown): boolean {
-    const retryableCodes = [
-      AIErrorCode.RATE_LIMIT_EXCEEDED,
-      AIErrorCode.SERVICE_UNAVAILABLE,
-      AIErrorCode.TIMEOUT,
-    ];
-    return retryableCodes.includes(this.mapErrorCode(error));
+  private isRetryableError(error: unknown): boolean {
+    if (error instanceof AIServiceError) return error.retryable;
+    const code = this.mapErrorCode(error);
+    return [AIErrorCode.RATE_LIMIT_EXCEEDED, AIErrorCode.SERVICE_UNAVAILABLE, AIErrorCode.TIMEOUT].includes(code);
   }
 }
 
@@ -553,10 +541,10 @@ export const withRetry = async <T>(
   for (let attempt = 0; attempt <= maxRetries; attempt++) {
     try {
       return await operation();
-    } catch (error) {
+    } catch (error: any) {
       lastError = error as Error;
 
-      if (error instanceof AIServiceError) {
+      if (error instanceof AIServiceError && !error.retryable) {
         throw error;
       }
 

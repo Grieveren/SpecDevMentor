@@ -45,6 +45,7 @@ vi.mock('dockerode', () => {
 
 describe('CodeExecutionService', () => {
   let service: CodeExecutionService;
+  let result: any;
 
   beforeEach(() => {
     service = new CodeExecutionService();
@@ -325,7 +326,7 @@ describe('CodeExecutionService', () => {
         timeout: 1000, // 1 second timeout
       };
 
-      const _result = await service.executeCode(request);
+       result = await service.executeCode(request);
       
       expect(result.timedOut).toBe(true);
       expect(result.exitCode).toBe(124);
@@ -357,7 +358,7 @@ describe('CodeExecutionService', () => {
         language: SupportedLanguage.JAVASCRIPT,
       };
 
-      const _result = await service.executeCode(request);
+       result = await service.executeCode(request);
 
       expect(result.success).toBe(true);
       expect(result.exitCode).toBe(0);
@@ -373,7 +374,7 @@ describe('CodeExecutionService', () => {
         input: 'test input',
       };
 
-      const _result = await service.executeCode(request);
+       result = await service.executeCode(request);
 
       expect(result.success).toBe(true);
       expect(result.exitCode).toBe(0);
@@ -387,7 +388,7 @@ describe('CodeExecutionService', () => {
         timeout: 5000,
       };
 
-      const _result = await service.executeCode(request);
+       result = await service.executeCode(request);
 
       expect(result.success).toBe(true);
       expect(result.executionTime).toBeLessThan(5000);

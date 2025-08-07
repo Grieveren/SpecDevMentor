@@ -5,11 +5,11 @@ import {
   ConflictError,
   InternalServerError,
   NotFoundError,
-} from '../../../shared/types';
+} from '../../../shared/types/index.js';
 import bcrypt from 'bcryptjs';
 import crypto from 'crypto';
 import jwt from 'jsonwebtoken';
-import { Redis } from 'redis';
+import { Redis } from 'ioredis';
 import { handleServiceError } from '../utils/error-handler';
 
 const prisma = new PrismaClient();
@@ -62,13 +62,15 @@ export class AuthService {
     }
 
     // Load revoked tokens from Redis on startup
-    this.loadRevokedTokens();
+    void this.loadRevokedTokens();
   }
 
   private async loadRevokedTokens(): Promise<void> {
     try {
-      const tokens = await this.redis.sMembers('revoked_tokens');
-      tokens.forEach(token => this.revokedTokens.add(token));
+      const tokens = await (this.redis as any).sMembers?.('revoked_tokens');
+      if (Array.isArray(tokens)) {
+        tokens.forEach((token: string) => this.revokedTokens.add(token));
+      }
     } catch (error) {
       console.error('Failed to load revoked tokens:', error);
     }

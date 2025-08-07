@@ -2,6 +2,8 @@ import { describe, it, expect, beforeAll, beforeEach, afterAll } from 'vitest';
 import { PrismaClient, UserRole, SpecificationPhase, DocumentStatus, ProjectStatus } from '@prisma/client';
 import bcrypt from 'bcryptjs';
 
+let document: any;
+
 // Use test database
 const prisma = new PrismaClient({
   datasources: {
@@ -200,7 +202,7 @@ describe('Database Integration Tests', () => {
       ];
 
       for (const phase of phases) {
-        const _document = await prisma.specificationDocument.create({
+         document = await prisma.specificationDocument.create({
           data: {
             projectId: testProject.id,
             phase,
@@ -236,7 +238,7 @@ describe('Database Integration Tests', () => {
     });
 
     it('should support document versioning', async () => {
-      const _document = await prisma.specificationDocument.create({
+       document = await prisma.specificationDocument.create({
         data: {
           projectId: testProject.id,
           phase: SpecificationPhase.REQUIREMENTS,

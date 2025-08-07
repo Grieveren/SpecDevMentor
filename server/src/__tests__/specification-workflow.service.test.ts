@@ -39,6 +39,7 @@ const mockPrisma = {
 
 describe('SpecificationWorkflowService', () => {
   let service: SpecificationWorkflowService;
+  let result: any;
 
   beforeEach(() => {
     vi.clearAllMocks();
@@ -49,7 +50,7 @@ describe('SpecificationWorkflowService', () => {
     it('should return invalid when document not found', async () => {
       mockPrisma.specificationDocument.findUnique.mockResolvedValue(null);
 
-      const _result = await service.validatePhaseCompletion('project1', SpecificationPhase.REQUIREMENTS);
+       result = await service.validatePhaseCompletion('project1', SpecificationPhase.REQUIREMENTS);
 
       expect(result.isValid).toBe(false);
       expect(result.errors).toContain('Document not found for phase');
@@ -94,7 +95,7 @@ This document contains comprehensive requirements with proper formatting, user s
 
       mockPrisma.specificationDocument.findUnique.mockResolvedValue(mockDocument);
 
-      const _result = await service.validatePhaseCompletion('project1', SpecificationPhase.REQUIREMENTS);
+       result = await service.validatePhaseCompletion('project1', SpecificationPhase.REQUIREMENTS);
 
       expect(result.isValid).toBe(true);
       expect(result.errors).toHaveLength(0);
@@ -111,7 +112,7 @@ This document contains comprehensive requirements with proper formatting, user s
 
       mockPrisma.specificationDocument.findUnique.mockResolvedValue(mockDocument);
 
-      const _result = await service.validatePhaseCompletion('project1', SpecificationPhase.REQUIREMENTS);
+       result = await service.validatePhaseCompletion('project1', SpecificationPhase.REQUIREMENTS);
 
       expect(result.isValid).toBe(false);
       expect(result.errors).toContain('Missing required section: Introduction');
@@ -134,7 +135,7 @@ One requirement.`,
 
       mockPrisma.specificationDocument.findUnique.mockResolvedValue(mockDocument);
 
-      const _result = await service.validatePhaseCompletion('project1', SpecificationPhase.REQUIREMENTS);
+       result = await service.validatePhaseCompletion('project1', SpecificationPhase.REQUIREMENTS);
 
       expect(result.isValid).toBe(false);
       expect(result.errors.some(error => error.includes('Document too short'))).toBe(true);
@@ -194,7 +195,7 @@ This document contains comprehensive detail and meets all requirements for a com
 
       mockPrisma.specificationDocument.findUnique.mockResolvedValue(mockDocument);
 
-      const _result = await service.validatePhaseCompletion('project1', SpecificationPhase.DESIGN);
+       result = await service.validatePhaseCompletion('project1', SpecificationPhase.DESIGN);
 
       expect(result.isValid).toBe(true);
       expect(result.errors).toHaveLength(0);
@@ -258,7 +259,7 @@ This comprehensive implementation plan provides a structured approach to buildin
 
       mockPrisma.specificationDocument.findUnique.mockResolvedValue(mockDocument);
 
-      const _result = await service.validatePhaseCompletion('project1', SpecificationPhase.TASKS);
+       result = await service.validatePhaseCompletion('project1', SpecificationPhase.TASKS);
 
       expect(result.isValid).toBe(true);
       expect(result.errors).toHaveLength(0);
@@ -269,7 +270,7 @@ This comprehensive implementation plan provides a structured approach to buildin
     it('should return false when project not found', async () => {
       mockPrisma.specificationProject.findUnique.mockResolvedValue(null);
 
-      const _result = await service.canTransitionToPhase('project1', SpecificationPhase.DESIGN, 'user1');
+       result = await service.canTransitionToPhase('project1', SpecificationPhase.DESIGN, 'user1');
 
       expect(result.canTransition).toBe(false);
       expect(result.reason).toBe('Project not found');
@@ -285,7 +286,7 @@ This comprehensive implementation plan provides a structured approach to buildin
 
       mockPrisma.specificationProject.findUnique.mockResolvedValue(mockProject);
 
-      const _result = await service.canTransitionToPhase('project1', SpecificationPhase.DESIGN, 'user1');
+       result = await service.canTransitionToPhase('project1', SpecificationPhase.DESIGN, 'user1');
 
       expect(result.canTransition).toBe(false);
       expect(result.reason).toBe('Insufficient permissions');
@@ -301,7 +302,7 @@ This comprehensive implementation plan provides a structured approach to buildin
 
       mockPrisma.specificationProject.findUnique.mockResolvedValue(mockProject);
 
-      const _result = await service.canTransitionToPhase('project1', SpecificationPhase.TASKS, 'user1');
+       result = await service.canTransitionToPhase('project1', SpecificationPhase.TASKS, 'user1');
 
       expect(result.canTransition).toBe(false);
       expect(result.reason).toBe('Invalid phase transition. Phases must be sequential');
@@ -359,7 +360,7 @@ This document meets all validation requirements including word count and proper 
         approved: true,
       }));
 
-      const _result = await service.canTransitionToPhase('project1', SpecificationPhase.DESIGN, 'user1');
+       result = await service.canTransitionToPhase('project1', SpecificationPhase.DESIGN, 'user1');
 
       expect(result.canTransition).toBe(true);
     });
@@ -420,7 +421,7 @@ This document meets all validation requirements including word count and proper 
         approved: true,
       }));
 
-      const _result = await service.canTransitionToPhase('project1', SpecificationPhase.DESIGN, 'user1');
+       result = await service.canTransitionToPhase('project1', SpecificationPhase.DESIGN, 'user1');
 
       expect(result.canTransition).toBe(true);
     });
@@ -562,7 +563,7 @@ This document meets all validation requirements including word count and proper 
       mockRedis.keys.mockResolvedValue([]); // No phase history or approvals
       mockRedis.setex.mockResolvedValue('OK'); // Cache set
 
-      const _result = await service.transitionPhase('project1', request, 'user1');
+       result = await service.transitionPhase('project1', request, 'user1');
 
       expect(result.currentPhase).toBe(SpecificationPhase.DESIGN);
       expect(mockPrisma.$transaction).toHaveBeenCalled();
@@ -639,7 +640,7 @@ This document meets all validation requirements including word count and proper 
         content: 'Updated content',
       };
 
-      const _result = await service.updateDocument('project1', SpecificationPhase.REQUIREMENTS, request, 'user1');
+       result = await service.updateDocument('project1', SpecificationPhase.REQUIREMENTS, request, 'user1');
 
       expect(result.content).toBe('Updated content');
       expect(result.version).toBe(2);
@@ -677,7 +678,7 @@ This document meets all validation requirements including word count and proper 
 
       mockRedis.get.mockResolvedValue(JSON.stringify(mockWorkflowState));
 
-      const _result = await service.getWorkflowState('project1');
+       result = await service.getWorkflowState('project1');
 
       expect(result).toEqual(mockWorkflowState);
       expect(mockRedis.get).toHaveBeenCalledWith('workflow:project1');
@@ -701,7 +702,7 @@ This document meets all validation requirements including word count and proper 
       mockRedis.keys.mockResolvedValue([]);
       mockRedis.setex.mockResolvedValue('OK');
 
-      const _result = await service.getWorkflowState('project1');
+       result = await service.getWorkflowState('project1');
 
       expect(result.projectId).toBe('project1');
       expect(result.currentPhase).toBe(SpecificationPhase.REQUIREMENTS);
@@ -775,7 +776,7 @@ This document meets all validation requirements including word count and proper 
       }));
       mockRedis.setex.mockResolvedValue('OK');
 
-      const _result = await service.getWorkflowState('project1');
+       result = await service.getWorkflowState('project1');
 
       expect(result.canProgress).toBe(true);
       expect(result.nextPhase).toBe(SpecificationPhase.DESIGN);
@@ -895,7 +896,7 @@ This document meets all validation requirements including word count and proper 
         approvalComment: 'Requirements approved, moving to design',
       };
 
-      const _result = await service.transitionPhase(projectId, request, userId);
+       result = await service.transitionPhase(projectId, request, userId);
 
       expect(result.currentPhase).toBe(SpecificationPhase.DESIGN);
       expect(mockPrisma.$transaction).toHaveBeenCalled();

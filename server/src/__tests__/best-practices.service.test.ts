@@ -15,6 +15,7 @@ const mockPrisma = {
 
 describe('BestPracticesService', () => {
   let bestPracticesService: BestPracticesService;
+  let result: any;
 
   beforeEach(() => {
     bestPracticesService = new BestPracticesService(mockPrisma);
@@ -57,7 +58,7 @@ describe('BestPracticesService', () => {
 
       (mockPrisma.bestPracticeGuide.create as any).mockResolvedValue(mockGuide);
 
-      const _result = await bestPracticesService.createGuide(guideData);
+       result = await bestPracticesService.createGuide(guideData);
 
       expect(mockPrisma.bestPracticeGuide.create).toHaveBeenCalledWith({
         data: {
@@ -66,7 +67,7 @@ describe('BestPracticesService', () => {
           examples: guideData.examples,
         },
       });
-      expect(_result).toEqual(mockGuide);
+      expect(result).toEqual(mockGuide);
     });
 
     it('should validate guide data', async () => {
@@ -108,7 +109,7 @@ describe('BestPracticesService', () => {
 
       (mockPrisma.bestPracticeGuide.findMany as any).mockResolvedValue(mockGuides);
 
-      const _result = await bestPracticesService.getGuidesByPhase('REQUIREMENTS');
+       result = await bestPracticesService.getGuidesByPhase('REQUIREMENTS');
 
       expect(mockPrisma.bestPracticeGuide.findMany).toHaveBeenCalledWith({
         where: {
@@ -120,9 +121,9 @@ describe('BestPracticesService', () => {
           { createdAt: 'asc' },
         ],
       });
-      expect(_result).toHaveLength(2);
-      expect(_result[0].tips).toEqual([]);
-      expect(_result[0].examples).toEqual([]);
+      expect(result).toHaveLength(2);
+      expect(result[0].tips).toEqual([]);
+      expect(result[0].examples).toEqual([]);
     });
   });
 
@@ -169,12 +170,12 @@ describe('BestPracticesService', () => {
       (mockPrisma.bestPracticeGuide.findMany as any).mockResolvedValue(mockGuides);
 
       const content = 'As a user, I want to login so that I can access my account';
-      const _result = await bestPracticesService.getContextualGuidance('REQUIREMENTS', content);
+       result = await bestPracticesService.getContextualGuidance('REQUIREMENTS', content);
 
-      expect(_result.tips).toHaveLength(1);
-      expect(_result.tips[0].title).toBe('Use user stories');
-      expect(_result.examples).toHaveLength(1);
-      expect(_result.recommendations).toContain('Add acceptance criteria to make requirements testable');
+      expect(result.tips).toHaveLength(1);
+      expect(result.tips[0].title).toBe('Use user stories');
+      expect(result.examples).toHaveLength(1);
+      expect(result.recommendations).toContain('Add acceptance criteria to make requirements testable');
     });
 
     it('should return recommendations based on content analysis', async () => {
@@ -193,10 +194,10 @@ describe('BestPracticesService', () => {
       (mockPrisma.bestPracticeGuide.findMany as any).mockResolvedValue(mockGuides);
 
       const content = 'The system should handle user login';
-      const _result = await bestPracticesService.getContextualGuidance('REQUIREMENTS', content);
+       result = await bestPracticesService.getContextualGuidance('REQUIREMENTS', content);
 
-      expect(_result.recommendations).toContain('Consider adding user stories to better capture user needs');
-      expect(_result.recommendations).toContain('Add acceptance criteria to make requirements testable');
+      expect(result.recommendations).toContain('Consider adding user stories to better capture user needs');
+      expect(result.recommendations).toContain('Add acceptance criteria to make requirements testable');
     });
   });
 
@@ -210,10 +211,10 @@ describe('BestPracticesService', () => {
         The application could support multiple languages.
       `;
 
-      const _result = await bestPracticesService.analyzeDocumentQuality('REQUIREMENTS', content);
+       result = await bestPracticesService.analyzeDocumentQuality('REQUIREMENTS', content);
 
-      expect(_result.score).toBeLessThan(100);
-      expect(_result.issues).toEqual(
+      expect(result.score).toBeLessThan(100);
+      expect(result.issues).toEqual(
         expect.arrayContaining([
           expect.objectContaining({
             type: 'warning',
@@ -229,16 +230,16 @@ describe('BestPracticesService', () => {
           }),
         ])
       );
-      expect(_result.improvements).toContain('Use EARS format (WHEN/IF/THEN) for clearer acceptance criteria');
+       expect(result.improvements).toContain('Use EARS format (WHEN/IF/THEN) for clearer acceptance criteria');
     });
 
     it('should analyze design document quality', async () => {
       (mockPrisma.bestPracticeGuide.findMany as any).mockResolvedValue([]);
 
       const content = 'This is a basic design document without architecture details.';
-      const _result = await bestPracticesService.analyzeDocumentQuality('DESIGN', content);
+       result = await bestPracticesService.analyzeDocumentQuality('DESIGN', content);
 
-      expect(_result.issues).toEqual(
+      expect(result.issues).toEqual(
         expect.arrayContaining([
           expect.objectContaining({
             message: 'Define system components and their responsibilities',
@@ -251,7 +252,7 @@ describe('BestPracticesService', () => {
           }),
         ])
       );
-      expect(_result.improvements).toContain('Include error handling strategy in the design');
+      expect(result.improvements).toContain('Include error handling strategy in the design');
     });
 
     it('should analyze tasks document quality', async () => {
@@ -262,9 +263,9 @@ describe('BestPracticesService', () => {
         - Create database
       `;
 
-      const _result = await bestPracticesService.analyzeDocumentQuality('TASKS', content);
+       result = await bestPracticesService.analyzeDocumentQuality('TASKS', content);
 
-      expect(_result.issues).toEqual(
+      expect(result.issues).toEqual(
         expect.arrayContaining([
           expect.objectContaining({
             type: 'warning',
@@ -272,16 +273,16 @@ describe('BestPracticesService', () => {
           }),
         ])
       );
-      expect(_result.improvements).toContain('Include testing tasks to ensure quality');
+      expect(result.improvements).toContain('Include testing tasks to ensure quality');
     });
 
     it('should analyze implementation document quality', async () => {
       (mockPrisma.bestPracticeGuide.findMany as any).mockResolvedValue([]);
 
       const content = 'Implementation will involve coding the features.';
-      const _result = await bestPracticesService.analyzeDocumentQuality('IMPLEMENTATION', content);
+       result = await bestPracticesService.analyzeDocumentQuality('IMPLEMENTATION', content);
 
-      expect(_result.issues).toEqual(
+      expect(result.issues).toEqual(
         expect.arrayContaining([
           expect.objectContaining({
             type: 'warning',
@@ -289,8 +290,8 @@ describe('BestPracticesService', () => {
           }),
         ])
       );
-      expect(_result.improvements).toContain('Include code review process in implementation workflow');
-      expect(_result.improvements).toContain('Consider deployment strategy and environment setup');
+      expect(result.improvements).toContain('Include code review process in implementation workflow');
+      expect(result.improvements).toContain('Consider deployment strategy and environment setup');
     });
   });
 
@@ -317,13 +318,13 @@ describe('BestPracticesService', () => {
 
       (mockPrisma.bestPracticeGuide.update as any).mockResolvedValue(mockUpdatedGuide);
 
-      const _result = await bestPracticesService.updateGuide(guideId, updateData);
+       result = await bestPracticesService.updateGuide(guideId, updateData);
 
       expect(mockPrisma.bestPracticeGuide.update).toHaveBeenCalledWith({
         where: { id: guideId },
         data: updateData,
       });
-      expect(_result).toEqual(mockUpdatedGuide);
+      expect(result).toEqual(mockUpdatedGuide);
     });
   });
 

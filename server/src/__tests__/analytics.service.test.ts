@@ -3,6 +3,8 @@ import { PrismaClient, ActivityType, SpecificationPhase } from '@prisma/client';
 import { Redis } from 'ioredis';
 import { AnalyticsService } from '../services/analytics.service';
 
+let result: any;
+
 // Mock Prisma Client
 const mockPrisma = {
   userActivity: {
@@ -290,7 +292,7 @@ describe('AnalyticsService', () => {
         averageQualityScore: 87.5,
       });
 
-      const _result = await analyticsService.calculateTeamPerformanceMetrics(projectId, period);
+       result = await analyticsService.calculateTeamPerformanceMetrics(projectId, period);
 
       expect(result.projectId).toBe(projectId);
       expect(result.period).toBe(period);
@@ -316,7 +318,7 @@ describe('AnalyticsService', () => {
         averageQualityScore: 0,
       });
 
-      const _result = await analyticsService.calculateTeamPerformanceMetrics(projectId, period);
+       result = await analyticsService.calculateTeamPerformanceMetrics(projectId, period);
 
       expect(result.projectsCompleted).toBe(0);
       expect(result.averageQualityScore).toBe(0);
@@ -369,7 +371,7 @@ describe('AnalyticsService', () => {
         Promise.resolve({ id: 'skill-metric-1', ...data.data })
       );
 
-      const _result = await analyticsService.calculateSkillDevelopment(userId);
+       result = await analyticsService.calculateSkillDevelopment(userId);
 
       expect(result).toHaveLength(5); // 5 skill areas
       expect(result[0].userId).toBe(userId);
@@ -418,7 +420,7 @@ describe('AnalyticsService', () => {
       ]);
       (mockPrisma.comment.findMany as any).mockResolvedValue([]);
 
-      const _result = await analyticsService.getProjectAnalytics(projectId);
+       result = await analyticsService.getProjectAnalytics(projectId);
 
       expect(result.projectId).toBe(projectId);
       expect(result.totalTimeSpent).toBe(10800); // 3600 + 7200
@@ -472,7 +474,7 @@ describe('AnalyticsService', () => {
 
       (mockPrisma.user.findUnique as any).mockResolvedValue(mockUser);
 
-      const _result = await analyticsService.getUserAnalytics(userId);
+       result = await analyticsService.getUserAnalytics(userId);
 
       expect(result.userId).toBe(userId);
       expect(result.totalProjects).toBe(2); // 1 owned + 1 team membership

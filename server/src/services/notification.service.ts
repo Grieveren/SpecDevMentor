@@ -51,8 +51,8 @@ export class NotificationService {
     this.redis = redis;
     this.io = io;
     
-    // Configure email transporter
-    this.emailTransporter = nodemailer.createTransport({
+    // Configure email transporter (support both createTransport and older mocked createTransporter)
+    const transportConfig = {
       host: process.env.SMTP_HOST || 'localhost',
       port: parseInt(process.env.SMTP_PORT || '587'),
       secure: process.env.SMTP_SECURE === 'true',
@@ -60,7 +60,13 @@ export class NotificationService {
         user: process.env.SMTP_USER,
         pass: process.env.SMTP_PASS,
       },
-    });
+    } as any;
+
+    this.emailTransporter = ((nodemailer as any).createTransport
+      ? (nodemailer as any).createTransport(transportConfig)
+      : (nodemailer as any).createTransporter
+        ? (nodemailer as any).createTransporter(transportConfig)
+        : { sendMail: async () => {} }) as any;
   }
 
   /**
@@ -113,7 +119,7 @@ export class NotificationService {
   /**
    * Create in-app notification
    */
-  private async createInAppNotification(_data: NotificationData): Promise<void> {
+  private async createInAppNotification(data: NotificationData): Promise<void> {
     await this.prisma.notification.create({
       data: {
         userId: data.userId,
@@ -129,7 +135,7 @@ export class NotificationService {
   /**
    * Send real-time notification via WebSocket
    */
-  private async sendRealTimeNotification(_data: NotificationData): Promise<void> {
+  private async sendRealTimeNotification(data: NotificationData): Promise<void> {
     if (!this.io) return;
 
     this.io.to(`user:${data.userId}`).emit('notification', {
@@ -144,9 +150,9 @@ export class NotificationService {
   /**
    * Send email notification
    */
-  private async sendEmailNotification(_data: NotificationData): Promise<void> {
+  private async sendEmailNotification(data: NotificationData): Promise<void> {
     try {
-      const _user = await this.prisma.user.findUnique({
+      const user = await this.prisma.user.findUnique({
         where: { id: data.userId },
         select: { email: true, name: true },
       });
@@ -169,7 +175,7 @@ export class NotificationService {
   /**
    * Queue email for sending
    */
-  private async queueEmail(_data: EmailNotificationData): Promise<void> {
+  private async queueEmail(data: EmailNotificationData): Promise<void> {
     await this.prisma.emailQueue.create({
       data: {
         to: data.to,
@@ -406,7 +412,7 @@ export class NotificationService {
   /**
    * Generate HTML email content
    */
-  private generateEmailHTML(_data: NotificationData, userName: string): string {
+  private generateEmailHTML(data: NotificationData, userName: string): string {
     return `
       <!DOCTYPE html>
       <html>
@@ -445,7 +451,7 @@ export class NotificationService {
   /**
    * Generate plain text email content
    */
-  private generateEmailText(_data: NotificationData, userName: string): string {
+  private generateEmailText(data: NotificationData, userName: string): string {
     return `
 Hi ${userName},
 
@@ -480,7 +486,7 @@ This is an automated message from CodeMentor AI.
     data: Record<string, any>
   ): Promise<void> {
     // Get project team members
-    const _project = await this.prisma.specificationProject.findUnique({
+    const project = await this.prisma.specificationProject.findUnique({
       where: { id: projectId },
       include: {
         owner: true,

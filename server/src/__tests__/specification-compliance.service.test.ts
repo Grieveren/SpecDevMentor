@@ -31,6 +31,7 @@ vi.mock('../services/ai.service.js', () => ({
 
 describe('SpecificationComplianceService', () => {
   let service: SpecificationComplianceService;
+  let result: any;
 
   beforeEach(() => {
     service = new SpecificationComplianceService();
@@ -65,7 +66,7 @@ function calculateTotal(items) {
         },
       ];
 
-      const _result = await service.validateCodeCompliance(
+       result = await service.validateCodeCompliance(
         code,
         SupportedLanguage.JAVASCRIPT,
         specifications
@@ -82,7 +83,7 @@ function calculateTotal(items) {
       const code = 'console.log("Hello World");';
       const specifications = [];
 
-      const _result = await service.validateCodeCompliance(
+       result = await service.validateCodeCompliance(
         code,
         SupportedLanguage.JAVASCRIPT,
         specifications
@@ -103,7 +104,7 @@ function calculateTotal(items) {
         },
       ];
 
-      const _result = await service.validateCodeCompliance(
+       result = await service.validateCodeCompliance(
         code,
         SupportedLanguage.JAVASCRIPT,
         specifications
@@ -135,7 +136,7 @@ function saveToDatabase(data) { return data; }
 function displayError(message) { console.error(message); }
       `;
 
-      const _result = await service.validateCodeCompliance(
+       result = await service.validateCodeCompliance(
         code,
         SupportedLanguage.JAVASCRIPT,
         specifications
@@ -169,7 +170,7 @@ function addToCart(item) { /* implementation */ }
 function viewAllOrders() { /* implementation */ }
       `;
 
-      const _result = await service.validateCodeCompliance(
+       result = await service.validateCodeCompliance(
         code,
         SupportedLanguage.JAVASCRIPT,
         specifications
@@ -212,7 +213,7 @@ app.post('/api/users', (req, res) => { /* implementation */ });
 app.put('/api/users/:id', (req, res) => { /* implementation */ });
       `;
 
-      const _result = await service.validateCodeCompliance(
+       result = await service.validateCodeCompliance(
         code,
         SupportedLanguage.JAVASCRIPT,
         specifications
@@ -261,7 +262,7 @@ interface Product {
 }
       `;
 
-      const _result = await service.validateCodeCompliance(
+       result = await service.validateCodeCompliance(
         code,
         SupportedLanguage.TYPESCRIPT,
         specifications
@@ -306,7 +307,7 @@ class DatabaseService { /* implementation */ }
 app.post('/api/register', (req, res) => { /* implementation */ });
       `;
 
-      const _result = await service.validateCodeCompliance(
+       result = await service.validateCodeCompliance(
         code,
         SupportedLanguage.JAVASCRIPT,
         specifications
@@ -360,7 +361,7 @@ app.get('/api/calculate', (req, res) => {
         },
       ];
 
-      const _result = await service.validateCodeCompliance(
+       result = await service.validateCodeCompliance(
         code,
         SupportedLanguage.JAVASCRIPT,
         specifications
@@ -397,7 +398,7 @@ def multiply(a, b):
         },
       ];
 
-      const _result = await service.validateCodeCompliance(
+       result = await service.validateCodeCompliance(
         code,
         SupportedLanguage.PYTHON,
         specifications
@@ -438,7 +439,7 @@ function handleError(error) {
 }
       `;
 
-      const _result = await service.validateCodeCompliance(
+       result = await service.validateCodeCompliance(
         goodCode,
         SupportedLanguage.JAVASCRIPT,
         specifications
@@ -463,7 +464,7 @@ function unrelatedFunction() {
 }
       `;
 
-      const _result = await service.validateCodeCompliance(
+       result = await service.validateCodeCompliance(
         badCode,
         SupportedLanguage.JAVASCRIPT,
         specifications
@@ -485,7 +486,7 @@ function unrelatedFunction() {
         },
       ];
 
-      const _result = await service.validateCodeCompliance(code, SupportedLanguage.JAVASCRIPT, invalidSpecs);
+       result = await service.validateCodeCompliance(code, SupportedLanguage.JAVASCRIPT, invalidSpecs);
       expect(result).toBeDefined();
       expect(result.score).toBe(0);
     });
@@ -504,7 +505,7 @@ function unrelatedFunction() {
         },
       ];
 
-      const _result = await service.validateCodeCompliance(
+       result = await service.validateCodeCompliance(
         code,
         SupportedLanguage.JAVASCRIPT,
         specifications
@@ -538,7 +539,7 @@ function submitForm(data) {
 }
       `;
 
-      const _result = await service.validateCodeCompliance(
+       result = await service.validateCodeCompliance(
         incompleteCode,
         SupportedLanguage.JAVASCRIPT,
         specifications

@@ -2,6 +2,10 @@ import { describe, it, expect, beforeEach, afterEach, vi } from 'vitest';
 import { PrismaClient, SpecificationPhase, DifficultyLevel, ProgressStatus } from '@prisma/client';
 import { LearningService } from '../services/learning.service';
 
+let response: any;
+
+let result: any;
+
 // Mock Prisma Client
 const mockPrisma = {
   learningModule: {
@@ -69,7 +73,7 @@ describe('Learning Assessment Integration', () => {
       mockPrisma.userProgress.findUnique = vi.fn().mockResolvedValue(null);
       mockPrisma.userProgress.upsert = vi.fn().mockResolvedValue({});
 
-      const _result = await learningService.evaluateExercise(
+       result = await learningService.evaluateExercise(
         userId,
         moduleId,
         exerciseId,
@@ -119,7 +123,7 @@ describe('Learning Assessment Integration', () => {
       mockPrisma.userProgress.findUnique = vi.fn().mockResolvedValue(null);
       mockPrisma.userProgress.upsert = vi.fn().mockResolvedValue({});
 
-      const _result = await learningService.evaluateExercise(
+       result = await learningService.evaluateExercise(
         userId,
         moduleId,
         exerciseId,
@@ -139,12 +143,12 @@ describe('Learning Assessment Integration', () => {
       const userId = 'user-1';
       const moduleId = 'module-1';
       const exerciseId = 'exercise-2';
-      const _response = 'As a user, I want to login so that I can access my account. WHEN user enters valid credentials THEN system SHALL authenticate user.';
+       response = 'As a user, I want to login so that I can access my account. WHEN user enters valid credentials THEN system SHALL authenticate user.';
 
       mockPrisma.userProgress.findUnique = vi.fn().mockResolvedValue(null);
       mockPrisma.userProgress.upsert = vi.fn().mockResolvedValue({});
 
-      const _result = await learningService.evaluateExercise(
+       result = await learningService.evaluateExercise(
         userId,
         moduleId,
         exerciseId,
@@ -178,7 +182,7 @@ describe('Learning Assessment Integration', () => {
       mockPrisma.userProgress.findUnique = vi.fn().mockResolvedValue(existingProgress);
       mockPrisma.userProgress.upsert = vi.fn().mockResolvedValue({});
 
-      const _result = await learningService.evaluateExercise(
+       result = await learningService.evaluateExercise(
         userId,
         moduleId,
         exerciseId,
@@ -218,7 +222,7 @@ describe('Learning Assessment Integration', () => {
       mockPrisma.userProgress.findUnique = vi.fn().mockResolvedValue(existingProgress);
       mockPrisma.userProgress.update = vi.fn().mockResolvedValue({});
 
-      const _result = await learningService.assessSkill(
+       result = await learningService.assessSkill(
         userId,
         moduleId,
         skillId,

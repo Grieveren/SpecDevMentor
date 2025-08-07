@@ -21,6 +21,7 @@ const mockPrisma = {
 
 describe('LearningService', () => {
   let learningService: LearningService;
+  let result: any;
 
   beforeEach(() => {
     learningService = new LearningService(mockPrisma);
@@ -44,12 +45,12 @@ describe('LearningService', () => {
       const mockModule = { id: 'module-1', ...validModuleData };
       mockPrisma.learningModule.create = vi.fn().mockResolvedValue(mockModule);
 
-      const _result = await learningService.createModule(validModuleData);
+       result = await learningService.createModule(validModuleData);
 
       expect(mockPrisma.learningModule.create).toHaveBeenCalledWith({
         data: validModuleData,
       });
-      expect(_result).toEqual(mockModule);
+      expect(result).toEqual(mockModule);
     });
 
     it('should validate prerequisites exist before creating module', async () => {
@@ -121,13 +122,13 @@ describe('LearningService', () => {
 
       mockPrisma.learningModule.findMany = vi.fn().mockResolvedValue(mockModules);
 
-      const _result = await learningService.getModules();
+       result = await learningService.getModules();
 
       expect(mockPrisma.learningModule.findMany).toHaveBeenCalledWith({
         where: { isPublished: true },
         orderBy: [{ difficulty: 'asc' }, { createdAt: 'asc' }],
       });
-      expect(_result).toEqual(mockModules);
+      expect(result).toEqual(mockModules);
     });
 
     it('should filter modules by phase and difficulty', async () => {
@@ -166,7 +167,7 @@ describe('LearningService', () => {
 
       mockPrisma.userProgress.findMany = vi.fn().mockResolvedValue(mockProgress);
 
-      const _result = await learningService.getUserProgress(userId);
+       result = await learningService.getUserProgress(userId);
 
       expect(mockPrisma.userProgress.findMany).toHaveBeenCalledWith({
         where: { userId },
@@ -183,7 +184,7 @@ describe('LearningService', () => {
         },
         orderBy: { lastAccessed: 'desc' },
       });
-      expect(_result).toEqual(mockProgress);
+      expect(result).toEqual(mockProgress);
     });
   });
 
@@ -210,7 +211,7 @@ describe('LearningService', () => {
         ...progressData,
       });
 
-      const _result = await learningService.updateUserProgress(userId, progressData);
+       result = await learningService.updateUserProgress(userId, progressData);
 
       expect(mockPrisma.userProgress.create).toHaveBeenCalledWith({
         data: {
@@ -240,9 +241,9 @@ describe('LearningService', () => {
       const mockModule = { id: moduleId, prerequisites: [] };
       mockPrisma.learningModule.findUnique = vi.fn().mockResolvedValue(mockModule);
 
-      const _result = await learningService.validatePrerequisites(userId, moduleId);
+       result = await learningService.validatePrerequisites(userId, moduleId);
 
-      expect(_result).toEqual({
+      expect(result).toEqual({
         canAccess: true,
         missingPrerequisites: [],
         completedPrerequisites: [],
@@ -259,9 +260,9 @@ describe('LearningService', () => {
       mockPrisma.learningModule.findUnique = vi.fn().mockResolvedValue(mockModule);
       mockPrisma.userProgress.findMany = vi.fn().mockResolvedValue(mockProgress);
 
-      const _result = await learningService.validatePrerequisites(userId, moduleId);
+       result = await learningService.validatePrerequisites(userId, moduleId);
 
-      expect(_result).toEqual({
+      expect(result).toEqual({
         canAccess: true,
         missingPrerequisites: [],
         completedPrerequisites: ['prereq-1', 'prereq-2'],
@@ -275,9 +276,9 @@ describe('LearningService', () => {
       mockPrisma.learningModule.findUnique = vi.fn().mockResolvedValue(mockModule);
       mockPrisma.userProgress.findMany = vi.fn().mockResolvedValue(mockProgress);
 
-      const _result = await learningService.validatePrerequisites(userId, moduleId);
+       result = await learningService.validatePrerequisites(userId, moduleId);
 
-      expect(_result).toEqual({
+      expect(result).toEqual({
         canAccess: false,
         missingPrerequisites: ['prereq-2'],
         completedPrerequisites: ['prereq-1'],
@@ -303,9 +304,9 @@ describe('LearningService', () => {
       mockPrisma.userProgress.findUnique = vi.fn().mockResolvedValue(existingProgress);
       mockPrisma.userProgress.update = vi.fn().mockResolvedValue({});
 
-      const _result = await learningService.assessSkill(userId, moduleId, skillId, responses);
+       result = await learningService.assessSkill(userId, moduleId, skillId, responses);
 
-      expect(_result).toMatchObject({
+      expect(result).toMatchObject({
         skillId,
         skillName: 'Requirements Analysis',
         level: DifficultyLevel.BEGINNER,
@@ -315,8 +316,8 @@ describe('LearningService', () => {
         competencies: expect.any(Array),
       });
 
-      expect(_result.competencies).toHaveLength(3);
-      expect(_result.competencies[0]).toMatchObject({
+      expect(result.competencies).toHaveLength(3);
+      expect(result.competencies[0]).toMatchObject({
         competencyId: 'clarity',
         name: 'Clarity and Precision',
         score: expect.any(Number),
@@ -354,26 +355,26 @@ describe('LearningService', () => {
 
       mockPrisma.learningModule.findUnique = vi.fn().mockResolvedValue(mockModule);
 
-      const _result = await learningService.getLessonContent(moduleId, lessonId);
+       result = await learningService.getLessonContent(moduleId, lessonId);
 
-      expect(_result).toEqual(lessonContent);
+      expect(result).toEqual(lessonContent);
     });
 
     it('should return null if lesson not found', async () => {
       const mockModule = { id: 'module-1', content: [] };
       mockPrisma.learningModule.findUnique = vi.fn().mockResolvedValue(mockModule);
 
-      const _result = await learningService.getLessonContent('module-1', 'nonexistent');
+       result = await learningService.getLessonContent('module-1', 'nonexistent');
 
-      expect(_result).toBeNull();
+      expect(result).toBeNull();
     });
 
     it('should return null if module not found', async () => {
       mockPrisma.learningModule.findUnique = vi.fn().mockResolvedValue(null);
 
-      const _result = await learningService.getLessonContent('nonexistent', 'lesson-1');
+       result = await learningService.getLessonContent('nonexistent', 'lesson-1');
 
-      expect(_result).toBeNull();
+      expect(result).toBeNull();
     });
   });
 
@@ -399,18 +400,18 @@ describe('LearningService', () => {
 
       mockPrisma.learningModule.findUnique = vi.fn().mockResolvedValue(mockModule);
 
-      const _result = await learningService.getExercise(moduleId, exerciseId);
+       result = await learningService.getExercise(moduleId, exerciseId);
 
-      expect(_result).toEqual(exercise);
+      expect(result).toEqual(exercise);
     });
 
     it('should return null if exercise not found', async () => {
       const mockModule = { id: 'module-1', exercises: [] };
       mockPrisma.learningModule.findUnique = vi.fn().mockResolvedValue(mockModule);
 
-      const _result = await learningService.getExercise('module-1', 'nonexistent');
+       result = await learningService.getExercise('module-1', 'nonexistent');
 
-      expect(_result).toBeNull();
+      expect(result).toBeNull();
     });
   });
 });

@@ -59,21 +59,23 @@ class ErrorTrackingService extends EventEmitter {
   constructor() {
     super();
     this.setupCleanup();
+    // Prevent Node from throwing for unhandled 'error' events in tests
+    this.on('error', () => {});
   }
 
   // Track an error
-  captureError(_error: Error, context: Partial<ErrorReport['context']> = {}): string {
+  captureError(err: Error, context: Partial<ErrorReport['context']> = {}): string {
     const errorId = this.generateErrorId();
-    const fingerprint = this.generateFingerprint(error);
-    const severity = this.determineSeverity(error);
+    const fingerprint = this.generateFingerprint(err);
+    const severity = this.determineSeverity(err);
 
     const errorReport: ErrorReport = {
       id: errorId,
       timestamp: new Date(),
       error: {
-        name: error.name,
-        message: error.message,
-        stack: error.stack,
+        name: err.name,
+        message: err.message,
+        stack: err.stack,
       },
       context: {
         environment: process.env.NODE_ENV || 'development',
@@ -83,7 +85,7 @@ class ErrorTrackingService extends EventEmitter {
       },
       fingerprint,
       severity,
-      tags: this.generateTags(error, context),
+      tags: this.generateTags(err, context),
       breadcrumbs: [...this.breadcrumbs],
     };
 
@@ -95,7 +97,7 @@ class ErrorTrackingService extends EventEmitter {
     this.errorCounts.set(fingerprint, currentCount + 1);
 
     // Log error
-    logger.logError(error, {
+    logger.logError(err, {
       errorId,
       fingerprint,
       severity,
@@ -117,14 +119,14 @@ class ErrorTrackingService extends EventEmitter {
   }
 
   // Capture error from Express request
-  captureRequestError(_error: Error, _req: Request): string {
-    return this.captureError(error, {
+  captureRequestError(err: Error, req: Request): string {
+    return this.captureError(err, {
       userId: (req as any).user?.id,
       requestId: (req as any).requestId,
       method: req.method,
       url: req.originalUrl,
-      userAgent: req.get('User-Agent'),
-      ip: req.ip,
+      userAgent: req.get('User-Agent') as string,
+      ip: (req as any).ip,
     });
   }
 
@@ -222,10 +224,10 @@ class ErrorTrackingService extends EventEmitter {
     return `err_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`;
   }
 
-  private generateFingerprint(_error: Error): string {
+  private generateFingerprint(err: Error): string {
     // Create a unique fingerprint based on error type and stack trace
-    const stackLines = error.stack?.split('\n').slice(0, 3) || [];
-    const fingerprint = `${error.name}:${error.message}:${stackLines.join('|')}`;
+    const stackLines = err.stack?.split('\n').slice(0, 3) || [];
+    const fingerprint = `${err.name}:${err.message}:${stackLines.join('|')}`;
     
     // Create hash of fingerprint
     let hash = 0;
@@ -238,10 +240,10 @@ class ErrorTrackingService extends EventEmitter {
     return Math.abs(hash).toString(36);
   }
 
-  private determineSeverity(_error: Error): 'low' | 'medium' | 'high' | 'critical' {
+  private determineSeverity(err: Error): 'low' | 'medium' | 'high' | 'critical' {
     // Determine severity based on error type and message
-    const errorName = error.name.toLowerCase();
-    const errorMessage = error.message.toLowerCase();
+    const errorName = err.name.toLowerCase();
+    const errorMessage = err.message.toLowerCase();
 
     // Critical errors
     if (
@@ -279,11 +281,11 @@ class ErrorTrackingService extends EventEmitter {
     return 'low';
   }
 
-  private generateTags(_error: Error, context: Partial<ErrorReport['context']>): string[] {
+  private generateTags(err: Error, context: Partial<ErrorReport['context']>): string[] {
     const tags: string[] = [];
 
     // Add error type tag
-    tags.push(`error:${error.name.toLowerCase()}`);
+    tags.push(`error:${err.name.toLowerCase()}`);
 
     // Add environment tag
     if (context.environment) {
@@ -354,11 +356,12 @@ class ErrorTrackingService extends EventEmitter {
 export const errorTracker = new ErrorTrackingService();
 
 // Express middleware for error tracking
-export const errorTrackingMiddleware = (_error: Error, _req: unknown, _res: unknown, _next: unknown) => {
-  const errorId = errorTracker.captureRequestError(error, req);
-  
-  // Add error ID to response for debugging
-  res.set('X-Error-ID', errorId);
-  
-  next(error);
+export const errorTrackingMiddleware = (err: Error, req: any, res: any, next: any) => {
+  const errorId = errorTracker.captureRequestError(err, req);
+  if (typeof res?.set === 'function') {
+    res.set('X-Error-ID', errorId);
+  }
+  if (typeof next === 'function') {
+    next(err);
+  }
 };

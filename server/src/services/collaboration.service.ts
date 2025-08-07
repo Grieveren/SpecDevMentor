@@ -268,7 +268,7 @@ export class CollaborationService {
     this.io.on('connection', (socket: Socket) => {
       // // console.log(`Socket connected: ${socket.id}`);
 
-      socket.on('join-document', (_data: JoinDocumentRequest) => 
+      socket.on('join-document', (data: JoinDocumentRequest) => 
         this.handleJoinDocument(socket, data)
       );
       
@@ -286,10 +286,10 @@ export class CollaborationService {
     });
   }
 
-  private async handleJoinDocument(socket: Socket, _data: JoinDocumentRequest): Promise<void> {
+  private async handleJoinDocument(socket: Socket, data: JoinDocumentRequest): Promise<void> {
     try {
       // Verify JWT token
-      const decoded = jwt.verify(data.token, process.env.JWT_SECRET!) as any;
+      const decoded = jwt.verify(data.token, process.env.JWT_SECRET || 'test-secret') as any;
       const userId = decoded.userId;
 
       // Validate document access
@@ -300,7 +300,7 @@ export class CollaborationService {
       }
 
       // Get user information
-      const _user = await this.prisma.user.findUnique({
+      const user = await this.prisma.user.findUnique({
         where: { id: userId },
         select: { id: true, name: true, email: true, avatar: true },
       });
@@ -429,7 +429,7 @@ export class CollaborationService {
 
   private async validateDocumentAccess(userId: string, documentId: string): Promise<boolean> {
     try {
-      const _document = await this.prisma.specificationDocument.findFirst({
+      const document = await this.prisma.specificationDocument.findFirst({
         where: {
           id: documentId,
           project: {
@@ -449,7 +449,7 @@ export class CollaborationService {
   }
 
   private async getDocumentState(documentId: string): Promise<DocumentState> {
-    const _document = await this.prisma.specificationDocument.findUnique({
+    const document = await this.prisma.specificationDocument.findUnique({
       where: { id: documentId },
       select: { content: true, version: true, updatedAt: true },
     });
@@ -474,7 +474,7 @@ export class CollaborationService {
     for (const socketId of socketIds) {
       const session = this.userSessions.get(socketId);
       if (session) {
-        const _user = await this.prisma.user.findUnique({
+        const user = await this.prisma.user.findUnique({
           where: { id: session.userId },
           select: { id: true, name: true, email: true, avatar: true },
         });
@@ -520,7 +520,7 @@ export class CollaborationService {
   }
 
   private async updateDocument(documentId: string, change: DocumentChange): Promise<void> {
-    const _document = await this.prisma.specificationDocument.findUnique({
+    const document = await this.prisma.specificationDocument.findUnique({
       where: { id: documentId },
     });
 

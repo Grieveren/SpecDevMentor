@@ -1,6 +1,8 @@
 import { describe, it, expect, beforeEach, afterEach, vi } from 'vitest';
 import { SearchService } from '../services/search.service.js';
 
+let result: any;
+
 // Mock dependencies
 vi.mock('@prisma/client', () => ({
   PrismaClient: vi.fn(),
@@ -131,7 +133,7 @@ describe('SearchService', () => {
       mockRedis.get.mockResolvedValue(null); // No cached results
       mockRedis.lrange.mockResolvedValue(['test search', 'another search']);
 
-      const _result = await searchService.search('user1', {
+       result = await searchService.search('user1', {
         query: 'test',
         page: 1,
         limit: 20,
@@ -240,7 +242,7 @@ describe('SearchService', () => {
       mockRedis.get.mockResolvedValue(null);
       mockRedis.lrange.mockResolvedValue([]);
 
-      const _result = await searchService.search('user1', {
+       result = await searchService.search('user1', {
         query: 'test',
         sortBy: 'relevance',
       });
@@ -292,7 +294,7 @@ describe('SearchService', () => {
       mockRedis.get.mockResolvedValue(null);
       mockRedis.lrange.mockResolvedValue([]);
 
-      const _result = await searchService.search('user1', { query: 'project' });
+       result = await searchService.search('user1', { query: 'project' });
 
       expect(result.facets.phases).toEqual({
         REQUIREMENTS: 1,

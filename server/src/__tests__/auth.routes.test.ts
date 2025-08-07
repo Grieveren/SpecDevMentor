@@ -4,6 +4,8 @@ import express from 'express';
 import { createAuthRoutes } from '../routes/auth.routes.js';
 import { AuthService, AuthenticationError } from '../services/auth.service.js';
 
+let response: any;
+
 // Mock the AuthService
 vi.mock('../services/auth.service.js');
 
@@ -75,7 +77,7 @@ describe('Auth Routes', () => {
 
       mockAuthService.register.mockResolvedValue(mockResponse);
 
-      const _response = await request(app)
+       response = await request(app)
         .post('/auth/register')
         .send(validRegisterData)
         .expect(201);
@@ -95,7 +97,7 @@ describe('Auth Routes', () => {
         email: 'invalid-email',
       };
 
-      const _response = await request(app)
+       response = await request(app)
         .post('/auth/register')
         .send(invalidData)
         .expect(400);
@@ -117,7 +119,7 @@ describe('Auth Routes', () => {
         password: 'weak',
       };
 
-      const _response = await request(app)
+       response = await request(app)
         .post('/auth/register')
         .send(invalidData)
         .expect(400);
@@ -137,7 +139,7 @@ describe('Auth Routes', () => {
         new AuthenticationError('User already exists with this email', 'USER_EXISTS')
       );
 
-      const _response = await request(app)
+       response = await request(app)
         .post('/auth/register')
         .send(validRegisterData)
         .expect(400);
@@ -171,7 +173,7 @@ describe('Auth Routes', () => {
 
       mockAuthService.login.mockResolvedValue(mockResponse);
 
-      const _response = await request(app)
+       response = await request(app)
         .post('/auth/login')
         .send(validLoginData)
         .expect(200);
@@ -190,7 +192,7 @@ describe('Auth Routes', () => {
         new AuthenticationError('Invalid credentials', 'INVALID_CREDENTIALS')
       );
 
-      const _response = await request(app)
+       response = await request(app)
         .post('/auth/login')
         .send(validLoginData)
         .expect(401);
@@ -202,7 +204,7 @@ describe('Auth Routes', () => {
     });
 
     it('should return validation error for missing fields', async () => {
-      const _response = await request(app)
+       response = await request(app)
         .post('/auth/login')
         .send({ email: 'test@example.com' })
         .expect(400);
@@ -220,7 +222,7 @@ describe('Auth Routes', () => {
 
       mockAuthService.refreshTokens.mockResolvedValue(mockTokens);
 
-      const _response = await request(app)
+       response = await request(app)
         .post('/auth/refresh')
         .send({ refreshToken: 'valid-refresh-token' })
         .expect(200);
@@ -239,7 +241,7 @@ describe('Auth Routes', () => {
         new AuthenticationError('Invalid refresh token', 'INVALID_REFRESH_TOKEN')
       );
 
-      const _response = await request(app)
+       response = await request(app)
         .post('/auth/refresh')
         .send({ refreshToken: 'invalid-refresh-token' })
         .expect(401);
@@ -264,7 +266,7 @@ describe('Auth Routes', () => {
       mockAuthService.logout.mockResolvedValue(undefined);
       mockAuthService.revokeToken.mockResolvedValue(undefined);
 
-      const _response = await request(app)
+       response = await request(app)
         .post('/auth/logout')
         .set('Authorization', 'Bearer valid-token')
         .send({ refreshToken: 'refresh-token' })
@@ -277,7 +279,7 @@ describe('Auth Routes', () => {
     });
 
     it('should return error for missing authentication', async () => {
-      const _response = await request(app)
+       response = await request(app)
         .post('/auth/logout')
         .send({ refreshToken: 'refresh-token' })
         .expect(401);
@@ -290,7 +292,7 @@ describe('Auth Routes', () => {
     it('should successfully request password reset', async () => {
       mockAuthService.requestPasswordReset.mockResolvedValue(undefined);
 
-      const _response = await request(app)
+       response = await request(app)
         .post('/auth/forgot-password')
         .send({ email: 'test@example.com' })
         .expect(200);
@@ -306,7 +308,7 @@ describe('Auth Routes', () => {
     it('should return success even for non-existent email', async () => {
       mockAuthService.requestPasswordReset.mockResolvedValue(undefined);
 
-      const _response = await request(app)
+       response = await request(app)
         .post('/auth/forgot-password')
         .send({ email: 'nonexistent@example.com' })
         .expect(200);
@@ -319,7 +321,7 @@ describe('Auth Routes', () => {
     it('should successfully reset password', async () => {
       mockAuthService.resetPassword.mockResolvedValue(undefined);
 
-      const _response = await request(app)
+       response = await request(app)
         .post('/auth/reset-password')
         .send({
           token: 'valid-reset-token',
@@ -343,7 +345,7 @@ describe('Auth Routes', () => {
         new AuthenticationError('Invalid or expired reset token', 'INVALID_RESET_TOKEN')
       );
 
-      const _response = await request(app)
+       response = await request(app)
         .post('/auth/reset-password')
         .send({
           token: 'invalid-token',
@@ -376,7 +378,7 @@ describe('Auth Routes', () => {
 
       mockAuthService.getUserById.mockResolvedValue(mockUser);
 
-      const _response = await request(app)
+       response = await request(app)
         .get('/auth/me')
         .set('Authorization', 'Bearer valid-token')
         .expect(200);
@@ -390,7 +392,7 @@ describe('Auth Routes', () => {
     });
 
     it('should return error for missing authentication', async () => {
-      const _response = await request(app)
+       response = await request(app)
         .get('/auth/me')
         .expect(401);
 
@@ -410,7 +412,7 @@ describe('Auth Routes', () => {
 
       mockAuthService.verifyToken.mockResolvedValue(mockPayload);
 
-      const _response = await request(app)
+       response = await request(app)
         .post('/auth/validate')
         .send({ token: 'valid-token' })
         .expect(200);
@@ -434,7 +436,7 @@ describe('Auth Routes', () => {
         new AuthenticationError('Invalid token', 'INVALID_TOKEN')
       );
 
-      const _response = await request(app)
+       response = await request(app)
         .post('/auth/validate')
         .send({ token: 'invalid-token' })
         .expect(200);

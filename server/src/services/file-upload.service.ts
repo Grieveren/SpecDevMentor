@@ -19,7 +19,7 @@ interface UploadedFileInfo {
   mimeType: string;
   size: number;
   path: string;
-  url?: string;
+  url: string | null;
   checksum: string;
 }
 
@@ -120,7 +120,7 @@ export class FileUploadService {
             mimeType: existingFile.mimeType,
             size: existingFile.size,
             path: existingFile.path,
-            url: existingFile.url || undefined,
+            url: existingFile.url ?? null,
             checksum: existingFile.checksum,
           });
           continue;
@@ -166,7 +166,7 @@ export class FileUploadService {
           mimeType: fileRecord.mimeType,
           size: fileRecord.size,
           path: fileRecord.path,
-          url: fileRecord.url || undefined,
+          url: fileRecord.url ?? null,
           checksum: fileRecord.checksum,
         });
       } catch (error) {
@@ -324,7 +324,7 @@ export class FileUploadService {
       mimeType: updatedFile.mimeType,
       size: updatedFile.size,
       path: updatedFile.path,
-      url: updatedFile.url || undefined,
+      url: updatedFile.url ?? null,
       checksum: updatedFile.checksum,
     };
   }
