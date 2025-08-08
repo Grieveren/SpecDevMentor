@@ -62,8 +62,8 @@ export class AIReviewService {
   private aiService: AIService;
 
   constructor(aiService: AIService) {
-    const { PrismaClient } = require('@prisma/client');
-    this.prisma = new PrismaClient();
+    // Use require to avoid ESM __esModule enum issues under Vitest mocks
+    this.prisma = new (require('@prisma/client').PrismaClient)();
     this.aiService = aiService;
   }
 

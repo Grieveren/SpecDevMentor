@@ -307,7 +307,18 @@ export class HealthService extends EventEmitter {
   }
 
   private async checkExternalServices(): Promise<HealthCheck> {
-    const checks = [];
+    // In test environment, skip external checks to avoid network dependence
+    if (process.env.NODE_ENV === 'test') {
+      return {
+        name: 'external',
+        status: 'pass',
+        time: new Date().toISOString(),
+        output: 'External checks skipped in test',
+        details: { skipped: true },
+      };
+    }
+
+    const checks: Array<Record<string, any>> = [];
     let overallStatus: 'pass' | 'fail' | 'warn' = 'pass';
     
     // Check OpenAI API
@@ -321,10 +332,10 @@ export class HealthService extends EventEmitter {
           signal: AbortSignal.timeout(5000),
         });
         
-        if (response.ok) {
+        if (_response.ok) {
           checks.push({ service: 'openai', status: 'pass', responseTime: 0 });
         } else {
-          checks.push({ service: 'openai', status: 'fail', error: `HTTP ${response.status}` });
+          checks.push({ service: 'openai', status: 'fail', error: `HTTP ${_response.status}` });
           overallStatus = 'fail';
         }
       } catch (error) {

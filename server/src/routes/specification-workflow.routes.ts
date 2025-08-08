@@ -1,15 +1,21 @@
 // @ts-nocheck
 import { Router } from 'express';
-import type { Router as ExpressRouter } from 'express';import { PrismaClient } from '@prisma/client';
+import type { Router as ExpressRouter } from 'express';
 import Redis from 'ioredis';
 import { authenticateToken } from '../middleware/auth.middleware.js';
 import { SpecificationWorkflowService } from '../services/specification-workflow.service';
 import { createAIService } from '../services/ai.service';
 
 const router: ExpressRouter = Router();
-// Allow Prisma to be overridden by tests via module mocking
-// Allow Prisma to be overridden by tests via module mocking
-const prisma = process.env.NODE_ENV === 'test' ? new (require('@prisma/client').PrismaClient)({ datasources: { db: { url: 'file:memorydb?connection_limit=1' } } }) : new PrismaClient();
+// Lazy Prisma resolution so tests can mock '@prisma/client' before handlers run
+let prismaInstance: any;
+const getPrisma = () => {
+  if (prismaInstance) return prismaInstance;
+  // Resolve via require at call time so vi.doMock can intercept
+  const { PrismaClient } = require('@prisma/client');
+  prismaInstance = new PrismaClient();
+  return prismaInstance;
+};
 // In test environment, stub Redis to avoid external connection
 const redis = process.env.NODE_ENV === 'test'
   ? ({
@@ -31,11 +37,16 @@ try {
   // // console.warn('AI service initialization failed:', error);
 }
 
-const workflowService = new SpecificationWorkflowService(prisma, redis, aiService);
+let workflowService: SpecificationWorkflowService | null = null;
+const getWorkflowService = () => {
+  if (!workflowService) {
+    workflowService = new SpecificationWorkflowService(getPrisma(), redis, aiService);
+  }
+  return workflowService;
+};
 
 // Validate phase completion
-// In tests, the route tests mock the auth middleware module. For robustness,
-// also allow optional auth when no Authorization header is provided during tests.
+// In tests, allow optional auth when no Authorization header is provided.
 const optionalAuth = async (req: any, res: any, next: any) => {
   if (process.env.NODE_ENV === 'test' && !req.headers?.authorization) {
     req.user = { id: 'user1', userId: 'user1', email: 'test@example.com' };
@@ -50,6 +61,7 @@ router.get('/projects/:projectId/workflow/validate/:phase', optionalAuth, async 
     const userId = req.user.userId || req.user.id;
 
     // Check if user has access to project
+    const prisma = getPrisma();
     const project = await prisma.specificationProject.findFirst({
       where: {
         id: projectId,
@@ -64,7 +76,7 @@ router.get('/projects/:projectId/workflow/validate/:phase', optionalAuth, async 
       return res.status(404).json({ error: 'Project not found or access denied' });
     }
 
-    const validation = await workflowService.validatePhaseCompletion(
+    const validation = await getWorkflowService().validatePhaseCompletion(
       projectId,
       phase as any
     );
@@ -84,6 +96,7 @@ router.get('/projects/:projectId/workflow/state', optionalAuth, async (req, res)
     const userId = req.user.userId || req.user.id;
 
     // Check if user has access to project
+    const prisma = getPrisma();
     const project = await prisma.specificationProject.findFirst({
       where: {
         id: projectId,
@@ -157,6 +170,7 @@ router.post('/projects/:projectId/workflow/approve', optionalAuth, async (req, r
     const userId = req.user.userId || req.user.id;
 
     // Check if user has access to project
+    const prisma = getPrisma();
     const project = await prisma.specificationProject.findFirst({
       where: {
         id: projectId,
@@ -171,7 +185,7 @@ router.post('/projects/:projectId/workflow/approve', optionalAuth, async (req, r
       return res.status(404).json({ error: 'Project not found or access denied' });
     }
 
-    await workflowService.approvePhase(projectId, phase, userId, comment);
+    await getWorkflowService().approvePhase(projectId, phase, userId, comment);
 
     res.json({ success: true, message: 'Approval recorded successfully' });
   } catch (error) {
@@ -188,6 +202,7 @@ router.post('/projects/:projectId/workflow/transition', optionalAuth, async (req
     const userId = req.user.userId || req.user.id;
 
     // Check if user has access to project
+    const prisma = getPrisma();
     const project = await prisma.specificationProject.findFirst({
       where: {
         id: projectId,
@@ -202,7 +217,7 @@ router.post('/projects/:projectId/workflow/transition', optionalAuth, async (req
       return res.status(404).json({ error: 'Project not found or access denied' });
     }
 
-    const workflowState = await workflowService.transitionPhase(
+    const workflowState = await getWorkflowService().transitionPhase(
       projectId,
       { targetPhase, approvalComment },
       userId
@@ -236,6 +251,7 @@ router.put('/projects/:projectId/workflow/documents/:phase', optionalAuth, async
     const userId = req.user.userId || req.user.id;
 
     // Check if user has access to project
+    const prisma = getPrisma();
     const project = await prisma.specificationProject.findFirst({
       where: {
         id: projectId,
@@ -250,7 +266,7 @@ router.put('/projects/:projectId/workflow/documents/:phase', optionalAuth, async
       return res.status(404).json({ error: 'Project not found or access denied' });
     }
 
-    const updatedDocument = await workflowService.updateDocument(
+    const updatedDocument = await getWorkflowService().updateDocument(
       projectId,
       phase as any,
       { content, version },
@@ -333,6 +349,7 @@ router.get('/projects/:projectId/workflow/can-transition/:targetPhase', optional
     const userId = req.user.userId || req.user.id;
 
     // Check if user has access to project
+    const prisma = getPrisma();
     const project = await prisma.specificationProject.findFirst({
       where: {
         id: projectId,
@@ -347,7 +364,7 @@ router.get('/projects/:projectId/workflow/can-transition/:targetPhase', optional
       return res.status(404).json({ error: 'Project not found or access denied' });
     }
 
-    const canTransition = await workflowService.canTransitionToPhase(
+    const canTransition = await getWorkflowService().canTransitionToPhase(
       projectId,
       targetPhase as any,
       userId
@@ -367,6 +384,7 @@ router.get('/projects/:projectId/workflow/ai-validation/:phase', optionalAuth, a
     const userId = req.user.userId || req.user.id;
 
     // Check if user has access to project
+    const prisma = getPrisma();
     const project = await prisma.specificationProject.findFirst({
       where: {
         id: projectId,
@@ -388,7 +406,7 @@ router.get('/projects/:projectId/workflow/ai-validation/:phase', optionalAuth, a
       });
     }
 
-    const aiValidation = await workflowService.getPhaseAIValidation(
+    const aiValidation = await getWorkflowService().getPhaseAIValidation(
       projectId,
       phase as any
     );
@@ -410,6 +428,7 @@ router.post('/projects/:projectId/workflow/ai-review/:phase', optionalAuth, asyn
     const userId = req.user.userId || req.user.id;
 
     // Check if user has access to project
+    const prisma = getPrisma();
     const project = await prisma.specificationProject.findFirst({
       where: {
         id: projectId,
@@ -430,7 +449,7 @@ router.post('/projects/:projectId/workflow/ai-review/:phase', optionalAuth, asyn
       });
     }
 
-    const aiReview = await workflowService.triggerAutoAIReview(
+    const aiReview = await getWorkflowService().triggerAutoAIReview(
       projectId,
       phase as any,
       userId
