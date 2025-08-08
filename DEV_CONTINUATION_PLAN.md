@@ -23,6 +23,37 @@ Use this as the single hand-off doc to resume work on another laptop or clean en
   pnpm --filter server prisma generate
   ```
 
+### 1a) Local Postgres/Redis (optional, for integration tests)
+
+If you want to run DB-backed integration tests locally without Docker:
+
+- macOS (Homebrew)
+
+  ```bash
+  brew install postgresql@15 redis
+  brew services restart postgresql@15
+  brew services restart redis
+  createdb codementor_ai || true
+  createdb codementor_ai_test || true
+  ```
+
+- Apply Prisma schema and seed
+
+  ```bash
+  # Dev DB
+  export DATABASE_URL="postgresql://$(whoami)@localhost:5432/codementor_ai?schema=public"
+  pnpm --filter server db:generate
+  pnpm --filter server db:migrate --name init
+  pnpm --filter server db:seed
+
+  # Test DB (apply migrations only)
+  export DATABASE_URL_TEST="postgresql://$(whoami)@localhost:5432/codementor_ai_test?schema=public"
+  export DATABASE_URL="$DATABASE_URL_TEST"
+  pnpm --filter server db:migrate:prod
+  # Restore dev DB URL if needed
+  export DATABASE_URL="postgresql://$(whoami)@localhost:5432/codementor_ai?schema=public"
+  ```
+
 ### 2) Commands you’ll use most
 
 - Type-check all packages
@@ -30,7 +61,18 @@ Use this as the single hand-off doc to resume work on another laptop or clean en
   pnpm -w type-check
   ```
 - Run server tests (unit/service + route tests)
+
   ```bash
+  pnpm --filter server test
+  ```
+
+- Run server tests with local infra env vars
+  ```bash
+  export DATABASE_URL="postgresql://$(whoami)@localhost:5432/codementor_ai?schema=public"
+  export DATABASE_URL_TEST="postgresql://$(whoami)@localhost:5432/codementor_ai_test?schema=public"
+  export REDIS_URL="redis://localhost:6379"
+  export OPENAI_API_KEY="test"
+  export NODE_ENV=test
   pnpm --filter server test
   ```
 - Run focused tests by pattern (replace PATTERN)
@@ -51,7 +93,17 @@ Use this as the single hand-off doc to resume work on another laptop or clean en
   - Return consistent error shapes (`error` field present) in validation/auth middleware.
   - Accept both `user.id` and `user.userId` shapes in routes.
 - For local runtime (not tests), copy or create `server/.env` and set required secrets (`JWT_SECRET`, `REFRESH_SECRET`, etc.)
+
   - Integration tests require Postgres/Redis; you can skip those initially or run the services and set `DATABASE_URL` and `REDIS_URL`.
+
+- Test env var snapshot (copy/paste)
+  ```bash
+  export DATABASE_URL="postgresql://$(whoami)@localhost:5432/codementor_ai?schema=public"
+  export DATABASE_URL_TEST="postgresql://$(whoami)@localhost:5432/codementor_ai_test?schema=public"
+  export REDIS_URL="redis://localhost:6379"
+  export OPENAI_API_KEY="test" # real key not required for unit/route tests
+  export NODE_ENV=test
+  ```
 
 ### 4) Known gotchas (tests)
 
@@ -60,6 +112,8 @@ Use this as the single hand-off doc to resume work on another laptop or clean en
 - Auth responses: tests expect 401 on missing token and an `error` field in JSON.
 - Validation responses: tests expect an `error` field and a `details` array.
 - Code execution: when running in test mode without a Docker mock, execution is simulated; when a Docker client is mocked by tests, the real path is used.
+- Notification routes dynamically import the service so `vi.mock` must occur before calling the route initializer.
+- Health checks skip external service calls in test; don’t rely on network during unit tests.
 
 ### 5) What to fix next (checklist)
 
