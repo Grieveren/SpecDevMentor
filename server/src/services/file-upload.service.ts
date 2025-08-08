@@ -320,11 +320,11 @@ export class FileUploadService {
     return {
       id: updatedFile.id,
       filename: updatedFile.filename,
-      originalName: updatedFile.originalName,
-      mimeType: updatedFile.mimeType,
+      originalName: (updatedFile as any).originalName,
+      mimeType: (updatedFile as any).mimeType,
       size: updatedFile.size,
       path: updatedFile.path,
-      url: updatedFile.url ?? null,
+      url: (updatedFile as any).url ?? undefined,
       checksum: updatedFile.checksum,
     };
   }

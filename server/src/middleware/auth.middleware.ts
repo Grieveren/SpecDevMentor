@@ -1,9 +1,8 @@
 // @ts-nocheck
 // @ts-nocheck
-import { UserRole } from '@prisma/client';
 import { NextFunction, Request, Response } from 'express';
 import { AuthService } from '../services/auth.service.js';
-import { AuthenticationError } from '../../../shared/types';
+import { AuthenticationError } from '../../../shared/types/index.js';
 import {
   ApiError,
   AuthMiddleware as AuthMiddlewareType,
@@ -24,23 +23,11 @@ export class AuthMiddleware {
       const authHeader = req.headers.authorization;
 
       if (!authHeader || !authHeader.startsWith('Bearer ')) {
-        // In test environment, allow unauthenticated requests and inject a test user
-        if (process.env.NODE_ENV === 'test') {
-          (req as any).user = {
-            userId: 'user1',
-            email: 'test@example.com',
-            role: 'DEVELOPER',
-            jti: 'test-token-id',
-            iat: Date.now(),
-            exp: Date.now() + 900000,
-          };
-          next();
-          return;
-        }
         const errorResponse: ApiError = {
           success: false,
           message: 'Authentication required',
           code: 'MISSING_TOKEN',
+          error: 'Authentication required',
         };
         res.status(401).json(errorResponse);
         return;
@@ -58,6 +45,7 @@ export class AuthMiddleware {
             success: false,
             message: error.message,
             code: error.code,
+            error: error.message,
           };
           res.status(401).json(errorResponse);
           return;
@@ -70,6 +58,7 @@ export class AuthMiddleware {
         success: false,
         message: 'Authentication check failed',
         code: 'AUTH_ERROR',
+        error: 'Authentication check failed',
       };
       res.status(500).json(errorResponse);
     }
@@ -103,7 +92,7 @@ export class AuthMiddleware {
   };
 
   // Middleware to require specific roles
-  requireRole = (roles: UserRole | UserRole[]): AuthMiddlewareType => {
+  requireRole = (roles: 'ADMIN' | 'TEAM_LEAD' | 'DEVELOPER' | 'STUDENT' | Array<'ADMIN' | 'TEAM_LEAD' | 'DEVELOPER' | 'STUDENT'>): AuthMiddlewareType => {
     const requiredRoles = Array.isArray(roles) ? roles : [roles];
 
     return (req: Request, res: Response, next: NextFunction): void => {
@@ -138,10 +127,10 @@ export class AuthMiddleware {
   };
 
   // Middleware to require admin role
-  requireAdmin = this.requireRole(UserRole.ADMIN);
+  requireAdmin = this.requireRole('ADMIN');
 
   // Middleware to require team lead or admin role
-  requireTeamLead = this.requireRole([UserRole.TEAM_LEAD, UserRole.ADMIN]);
+  requireTeamLead = this.requireRole(['TEAM_LEAD', 'ADMIN']);
 
   // Middleware to check if user owns resource or has admin privileges
   requireOwnershipOrAdmin = (
@@ -162,7 +151,7 @@ export class AuthMiddleware {
         }
 
         // Admin can access everything
-        if (authReq.user.role === UserRole.ADMIN) {
+        if (authReq.user.role === 'ADMIN') {
           next();
           return;
         }
@@ -291,3 +280,10 @@ export const authenticateToken = async (
   const middleware = new AuthMiddleware(authService);
   return middleware.authenticate(req, res, next);
 };
+
+// Alias for routes/tests that import `authMiddleware` as a function
+export const authMiddleware = async (
+  req: Request,
+  res: Response,
+  next: NextFunction
+): Promise<void> => authenticateToken(req, res, next);

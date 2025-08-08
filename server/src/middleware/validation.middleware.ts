@@ -26,6 +26,7 @@ export const validateRequest: Middleware = (
       message: 'Validation failed',
       code: 'VALIDATION_ERROR',
       details,
+      error: 'Validation failed',
     };
 
     res.status(400).json(validationError);

@@ -1,5 +1,7 @@
 // @ts-nocheck
-import { PrismaClient } from '@prisma/client';
+// Defer PrismaClient resolution to accommodate module mocks in tests
+// Import enums via require to avoid ESM __esModule issues in mocks
+import type { PrismaClient as PrismaClientType } from '@prisma/client';
 import { AIService, type AIReviewResult, type AISuggestion } from './ai.service.js';
 import crypto from 'crypto';
 
@@ -56,10 +58,11 @@ export interface PaginationOptions {
 }
 
 export class AIReviewService {
-  private prisma: PrismaClient;
+  private prisma: PrismaClientType;
   private aiService: AIService;
 
   constructor(aiService: AIService) {
+    const { PrismaClient } = require('@prisma/client');
     this.prisma = new PrismaClient();
     this.aiService = aiService;
   }
@@ -67,7 +70,7 @@ export class AIReviewService {
   /**
    * Request a new AI review for a document
    */
-  async requestReview(_request: ReviewRequest): Promise<StoredAIReview> {
+  async requestReview(request: ReviewRequest): Promise<StoredAIReview> {
     try {
       // Check if user has access to the document
       await this.validateDocumentAccess(request.documentId, request.userId);
@@ -159,7 +162,7 @@ export class AIReviewService {
   /**
    * Apply an AI suggestion to the document
    */
-  async applySuggestion(_request: ApplySuggestionRequest): Promise<{
+  async applySuggestion(request: ApplySuggestionRequest): Promise<{
     success: boolean;
     modifiedContent: string;
     appliedSuggestion: AISuggestion;
@@ -230,7 +233,7 @@ export class AIReviewService {
   /**
    * Rollback an applied AI suggestion
    */
-  async rollbackSuggestion(_request: RollbackSuggestionRequest): Promise<{
+  async rollbackSuggestion(request: RollbackSuggestionRequest): Promise<{
     success: boolean;
     originalContent: string;
     rolledBackSuggestion: AISuggestion;
@@ -299,7 +302,7 @@ export class AIReviewService {
    */
   private async validateDocumentAccess(documentId: string, userId: string): Promise<void> {
     // Get the document and check if user has access
-    const _document = await this.prisma.specificationDocument.findUnique({
+    const document = await this.prisma.specificationDocument.findUnique({
       where: { id: documentId },
       include: {
         project: {

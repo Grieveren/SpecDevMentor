@@ -141,6 +141,14 @@ export class SpecificationWorkflowService {
     }
 
     const rule = this.validationRules[phase];
+    if (!rule) {
+      return {
+        isValid: false,
+        errors: ['Validation rules not found for phase'],
+        warnings: [],
+        completionPercentage: 0,
+      };
+    }
     const errors: string[] = [];
     const warnings: string[] = [];
     let completionPercentage = 0;
@@ -157,7 +165,7 @@ export class SpecificationWorkflowService {
     });
 
     // Check word count
-    const wordCount = specificationDoc.content.split(/\s+/).length;
+    const wordCount = specificationDoc.content.replace(/[#*\-\n]/g, ' ').split(/\s+/).filter(Boolean).length;
     if (wordCount < rule.minimumWordCount) {
       errors.push(
         `Document too short. Minimum ${rule.minimumWordCount} words required, found ${wordCount}`
@@ -232,11 +240,9 @@ export class SpecificationWorkflowService {
     }
 
     // Include AI validation in completion calculation if available
-    let aiValidationComplete = 1;
-    if (aiValidationScore !== undefined) {
-      // Consider AI validation complete if score is above 70
-      aiValidationComplete = aiValidationScore >= 70 ? 1 : 0;
-    }
+    const aiValidationComplete = aiValidationScore !== undefined
+      ? (aiValidationScore >= 70 ? 1 : 0)
+      : 0;
 
     const totalChecks =
       rule.requiredSections.length +
@@ -493,11 +499,15 @@ export class SpecificationWorkflowService {
       const cached = await this.redis.get(cacheKey);
       if (cached) {
         const workflowState = JSON.parse(cached);
-        // Convert date strings back to Date objects
-        workflowState.phaseHistory = workflowState.phaseHistory.map((transition: any) => ({
-          ...transition,
-          timestamp: new Date(transition.timestamp),
-        }));
+        // Convert date strings back to Date objects if present
+        if (Array.isArray(workflowState.phaseHistory)) {
+          workflowState.phaseHistory = workflowState.phaseHistory.map((transition: any) => ({
+            ...transition,
+            timestamp: new Date(transition.timestamp),
+          }));
+        } else {
+          workflowState.phaseHistory = [];
+        }
         return workflowState;
       }
     }
@@ -529,7 +539,7 @@ export class SpecificationWorkflowService {
 
     // Build document statuses
     const documentStatuses: Record<SpecificationPhase, DocumentStatus> = {} as any;
-    for (const doc of project.documents) {
+    for (const doc of (project.documents || [])) {
       documentStatuses[doc.phase] = doc.status;
     }
 

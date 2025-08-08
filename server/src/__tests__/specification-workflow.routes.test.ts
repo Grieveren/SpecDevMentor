@@ -38,7 +38,7 @@ const mockRedis = {
 } as any;
 
 // Mock the auth middleware
-const mockAuthMiddleware = (_req: unknown, _res: unknown, _next: unknown) => {
+const mockAuthMiddleware = (req: any, _res: any, next: any) => {
   req.user = { id: 'user1', email: 'test@example.com', name: 'Test User' };
   next();
 };

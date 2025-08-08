@@ -1,18 +1,27 @@
 // @ts-nocheck
 import { Router } from 'express';
 import type { Router as ExpressRouter } from 'express';import { body, query, param } from 'express-validator';
-import { PrismaClient } from '@prisma/client';
+// Defer Prisma import to allow tests to mock '@prisma/client' cleanly
+const { PrismaClient } = require('@prisma/client');
 import { Redis } from 'ioredis';
 import { Server as SocketIOServer } from 'socket.io';
 import { NotificationService } from '../services/notification.service.js';
-import { authMiddleware } from '../middleware/auth.middleware.js';
-import { validationMiddleware } from '../middleware/validation.middleware.js';
+import { authenticateToken } from '../middleware/auth.middleware.js';
+import { validateRequest } from '../middleware/validation.middleware.js';
 
 const router: ExpressRouter = Router();
 
 // Initialize services (these would typically be injected)
 const prisma = new PrismaClient();
-const redis = new Redis(process.env.REDIS_URL);
+const redis = process.env.NODE_ENV === 'test'
+  ? ({
+      get: async () => null,
+      set: async () => 'OK',
+      setex: async () => 'OK',
+      del: async () => 1,
+      keys: async () => [],
+    } as unknown as Redis)
+  : new Redis(process.env.REDIS_URL || 'redis://localhost:6379');
 let notificationService: NotificationService;
 
 // Initialize notification service with Socket.IO server
@@ -26,19 +35,19 @@ export const initializeNotificationRoutes = (io: SocketIOServer): ExpressRouter 
  */
 router.get(
   '/',
-  authMiddleware,
+  authenticateToken as any,
   [
     query('page').optional().isInt({ min: 1 }).toInt(),
     query('limit').optional().isInt({ min: 1, max: 100 }).toInt(),
     query('unreadOnly').optional().isBoolean().toBoolean(),
   ],
-  validationMiddleware,
+  validateRequest,
   async (req, res) => {
     try {
       const userId = req.user!.id;
       const { page, limit, unreadOnly } = req.query;
 
-      const _result = await notificationService.getUserNotifications(userId, {
+      const result = await notificationService.getUserNotifications(userId, {
         page: page as number,
         limit: limit as number,
         unreadOnly: unreadOnly as boolean,
@@ -61,7 +70,7 @@ router.get(
 /**
  * Get unread notification count
  */
-router.get('/unread-count', authMiddleware, async (req, res) => {
+router.get('/unread-count', authenticateToken as any, async (req, res) => {
   try {
     const userId = req.user!.id;
     const count = await notificationService.getUnreadCount(userId);
@@ -84,9 +93,9 @@ router.get('/unread-count', authMiddleware, async (req, res) => {
  */
 router.patch(
   '/:id/read',
-  authMiddleware,
+  authenticateToken as any,
   [param('id').isString().notEmpty()],
-  validationMiddleware,
+  validateRequest,
   async (req, res) => {
     try {
       const userId = req.user!.id;
@@ -111,7 +120,7 @@ router.patch(
 /**
  * Mark all notifications as read
  */
-router.patch('/read-all', authMiddleware, async (req, res) => {
+router.patch('/read-all', authenticateToken as any, async (req, res) => {
   try {
     const userId = req.user!.id;
     await notificationService.markAllAsRead(userId);
@@ -132,7 +141,7 @@ router.patch('/read-all', authMiddleware, async (req, res) => {
 /**
  * Get notification settings
  */
-router.get('/settings', authMiddleware, async (req, res) => {
+router.get('/settings', authenticateToken as any, async (req, res) => {
   try {
     const userId = req.user!.id;
     const settings = await notificationService.getUserNotificationSettings(userId);
@@ -155,7 +164,7 @@ router.get('/settings', authMiddleware, async (req, res) => {
  */
 router.put(
   '/settings',
-  authMiddleware,
+  authenticateToken as any,
   [
     body('emailEnabled').optional().isBoolean(),
     body('inAppEnabled').optional().isBoolean(),
@@ -169,7 +178,7 @@ router.put(
     body('quietHoursEnd').optional().isInt({ min: 0, max: 23 }),
     body('timezone').optional().isString(),
   ],
-  validationMiddleware,
+  validateRequest,
   async (req, res) => {
     try {
       const userId = req.user!.id;
@@ -196,7 +205,7 @@ router.put(
  */
 router.post(
   '/test',
-  authMiddleware,
+  authenticateToken as any,
   [
     body('userId').isString().notEmpty(),
     body('type').isIn([
@@ -216,7 +225,7 @@ router.post(
     body('message').isString().notEmpty(),
     body('data').optional().isObject(),
   ],
-  validationMiddleware,
+  validateRequest,
   async (req, res) => {
     try {
       // Check if user is admin

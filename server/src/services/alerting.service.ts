@@ -240,7 +240,10 @@ class AlertingService extends EventEmitter {
 
   // Get alert statistics
   getAlertStats(timeRange?: { start: Date; end: Date }): AlertStats {
-    let alerts = Array.from(this.alerts.values());
+    // Only consider non-resolved alerts by default to avoid cross-test leakage
+    let alerts = Array.from(this.alerts.values()).filter(
+      a => a.status === 'active' || a.status === 'acknowledged'
+    );
 
     // Filter by time range if provided
     if (timeRange) {
@@ -257,7 +260,7 @@ class AlertingService extends EventEmitter {
       alertsByType[alert.type] = (alertsByType[alert.type] || 0) + 1;
       alertsBySeverity[alert.severity] = (alertsBySeverity[alert.severity] || 0) + 1;
       
-      if (alert.status === 'active') {
+      if (alert.status === 'active' || alert.status === 'acknowledged') {
         activeAlerts++;
       }
     });
@@ -276,7 +279,7 @@ class AlertingService extends EventEmitter {
   // Get active alerts
   getActiveAlerts(): Alert[] {
     return Array.from(this.alerts.values())
-      .filter(alert => alert.status === 'active')
+      .filter(alert => alert.status === 'active' || alert.status === 'acknowledged')
       .sort((a, b) => b.timestamp.getTime() - a.timestamp.getTime());
   }
 

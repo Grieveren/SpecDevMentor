@@ -2,8 +2,6 @@ import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest';
 import { Redis } from 'ioredis';
 import OpenAI from 'openai';
 import { 
-
-let result: any;
   AIService, 
   AIServiceError, 
   AIErrorCode, 
@@ -29,6 +27,8 @@ const mockRateLimiter = {
 vi.mock('rate-limiter-flexible', () => ({
   RateLimiterMemory: vi.fn().mockImplementation(() => mockRateLimiter),
 }));
+
+let result: any;
 
 describe('AIService', () => {
   let aiService: AIService;

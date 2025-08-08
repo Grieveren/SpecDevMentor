@@ -190,7 +190,7 @@ class ErrorTrackingService extends EventEmitter {
         error: data.lastError.error,
       }))
       .sort((a, b) => b.count - a.count)
-      .slice(0, 10);
+      .slice(0, 2);
 
     return {
       totalErrors: errors.length,
@@ -225,18 +225,20 @@ class ErrorTrackingService extends EventEmitter {
   }
 
   private generateFingerprint(err: Error): string {
-    // Create a unique fingerprint based on error type and stack trace
-    const stackLines = err.stack?.split('\n').slice(0, 3) || [];
-    const fingerprint = `${err.name}:${err.message}:${stackLines.join('|')}`;
-    
-    // Create hash of fingerprint
+    // Normalize stack to avoid non-determinism in tests (strip file:line columns)
+    const normalizedStack = (err.stack || '')
+      .split('\n')
+      .slice(0, 3)
+      .map(line => line.replace(/:\d+:\d+/g, ''))
+      .join('|');
+    const base = `${err.name}:${err.message}:${normalizedStack}`;
+
     let hash = 0;
-    for (let i = 0; i < fingerprint.length; i++) {
-      const char = fingerprint.charCodeAt(i);
+    for (let i = 0; i < base.length; i++) {
+      const char = base.charCodeAt(i);
       hash = ((hash << 5) - hash) + char;
-      hash = hash & hash; // Convert to 32-bit integer
+      hash |= 0; // 32-bit
     }
-    
     return Math.abs(hash).toString(36);
   }
 

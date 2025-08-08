@@ -5,8 +5,6 @@ import { Client as SocketIOClient } from 'socket.io-client';
 import Redis from 'ioredis';
 import jwt from 'jsonwebtoken';
 import {
-
-let result: any;
   CollaborationService,
   OperationalTransform,
   ConflictResolver,
@@ -14,6 +12,8 @@ let result: any;
   EditConflict,
   ConflictResolution,
 } from '../services/collaboration.service.js';
+
+let result: any;
 
 // Mock dependencies
 vi.mock('ioredis');

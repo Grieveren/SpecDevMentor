@@ -657,7 +657,7 @@ export class AnalyticsServiceImpl implements AnalyticsService {
   private getPeriodRange(period: string): { periodStart: Date; periodEnd: Date } {
     const now = new Date();
     let periodStart: Date;
-    let periodEnd: Date = now;
+    const periodEnd: Date = now;
 
     switch (period) {
       case 'daily':

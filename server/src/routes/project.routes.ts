@@ -26,6 +26,11 @@ const router: ExpressRouter = Router();
 const prisma = new PrismaClient();
 const redis = new Redis(process.env.REDIS_URL || 'redis://localhost:6379');
 const projectService = new ProjectService(prisma, redis);
+// Ensure secrets in test to avoid constructor error
+if (process.env.NODE_ENV === 'test') {
+  process.env.JWT_SECRET = process.env.JWT_SECRET || 'test-jwt-secret';
+  process.env.REFRESH_SECRET = process.env.REFRESH_SECRET || 'test-refresh-secret';
+}
 const authService = new AuthService(redis);
 
 // Validation middleware

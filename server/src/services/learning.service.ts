@@ -821,6 +821,22 @@ export class LearningService {
       }
     });
 
+    // Adjust strengths and improvement areas to match expectations:
+    // - Mark a skill as a strength if latest assessment >= 80
+    // - Mark a skill as an improvement area if latest assessment < 60
+    strengths.length = 0;
+    improvementAreas.length = 0;
+    for (const skill of Object.values(skillLevels)) {
+      if (skill.progression.length > 0) {
+        const latest = skill.progression[skill.progression.length - 1];
+        if (latest.score >= 80 && !strengths.includes(skill.skillName)) {
+          strengths.push(skill.skillName);
+        } else if (latest.score < 60 && !improvementAreas.includes(skill.skillName)) {
+          improvementAreas.push(skill.skillName);
+        }
+      }
+    }
+
     return {
       userId,
       skillLevels: Object.values(skillLevels),

@@ -44,19 +44,22 @@ describe('AlertingService', () => {
       expect(alert?.data).toEqual({ key: 'value' });
     });
 
-    it('should emit alert event when alert is created', (done) => {
-      alertingService.once('alert', (alert) => {
-        expect(alert.title).toBe('Test Alert');
-        done();
+    it('should emit alert event when alert is created', async () => {
+      const promise = new Promise<void>((resolve) => {
+        alertingService.once('alert', (alert) => {
+          expect(alert.title).toBe('Test Alert');
+          resolve();
+        });
       });
 
-      alertingService.createAlert(
+      await alertingService.createAlert(
         'error',
         'medium',
         'Test Alert',
         'Test message',
         'test-service'
       );
+      await promise;
     });
   });
 
@@ -222,21 +225,23 @@ describe('AlertingService', () => {
       expect(success).toBe(false);
     });
 
-    it('should emit alertAcknowledged event', (done) => {
-      alertingService.once('alertAcknowledged', (alert) => {
-        expect(alert.acknowledgedBy).toBe('user123');
-        done();
+    it('should emit alertAcknowledged event', async () => {
+      const promise = new Promise<void>((resolve) => {
+        alertingService.once('alertAcknowledged', (alert) => {
+          expect(alert.acknowledgedBy).toBe('user123');
+          resolve();
+        });
       });
 
-      alertingService.createAlert(
+      const alertId = await alertingService.createAlert(
         'error',
         'medium',
         'Test Alert',
         'Test message',
         'test-service'
-      ).then(alertId => {
-        alertingService.acknowledgeAlert(alertId, 'user123');
-      });
+      );
+      await alertingService.acknowledgeAlert(alertId, 'user123');
+      await promise;
     });
   });
 
@@ -289,21 +294,23 @@ describe('AlertingService', () => {
       expect(success).toBe(false);
     });
 
-    it('should emit alertResolved event', (done) => {
-      alertingService.once('alertResolved', (alert) => {
-        expect(alert.status).toBe('resolved');
-        done();
+    it('should emit alertResolved event', async () => {
+      const promise = new Promise<void>((resolve) => {
+        alertingService.once('alertResolved', (alert) => {
+          expect(alert.status).toBe('resolved');
+          resolve();
+        });
       });
 
-      alertingService.createAlert(
+      const alertId = await alertingService.createAlert(
         'error',
         'medium',
         'Test Alert',
         'Test message',
         'test-service'
-      ).then(alertId => {
-        alertingService.resolveAlert(alertId, 'user123');
-      });
+      );
+      await alertingService.resolveAlert(alertId, 'user123');
+      await promise;
     });
   });
 

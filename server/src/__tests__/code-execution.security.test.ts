@@ -4,6 +4,7 @@ import { SupportedLanguage, SecurityError } from '../types/code-execution.js';
 
 describe('CodeExecutionService - Security Tests', () => {
   let service: CodeExecutionService;
+  let result: any;
 
   beforeEach(() => {
     service = new CodeExecutionService();

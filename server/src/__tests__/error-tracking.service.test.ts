@@ -15,7 +15,7 @@ describe('ErrorTrackingService', () => {
         url: '/api/test',
       };
 
-      const errorId = errorTracker.captureError(error, context);
+      const errorId = errorTracker.captureError(_error, context);
 
       expect(errorId).toMatch(/^err_\d+_[a-z0-9]+$/);
 
@@ -66,27 +66,33 @@ describe('ErrorTrackingService', () => {
       expect(storedError1?.fingerprint).toBe(storedError2?.fingerprint);
     });
 
-    it('should emit error event when error is captured', (done) => {
+    it('should emit error event when error is captured', async () => {
       const _error = new Error('Test error');
 
-      errorTracker.once('error', (errorReport) => {
-        expect(errorReport.error.message).toBe('Test error');
-        done();
+      const promise = new Promise<void>((resolve) => {
+        errorTracker.once('error', (errorReport) => {
+          expect(errorReport.error.message).toBe('Test error');
+          resolve();
+        });
       });
 
-      errorTracker.captureError(error);
+      errorTracker.captureError(_error);
+      await promise;
     });
 
-    it('should emit criticalError event for critical errors', (done) => {
+    it('should emit criticalError event for critical errors', async () => {
       const _error = new Error('Database connection failed');
-      error.name = 'DatabaseError';
+      _error.name = 'DatabaseError';
 
-      errorTracker.once('criticalError', (errorReport) => {
-        expect(errorReport.severity).toBe('critical');
-        done();
+      const promise = new Promise<void>((resolve) => {
+        errorTracker.once('criticalError', (errorReport) => {
+          expect(errorReport.severity).toBe('critical');
+          resolve();
+        });
       });
 
-      errorTracker.captureError(error);
+      errorTracker.captureError(_error);
+      await promise;
     });
   });
 
@@ -96,7 +102,7 @@ describe('ErrorTrackingService', () => {
       errorTracker.addBreadcrumb('API request made', 'api', 'info', { endpoint: '/api/test' });
 
       const _error = new Error('Test error');
-      const errorId = errorTracker.captureError(error);
+      const errorId = errorTracker.captureError(_error);
       const storedError = errorTracker.getError(errorId);
 
       expect(storedError?.breadcrumbs).toHaveLength(2);
@@ -113,7 +119,7 @@ describe('ErrorTrackingService', () => {
       }
 
       const _error = new Error('Test error');
-      const errorId = errorTracker.captureError(error);
+      const errorId = errorTracker.captureError(_error);
       const storedError = errorTracker.getError(errorId);
 
       expect(storedError?.breadcrumbs.length).toBeLessThanOrEqual(100);
@@ -212,7 +218,7 @@ describe('ErrorTrackingService', () => {
         ip: '127.0.0.1',
       };
 
-      const errorId = errorTracker.captureRequestError(error, mockReq as any);
+      const errorId = errorTracker.captureRequestError(_error, mockReq as any);
       const storedError = errorTracker.getError(errorId);
 
       expect(storedError?.context.userId).toBe('user123');
