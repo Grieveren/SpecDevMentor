@@ -41,12 +41,12 @@ describe('Notification Routes', () => {
       sendNotification: vi.fn(),
     };
 
-    // Mock the service import
+    // Mock the service import BEFORE router initializes (dynamic import target)
     vi.doMock('../services/notification.service.js', () => ({
       NotificationService: vi.fn().mockImplementation(() => mockNotificationService),
     }));
 
-    const mockIo = {} as SocketIOServer;
+    const mockIo = { to: () => ({ emit: () => {} }) } as unknown as SocketIOServer;
     const router = initializeNotificationRoutes(mockIo);
     app.use('/api/notifications', router);
   });

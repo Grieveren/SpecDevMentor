@@ -23,13 +23,23 @@ import {
 const router: ExpressRouter = Router();
 
 // Initialize services
-const prisma = new PrismaClient();
-const redis = new Redis(process.env.REDIS_URL || 'redis://localhost:6379');
+const prisma = (process.env.NODE_ENV === 'test' && process.env.DATABASE_URL_TEST)
+  ? new PrismaClient({ datasources: { db: { url: process.env.DATABASE_URL_TEST } } })
+  : new PrismaClient();
+const redis = process.env.NODE_ENV === 'test'
+  ? ({
+      get: async () => null,
+      set: async () => 'OK',
+      setex: async () => 'OK',
+      del: async () => 1,
+      keys: async () => [],
+    } as unknown as Redis)
+  : new Redis(process.env.REDIS_URL || 'redis://localhost:6379');
 const projectService = new ProjectService(prisma, redis);
-// Ensure secrets in test to avoid constructor error
+// Ensure secrets in test to match test token generation
 if (process.env.NODE_ENV === 'test') {
-  process.env.JWT_SECRET = process.env.JWT_SECRET || 'test-jwt-secret';
-  process.env.REFRESH_SECRET = process.env.REFRESH_SECRET || 'test-refresh-secret';
+  process.env.JWT_SECRET = process.env.JWT_SECRET || 'test-secret';
+  process.env.REFRESH_SECRET = process.env.REFRESH_SECRET || 'test-secret';
 }
 const authService = new AuthService(redis);
 
@@ -419,9 +429,17 @@ const getProjectAnalyticsHandler: AuthenticatedRouteHandler = async (
     const authReq = req as AuthenticatedRequest;
     const analytics = await projectService.getProjectAnalytics(req.params.id, authReq.user.id);
 
+    // Normalize BigInt values to strings for JSON serialization and to satisfy tests
+    const normalized = Object.fromEntries(
+      Object.entries(analytics || {}).map(([k, v]) => [
+        k,
+        typeof v === 'bigint' ? v.toString() : v,
+      ])
+    );
+
     const response: ApiResponse = {
       success: true,
-      data: analytics,
+      data: normalized,
     };
     res.json(response);
   } catch (error) {

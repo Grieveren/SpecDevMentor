@@ -6,7 +6,9 @@ import { AIService, type AIReviewResult } from '../services/ai.service.js';
 let result: any;
 
 // Mock Prisma
-vi.mock('@prisma/client');
+vi.mock('@prisma/client', () => ({
+  PrismaClient: vi.fn(),
+}));
 const MockedPrismaClient = vi.mocked(PrismaClient);
 
 // Mock AI Service

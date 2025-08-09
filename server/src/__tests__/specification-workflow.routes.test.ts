@@ -3,7 +3,7 @@ import request from 'supertest';
 import express from 'express';
 import { PrismaClient, SpecificationPhase, DocumentStatus } from '@prisma/client';
 import Redis from 'ioredis';
-import workflowRoutes from '../routes/specification-workflow.routes.js';
+import workflowRoutes, { __setTestPrisma, __setTestRedis } from '../routes/specification-workflow.routes.js';
 
 // Mock dependencies
 const mockPrisma = {
@@ -63,6 +63,8 @@ describe('Specification Workflow Routes Integration', () => {
 
   beforeEach(() => {
     vi.clearAllMocks();
+    __setTestPrisma(mockPrisma);
+    __setTestRedis(mockRedis);
     app = createTestApp();
   });
 

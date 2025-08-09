@@ -38,7 +38,7 @@ describe('Project Routes Integration Tests', () => {
     const users = await Promise.all([
       prisma.user.create({
         data: {
-          email: 'owner@test.com',
+          email: `owner-${Date.now()}@test.com`,
           name: 'Project Owner',
           password: hashedPassword,
           role: UserRole.TEAM_LEAD,
@@ -47,7 +47,7 @@ describe('Project Routes Integration Tests', () => {
       }),
       prisma.user.create({
         data: {
-          email: 'member@test.com',
+          email: `member-${Date.now()}@test.com`,
           name: 'Team Member',
           password: hashedPassword,
           role: UserRole.DEVELOPER,
@@ -56,7 +56,7 @@ describe('Project Routes Integration Tests', () => {
       }),
       prisma.user.create({
         data: {
-          email: 'other@test.com',
+          email: `other-${Date.now()}@test.com`,
           name: 'Other User',
           password: hashedPassword,
           role: UserRole.DEVELOPER,
@@ -199,11 +199,11 @@ describe('Project Routes Integration Tests', () => {
         where: { name: 'Owner Project 1' },
       });
 
-      if (project) {
+      if (_project) {
         await prisma.teamMember.create({
           data: {
             userId: testUsers[1].id,
-            projectId: project.id,
+            projectId: _project.id,
             role: 'MEMBER',
             status: 'ACTIVE',
           },

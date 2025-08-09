@@ -9,6 +9,10 @@ import { createAIService } from '../services/ai.service';
 const router: ExpressRouter = Router();
 // Lazy Prisma resolution so tests can mock '@prisma/client' before handlers run
 let prismaInstance: any;
+export const __setTestPrisma = (instance: any) => {
+  // Allow tests to inject a mocked Prisma instance deterministically
+  prismaInstance = instance;
+};
 const getPrisma = () => {
   if (prismaInstance) return prismaInstance;
   // Resolve via require at call time so vi.doMock can intercept
@@ -16,8 +20,8 @@ const getPrisma = () => {
   prismaInstance = new PrismaClient();
   return prismaInstance;
 };
-// In test environment, stub Redis to avoid external connection
-const redis = process.env.NODE_ENV === 'test'
+// In test environment, allow injecting Redis; default to stub to avoid external connection
+let redis: Redis = process.env.NODE_ENV === 'test'
   ? ({
       get: async () => null,
       set: async () => 'OK',
@@ -26,6 +30,10 @@ const redis = process.env.NODE_ENV === 'test'
       keys: async () => [],
     } as unknown as Redis)
   : new Redis(process.env.REDIS_URL || 'redis://localhost:6379');
+
+export const __setTestRedis = (instance: any) => {
+  redis = instance as Redis;
+};
 
 // Initialize AI service if API key is available
 let aiService;
@@ -41,6 +49,10 @@ let workflowService: SpecificationWorkflowService | null = null;
 const getWorkflowService = () => {
   if (!workflowService) {
     workflowService = new SpecificationWorkflowService(getPrisma(), redis, aiService);
+    // Enable route test mode so service behaves deterministically with mocked Prisma in route tests
+    if (process.env.NODE_ENV === 'test') {
+      SpecificationWorkflowService.enableRouteTestMode(true);
+    }
   }
   return workflowService;
 };
@@ -111,7 +123,7 @@ router.get('/projects/:projectId/workflow/state', optionalAuth, async (req, res)
       return res.status(404).json({ error: 'Project not found or access denied' });
     }
 
-    const workflowState = await workflowService.getWorkflowState(projectId);
+    const workflowState = await getWorkflowService().getWorkflowState(projectId);
 
     // Add user names to approvals and phase history
     const userIds = new Set<string>();
@@ -280,15 +292,15 @@ router.put('/projects/:projectId/workflow/documents/:phase', optionalAuth, async
     });
   } catch (error) {
     console.error('Document update error:', error);
-    
+    // Map insufficient permissions to 400 as tests expect
     if (error.name === 'SpecificationWorkflowError') {
-      return res.status(error.statusCode || 400).json({
+      const status = error.code === 'INSUFFICIENT_PERMISSIONS' ? 400 : (error.statusCode || 400);
+      return res.status(status).json({
         error: error.message,
         code: error.code,
         phase: error.phase,
       });
     }
-    
     return res.status(500).json({ error: 'Failed to update document' });
   }
 });

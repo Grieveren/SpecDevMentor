@@ -8,7 +8,7 @@ import { authenticateToken } from '../middleware/auth.middleware.js';
 let response: any;
 
 // Mock dependencies
-vi.mock('@prisma/client');
+vi.mock('@prisma/client', () => ({ PrismaClient: vi.fn() }));
 vi.mock('../services/ai.service.js');
 vi.mock('../middleware/auth.middleware.js');
 

@@ -2,6 +2,7 @@
 // Defer PrismaClient resolution to accommodate module mocks in tests
 // Import enums via require to avoid ESM __esModule issues in mocks
 import type { PrismaClient as PrismaClientType } from '@prisma/client';
+import { PrismaClient } from '@prisma/client';
 import { AIService, type AIReviewResult, type AISuggestion } from './ai.service.js';
 import crypto from 'crypto';
 
@@ -62,8 +63,8 @@ export class AIReviewService {
   private aiService: AIService;
 
   constructor(aiService: AIService) {
-    // Use require to avoid ESM __esModule enum issues under Vitest mocks
-    this.prisma = new (require('@prisma/client').PrismaClient)();
+    // Instantiate PrismaClient in a way compatible with Vitest module mocks
+    this.prisma = new PrismaClient();
     this.aiService = aiService;
   }
 
@@ -309,7 +310,7 @@ export class AIReviewService {
           include: {
             owner: true,
             team: {
-              where: { userId, status: 'ACTIVE' },
+              where: { status: 'ACTIVE' },
             },
           },
         },
@@ -320,9 +321,9 @@ export class AIReviewService {
       throw new Error('Document not found');
     }
 
-    const hasAccess = 
-      document.project.ownerId === userId || 
-      document.project.team.length > 0;
+    const hasAccess =
+      document.project.ownerId === userId ||
+      document.project.team.some((tm: any) => tm.userId === userId && tm.status === 'ACTIVE');
 
     if (!hasAccess) {
       throw new Error('Access denied to document');
