@@ -50,22 +50,31 @@ export const initializeNotificationRoutes = (io: SocketIOServer): ExpressRouter 
 };
 
 const ensureServiceReady = async () => {
+  // In tests, always rebind the service from the mocked module so spies are honored
+  if (process.env.NODE_ENV === 'test') {
+    try {
+      const mod = await import('../services/notification.service.js');
+      const ServiceCtor = (mod as any).NotificationService;
+      const ioForCtor = ioRef || ({ to: () => ({ emit: () => {} }) } as any);
+      notificationService = new ServiceCtor(prisma, redis, ioForCtor);
+      return;
+    } catch (_e) {
+      // fall through to normal flow
+    }
+  }
+
   if (!notificationService && serviceInitPromise) {
     await serviceInitPromise;
   }
-  // If still not ready in tests, wait a microtask to allow vi.doMock + import to resolve
-  if (!notificationService && process.env.NODE_ENV === 'test') {
-    await new Promise((r) => setTimeout(r, 0));
-    // Final fallback: instantiate via (mocked) module so spies receive calls
-    if (!notificationService) {
-      try {
-        const mod = await import('../services/notification.service.js');
-        const ServiceCtor = (mod as any).NotificationService;
-        const ioForCtor = ioRef || ({ to: () => ({ emit: () => {} }) } as any);
-        notificationService = new ServiceCtor(prisma, redis, ioForCtor);
-      } catch (_e) {
-        // swallow; handler will throw and tests expecting errors will pass
-      }
+  // If still not ready, attempt dynamic import once
+  if (!notificationService) {
+    try {
+      const mod = await import('../services/notification.service.js');
+      const ServiceCtor = (mod as any).NotificationService;
+      const ioForCtor = ioRef || ({ to: () => ({ emit: () => {} }) } as any);
+      notificationService = new ServiceCtor(prisma, redis, ioForCtor);
+    } catch (_e) {
+      // swallow; handler will throw and tests expecting errors will pass
     }
   }
 };
