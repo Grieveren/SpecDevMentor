@@ -447,6 +447,9 @@ This project uses comprehensive code quality tools:
 
 ### Documentation
 
+- **Performance Monitoring**: See `docs/performance-monitoring.md` for comprehensive monitoring service documentation
+- **Deployment Guide**: Check `docs/deployment.md` for production deployment procedures
+- **Monitoring Operations**: Review `docs/runbooks/monitoring-operations.md` for operational procedures
 - **Migration Guide**: See `docs/TYPESCRIPT_MIGRATION.md` for migration context
 - **Troubleshooting**: Check `docs/TYPESCRIPT_TROUBLESHOOTING.md` for common issues
 - **Best Practices**: Follow patterns in `docs/DEVELOPMENT_BEST_PRACTICES.md`

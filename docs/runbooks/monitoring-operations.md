@@ -24,6 +24,7 @@ This runbook covers the operation and maintenance of the CodeMentor AI monitorin
 ### Health Check Endpoints
 
 #### Basic Health Check
+
 ```bash
 # Endpoint: GET /health
 curl https://api.codementor-ai.com/health
@@ -36,6 +37,7 @@ curl https://api.codementor-ai.com/health
 ```
 
 #### Detailed Health Check
+
 ```bash
 # Endpoint: GET /health/detailed
 curl https://api.codementor-ai.com/health/detailed
@@ -49,6 +51,7 @@ curl https://api.codementor-ai.com/health/detailed
 ```
 
 #### Kubernetes Probes
+
 ```bash
 # Liveness probe
 curl https://api.codementor-ai.com/health/live
@@ -60,13 +63,14 @@ curl https://api.codementor-ai.com/health/ready
 ### Health Check Troubleshooting
 
 #### Database Health Issues
+
 ```bash
 # Check database connectivity
 kubectl exec -it deployment/postgres -n codementor-ai -- pg_isready -U postgres
 
 # Check database performance
 kubectl exec -it deployment/postgres -n codementor-ai -- psql -U postgres -c "
-SELECT 
+SELECT
   datname,
   numbackends,
   xact_commit,
@@ -78,11 +82,12 @@ SELECT
   tup_inserted,
   tup_updated,
   tup_deleted
-FROM pg_stat_database 
+FROM pg_stat_database
 WHERE datname = 'codementor_ai';"
 ```
 
 #### Redis Health Issues
+
 ```bash
 # Check Redis connectivity
 kubectl exec -it deployment/redis -n codementor-ai -- redis-cli ping
@@ -97,6 +102,7 @@ kubectl exec -it deployment/redis -n codementor-ai -- redis-cli info memory
 ## Error Tracking
 
 ### Error Statistics
+
 ```bash
 # Get error statistics
 curl -H "Authorization: Bearer $TOKEN" \
@@ -108,6 +114,7 @@ curl -H "Authorization: Bearer $TOKEN" \
 ```
 
 ### Error Investigation
+
 ```bash
 # Get specific error details
 curl -H "Authorization: Bearer $TOKEN" \
@@ -121,16 +128,19 @@ curl -H "Authorization: Bearer $TOKEN" \
 ### Common Error Patterns
 
 #### Database Connection Errors
+
 - **Fingerprint Pattern**: `database:connection:*`
 - **Common Causes**: Connection pool exhaustion, database downtime
 - **Investigation**: Check database health, connection limits, pool configuration
 
 #### Authentication Errors
+
 - **Fingerprint Pattern**: `auth:*`
 - **Common Causes**: Invalid tokens, expired sessions, permission issues
 - **Investigation**: Check JWT configuration, user permissions, session management
 
 #### External Service Errors
+
 - **Fingerprint Pattern**: `external:*`
 - **Common Causes**: API rate limits, service downtime, network issues
 - **Investigation**: Check external service status, rate limit configuration
@@ -138,6 +148,7 @@ curl -H "Authorization: Bearer $TOKEN" \
 ## Alert Management
 
 ### Alert Statistics
+
 ```bash
 # Get alert statistics
 curl -H "Authorization: Bearer $TOKEN" \
@@ -149,6 +160,7 @@ curl -H "Authorization: Bearer $TOKEN" \
 ```
 
 ### Alert Operations
+
 ```bash
 # Acknowledge alert
 curl -X POST -H "Authorization: Bearer $TOKEN" \
@@ -160,6 +172,7 @@ curl -X POST -H "Authorization: Bearer $TOKEN" \
 ```
 
 ### Alert Rule Management
+
 ```bash
 # Get alert rules
 curl -H "Authorization: Bearer $TOKEN" \
@@ -192,6 +205,7 @@ curl -X POST -H "Authorization: Bearer $TOKEN" \
 ### Alert Channels Configuration
 
 #### Email Alerts
+
 ```bash
 # Environment variables required:
 SMTP_HOST=smtp.gmail.com
@@ -202,6 +216,7 @@ ALERT_EMAIL=admin@codementor-ai.com
 ```
 
 #### Slack Alerts
+
 ```json
 {
   "type": "slack",
@@ -214,6 +229,7 @@ ALERT_EMAIL=admin@codementor-ai.com
 ```
 
 #### Webhook Alerts
+
 ```json
 {
   "type": "webhook",
@@ -230,12 +246,14 @@ ALERT_EMAIL=admin@codementor-ai.com
 ## Log Management
 
 ### Log Locations
+
 - **Application Logs**: `/app/logs/combined.log`
 - **Error Logs**: `/app/logs/error.log`
 - **Access Logs**: `/app/logs/access.log`
 - **Exception Logs**: `/app/logs/exceptions.log`
 
 ### Log Analysis
+
 ```bash
 # View recent errors
 kubectl exec -it deployment/codementor-server -n codementor-ai -- \
@@ -251,9 +269,11 @@ kubectl exec -it deployment/codementor-server -n codementor-ai -- \
 ```
 
 ### Log Rotation
+
 Logs are automatically rotated when they reach 10MB, keeping 5 files for errors and 10 files for combined logs.
 
 ### Structured Log Analysis
+
 ```bash
 # Parse JSON logs
 kubectl logs deployment/codementor-server -n codementor-ai | \
@@ -271,6 +291,7 @@ kubectl logs deployment/codementor-server -n codementor-ai | \
 ## Performance Monitoring
 
 ### System Metrics
+
 ```bash
 # Get system metrics
 curl -H "Authorization: Bearer $TOKEN" \
@@ -284,6 +305,7 @@ curl -H "Authorization: Bearer $TOKEN" \
 ```
 
 ### Resource Monitoring
+
 ```bash
 # Check pod resource usage
 kubectl top pods -n codementor-ai
@@ -298,6 +320,7 @@ kubectl describe pod <pod-name> -n codementor-ai | grep -A 5 "Limits:"
 ### Performance Troubleshooting
 
 #### High Memory Usage
+
 ```bash
 # Check memory usage trends
 kubectl exec -it deployment/codementor-server -n codementor-ai -- \
@@ -309,6 +332,7 @@ kubectl logs deployment/codementor-server -n codementor-ai | \
 ```
 
 #### High CPU Usage
+
 ```bash
 # Check CPU usage
 kubectl exec -it deployment/codementor-server -n codementor-ai -- \
@@ -322,6 +346,7 @@ kubectl logs deployment/codementor-server -n codementor-ai | \
 ## Real-time Monitoring
 
 ### Server-Sent Events
+
 ```bash
 # Connect to real-time monitoring stream
 curl -H "Authorization: Bearer $TOKEN" \
@@ -336,10 +361,11 @@ curl -H "Authorization: Bearer $TOKEN" \
 ```
 
 ### WebSocket Monitoring (if implemented)
+
 ```javascript
 const ws = new WebSocket('wss://api.codementor-ai.com/monitoring/ws');
 
-ws.on('message', (data) => {
+ws.on('message', data => {
   const event = JSON.parse(data);
   console.log('Monitoring event:', event);
 });
@@ -348,18 +374,21 @@ ws.on('message', (data) => {
 ## Maintenance Tasks
 
 ### Daily Tasks
+
 1. Review overnight alerts and errors
 2. Check system health dashboard
 3. Verify backup completion
 4. Monitor resource usage trends
 
 ### Weekly Tasks
+
 1. Review error trends and patterns
 2. Update alert thresholds if needed
 3. Clean up old logs and metrics
 4. Review performance metrics
 
 ### Monthly Tasks
+
 1. Analyze monitoring effectiveness
 2. Update alert rules based on patterns
 3. Review and optimize log retention
@@ -368,6 +397,7 @@ ws.on('message', (data) => {
 ## Troubleshooting Common Issues
 
 ### Monitoring Service Not Responding
+
 ```bash
 # Check monitoring service health
 kubectl get pods -l app=codementor-server -n codementor-ai
@@ -378,6 +408,7 @@ kubectl rollout restart deployment/codementor-server -n codementor-ai
 ```
 
 ### Alerts Not Being Sent
+
 ```bash
 # Check alert service configuration
 kubectl exec -it deployment/codementor-server -n codementor-ai -- \
@@ -406,6 +437,7 @@ kubectl exec -it deployment/codementor-server -n codementor-ai -- \
 ```
 
 ### High Error Rates
+
 ```bash
 # Identify error patterns
 curl -H "Authorization: Bearer $TOKEN" \
@@ -422,25 +454,89 @@ kubectl logs deployment/codementor-server -n codementor-ai | \
   grep "ERROR" | tail -20
 ```
 
+## Performance Monitoring Service Configuration
+
+### Environment Variables
+
+The performance monitoring service requires the following environment variables:
+
+```bash
+# Redis Configuration (for metric storage and caching)
+REDIS_URL=redis://localhost:6379
+
+# Database Configuration (for persistent metric storage)
+DATABASE_URL=postgresql://user:pass@localhost:5432/codementor_ai
+
+# Alert Configuration
+SMTP_HOST=smtp.gmail.com
+SMTP_PORT=587
+SMTP_USER=alerts@codementor-ai.com
+SMTP_PASS=app-password
+
+# Monitoring Configuration
+METRIC_RETENTION_HOURS=24
+METRIC_BUFFER_SIZE=100
+ALERT_COOLDOWN_PERIOD=1800
+```
+
+### Service Initialization
+
+The performance monitoring service automatically:
+
+1. **Initializes Default Alert Rules**: Creates standard alert rules for response time, error rate, and memory usage
+2. **Starts Metric Aggregation**: Begins collecting system metrics every minute
+3. **Enables Metric Cleanup**: Automatically removes old metrics every hour
+4. **Activates Real-time Monitoring**: Provides real-time metric streaming via events
+
+### Metric Types
+
+The service tracks the following metric types:
+
+- `response_time`: API response times in milliseconds
+- `error_rate`: Error rate as a percentage
+- `throughput`: Requests per second
+- `active_users`: Number of active user sessions
+- `memory_usage`: Memory usage as a percentage
+- `cpu_usage`: CPU usage in seconds
+- `system_load`: System load average
+
+### Performance Monitoring Events
+
+The service emits the following events for real-time monitoring:
+
+- `metricRecorded`: When a new metric is recorded
+- `alertTriggered`: When an alert condition is met
+- `alertResolved`: When an alert condition is resolved
+- `alertAcknowledged`: When an alert is acknowledged by a user
+- `alertRuleCreated`: When a new alert rule is created
+- `alertRuleUpdated`: When an alert rule is modified
+- `alertRuleDeleted`: When an alert rule is removed
+
 ## Monitoring Best Practices
 
 ### Alert Fatigue Prevention
+
 - Set appropriate thresholds to avoid false positives
 - Use alert grouping and deduplication
 - Implement alert escalation policies
 - Regular review and tuning of alert rules
+- Configure cooldown periods to prevent alert spam
 
 ### Log Management
+
 - Use structured logging (JSON format)
 - Include correlation IDs for request tracing
 - Set appropriate log levels for different environments
 - Implement log aggregation and centralized storage
 
 ### Performance Monitoring
+
 - Monitor key business metrics, not just technical metrics
 - Set up proactive alerts before issues become critical
 - Use percentile-based metrics (P95, P99) for better insights
 - Monitor both resource utilization and application performance
+- Implement proper metric retention policies
+- Use metric buffering for efficient alert evaluation
 
 ---
 

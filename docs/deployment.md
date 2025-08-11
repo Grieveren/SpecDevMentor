@@ -7,12 +7,14 @@ This guide covers the complete production deployment setup for the CodeMentor AI
 ## Prerequisites
 
 ### Required Tools
+
 - **kubectl** (v1.25+) - Kubernetes command-line tool
 - **docker** (v20.10+) - Container runtime
 - **pnpm** (v8.0+) - Package manager
 - **helm** (v3.10+) - Kubernetes package manager (optional)
 
 ### Infrastructure Requirements
+
 - **Kubernetes cluster** (v1.25+) with at least 3 nodes
 - **Storage class** for persistent volumes
 - **Ingress controller** (nginx recommended)
@@ -20,10 +22,12 @@ This guide covers the complete production deployment setup for the CodeMentor AI
 - **Container registry** (GitHub Container Registry or Docker Hub)
 
 ### Environment Setup
+
 - Domain name configured (e.g., codementor-ai.com)
 - SSL certificates (Let's Encrypt recommended)
-- SMTP server for email notifications
+- SMTP server for email notifications and monitoring alerts
 - OpenAI API key
+- Performance monitoring configuration (Redis for metrics, SMTP for alerts)
 
 ## Architecture Overview
 
@@ -73,10 +77,12 @@ Edit `k8s/secrets-prod.yaml` and replace all `REPLACE_WITH_*` placeholders:
 - JWT_SECRET: 64+ character random string
 - REFRESH_SECRET: 64+ character random string
 - OPENAI_API_KEY: Your OpenAI API key
-- SMTP_USER: Email server username
+- SMTP_USER: Email server username (for notifications and monitoring alerts)
 - SMTP_PASSWORD: Email server password
 - ENCRYPTION_SALT: 32 character random string
 - SESSION_SECRET: Session secret key
+- METRIC_RETENTION_HOURS: Metric retention period (default: 24)
+- ALERT_COOLDOWN_PERIOD: Alert cooldown in seconds (default: 1800)
 ```
 
 ### 3. Deploy
@@ -221,15 +227,15 @@ metadata:
   name: database-backup
   namespace: codementor-ai
 spec:
-  schedule: "0 2 * * *"  # Daily at 2 AM
+  schedule: '0 2 * * *' # Daily at 2 AM
   jobTemplate:
     spec:
       template:
         spec:
           containers:
-          - name: backup
-            image: codementor-ai/backup:latest
-            command: ["/scripts/backup-database.sh", "backup"]
+            - name: backup
+              image: codementor-ai/backup:latest
+              command: ['/scripts/backup-database.sh', 'backup']
           restartPolicy: OnFailure
 ```
 
@@ -263,12 +269,22 @@ kubectl apply -f k8s/
 
 ## Monitoring and Observability
 
+### Performance Monitoring Service
+
+The CodeMentor AI platform includes a comprehensive performance monitoring service that provides:
+
+- **Real-time Metrics Collection**: Automatic collection of system and application metrics
+- **Intelligent Alerting**: Configurable alert rules with multiple notification channels
+- **Performance Reporting**: Automated generation of performance reports with trends
+- **System Health Monitoring**: Comprehensive health checks with status indicators
+
 ### Health Checks
 
 The application includes comprehensive health checks:
 
 - **Liveness Probe**: `/health` - Basic application health
 - **Readiness Probe**: `/health/ready` - Application ready to serve traffic
+- **System Health**: `/api/monitoring/health/system` - Comprehensive system health with metrics
 
 ### Logging
 
@@ -277,14 +293,26 @@ Centralized logging is configured with:
 - **Application Logs**: Structured JSON logs via Winston
 - **Access Logs**: nginx access logs
 - **System Logs**: Kubernetes system logs
+- **Performance Logs**: Metric collection and alert logs
 
 ### Metrics Collection
 
-Key metrics monitored:
+The performance monitoring service automatically collects:
 
-- **Application Metrics**: Response times, error rates, throughput
-- **Database Metrics**: Connection pool, query performance
-- **Infrastructure Metrics**: CPU, memory, disk usage
+- **Application Metrics**: Response times, error rates, throughput, active users
+- **Database Metrics**: Connection pool, query performance, transaction rates
+- **Infrastructure Metrics**: CPU usage, memory usage, system load
+- **Custom Metrics**: Business-specific metrics via API
+
+### Alert Configuration
+
+Default alert rules are automatically configured for:
+
+- **High Response Time**: > 1000ms for 5 minutes
+- **High Error Rate**: > 5% for 3 minutes
+- **High Memory Usage**: > 90% for 10 minutes
+
+Additional alert rules can be configured via the monitoring API.
 
 ## Security Configuration
 
@@ -300,20 +328,20 @@ metadata:
 spec:
   podSelector: {}
   policyTypes:
-  - Ingress
-  - Egress
+    - Ingress
+    - Egress
   ingress:
-  - from:
-    - namespaceSelector:
-        matchLabels:
-          name: ingress-nginx
+    - from:
+        - namespaceSelector:
+            matchLabels:
+              name: ingress-nginx
   egress:
-  - to: []
-    ports:
-    - protocol: TCP
-      port: 443
-    - protocol: TCP
-      port: 80
+    - to: []
+      ports:
+        - protocol: TCP
+          port: 443
+        - protocol: TCP
+          port: 80
 ```
 
 ### Pod Security
@@ -341,11 +369,11 @@ securityContext:
 ```yaml
 resources:
   requests:
-    memory: "512Mi"
-    cpu: "250m"
+    memory: '512Mi'
+    cpu: '250m'
   limits:
-    memory: "1Gi"
-    cpu: "500m"
+    memory: '1Gi'
+    cpu: '500m'
 ```
 
 ### Horizontal Pod Autoscaling
@@ -364,12 +392,12 @@ spec:
   minReplicas: 3
   maxReplicas: 10
   metrics:
-  - type: Resource
-    resource:
-      name: cpu
-      target:
-        type: Utilization
-        averageUtilization: 70
+    - type: Resource
+      resource:
+        name: cpu
+        target:
+          type: Utilization
+          averageUtilization: 70
 ```
 
 ## Troubleshooting
@@ -443,11 +471,13 @@ kubectl scale deployment codementor-client --replicas=2 -n codementor-ai
 ### Regular Maintenance Tasks
 
 1. **Weekly**:
+
    - Review application logs
    - Check backup integrity
    - Monitor resource usage
 
 2. **Monthly**:
+
    - Update dependencies
    - Review security patches
    - Optimize database performance
@@ -484,6 +514,7 @@ git pull origin main
 ### Getting Help
 
 For deployment issues:
+
 1. Check application logs
 2. Review this documentation
 3. Contact the development team
