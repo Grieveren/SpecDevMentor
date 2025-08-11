@@ -412,7 +412,7 @@ export const CollaborativeSpecificationEditor: React.FC<CollaborativeSpecificati
           </div>
         </div>
 
-        <div className="flex items-center space-x-4">
+      <div className="flex items-center space-x-4">
           {/* Collaboration status and users */}
           {collaborationEnabled && (
             <div className="flex items-center space-x-4">
@@ -582,8 +582,8 @@ export const CollaborativeSpecificationEditor: React.FC<CollaborativeSpecificati
               <span>Live collaboration active</span>
             </span>
           )}
-          <span>{content.length} characters</span>
-          <span>{content.split('\n').length} lines</span>
+          <span>{(content || '').length} characters</span>
+          <span>{(content || '').split('\n').length} lines</span>
         </div>
       </div>
     </div>

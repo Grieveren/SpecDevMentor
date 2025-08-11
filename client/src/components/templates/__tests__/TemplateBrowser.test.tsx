@@ -122,7 +122,7 @@ describe('TemplateBrowser', () => {
   });
 
   it('should handle search functionality', async () => {
-    const _user = userEvent.setup();
+    const user = userEvent.setup();
     render(<TemplateBrowser />);
 
     // Wait for initial load
@@ -144,7 +144,7 @@ describe('TemplateBrowser', () => {
   });
 
   it('should handle filter changes', async () => {
-    const _user = userEvent.setup();
+    const user = userEvent.setup();
     render(<TemplateBrowser />);
 
     // Wait for initial load
@@ -171,7 +171,7 @@ describe('TemplateBrowser', () => {
   });
 
   it('should call onSelectTemplate when template is clicked', async () => {
-    const _user = userEvent.setup();
+    const user = userEvent.setup();
     const onSelectTemplate = vi.fn();
     
     render(<TemplateBrowser onSelectTemplate={onSelectTemplate} />);
@@ -187,7 +187,7 @@ describe('TemplateBrowser', () => {
   });
 
   it('should call onApplyTemplate when apply button is clicked', async () => {
-    const _user = userEvent.setup();
+    const user = userEvent.setup();
     const onApplyTemplate = vi.fn();
     
     render(<TemplateBrowser onApplyTemplate={onApplyTemplate} />);

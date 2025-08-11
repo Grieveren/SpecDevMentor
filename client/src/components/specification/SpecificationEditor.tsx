@@ -30,14 +30,14 @@ export interface SpecificationEditorProps {
 }
 
 export const SpecificationEditor: React.FC<SpecificationEditorProps> = ({
-  document,
+  document: specDocument,
   mode,
   onSave,
   onRequestReview,
   collaborationEnabled = false,
   className,
 }) => {
-  const [content, setContent] = useState(document.content);
+  const [content, setContent] = useState(specDocument.content);
   const [isEditing, setIsEditing] = useState(mode === 'edit');
   const [isSaving, setIsSaving] = useState(false);
   const [lastSaved, setLastSaved] = useState<Date | null>(null);
@@ -48,7 +48,7 @@ export const SpecificationEditor: React.FC<SpecificationEditorProps> = ({
     if (!hasUnsavedChanges || mode === 'readonly') return;
 
     const timer = setTimeout(async () => {
-      if (content !== document.content) {
+      if (content !== specDocument.content) {
         setIsSaving(true);
         try {
           await onSave(content);
@@ -63,12 +63,12 @@ export const SpecificationEditor: React.FC<SpecificationEditorProps> = ({
     }, 2000);
 
     return () => clearTimeout(timer);
-  }, [content, document.content, hasUnsavedChanges, mode, onSave]);
+  }, [content, specDocument.content, hasUnsavedChanges, mode, onSave]);
 
   const handleContentChange = useCallback((newContent: string) => {
     setContent(newContent);
-    setHasUnsavedChanges(newContent !== document.content);
-  }, [document.content]);
+    setHasUnsavedChanges(newContent !== specDocument.content);
+  }, [specDocument.content]);
 
   const handleManualSave = async () => {
     if (!hasUnsavedChanges) return;
@@ -155,7 +155,7 @@ export const SpecificationEditor: React.FC<SpecificationEditorProps> = ({
   };
 
   const insertMarkdown = (before: string, after: string) => {
-    const textarea = document.querySelector('textarea') as HTMLTextAreaElement;
+    const textarea = (document.querySelector('textarea') as HTMLTextAreaElement) || null;
     if (!textarea) return;
 
     const start = textarea.selectionStart;
@@ -173,7 +173,7 @@ export const SpecificationEditor: React.FC<SpecificationEditorProps> = ({
   };
 
   const insertTemplate = (template: string) => {
-    const textarea = document.querySelector('textarea') as HTMLTextAreaElement;
+    const textarea = (document.querySelector('textarea') as HTMLTextAreaElement) || null;
     if (!textarea) return;
 
     const start = textarea.selectionStart;
@@ -288,7 +288,7 @@ export const SpecificationEditor: React.FC<SpecificationEditorProps> = ({
           <textarea
             value={content}
             onChange={(e) => handleContentChange(e.target.value)}
-            placeholder={`Enter your ${document.phase.toLowerCase()} content here...`}
+            placeholder={`Enter your ${specDocument.phase.toLowerCase()} content here...`}
             className="flex-1 p-4 border-none resize-none focus:outline-none font-mono text-sm leading-relaxed"
             style={{ minHeight: '400px' }}
           />
@@ -312,7 +312,7 @@ export const SpecificationEditor: React.FC<SpecificationEditorProps> = ({
       {/* Footer */}
       <div className="flex items-center justify-between p-2 border-t border-gray-200 bg-gray-50 text-xs text-gray-500">
         <div>
-          Last updated: {new Date(document.updatedAt).toLocaleString()}
+          Last updated: {new Date(specDocument.updatedAt).toLocaleString()}
         </div>
         <div className="flex items-center space-x-4">
           {collaborationEnabled && (

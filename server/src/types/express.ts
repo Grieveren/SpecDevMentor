@@ -29,6 +29,8 @@ export interface ApiError {
   success: false;
   message: string;
   code: string;
+  // Some routes also include a shorthand 'error' field for compatibility with tests/clients
+  error?: string;
   details?: any;
 }
 
