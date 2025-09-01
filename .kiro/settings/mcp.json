@@ -30,7 +30,9 @@
       "disabled": false,
       "autoApprove": [
         "create_directory",
-        "find_files"
+        "find_files",
+        "search_files",
+        "search_files"
       ]
     },
     "websearch": {

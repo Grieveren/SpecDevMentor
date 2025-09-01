@@ -1,14 +1,26 @@
 // @ts-nocheck
+import type { Router as ExpressRouter } from 'express';
 import { Router } from 'express';
-import type { Router as ExpressRouter } from 'express';import { body, validationResult } from 'express-validator';
+import { body, validationResult } from 'express-validator';
+import { Redis } from 'ioredis';
+import { authMiddleware } from '../middleware/auth.middleware.js';
 import { CodeExecutionService } from '../services/code-execution.service.js';
 import { SpecificationComplianceService } from '../services/specification-compliance.service.js';
-import { authMiddleware } from '../middleware/auth.middleware.js';
 import { SupportedLanguage } from '../types/code-execution.js';
 
 const router: ExpressRouter = Router();
 const codeExecutionService = new CodeExecutionService();
-const complianceService = new SpecificationComplianceService();
+const redis =
+  process.env.NODE_ENV === 'test'
+    ? ({
+        get: async () => null,
+        set: async () => 'OK',
+        setex: async () => 'OK',
+        del: async () => 1,
+        keys: async () => [],
+      } as unknown as Redis)
+    : new Redis(process.env.REDIS_URL || 'redis://localhost:6379');
+const complianceService = new SpecificationComplianceService(redis);
 
 // Validation middleware
 const validateExecutionRequest = [
@@ -96,7 +108,7 @@ router.post('/execute', authMiddleware, validateExecutionRequest, async (req, re
 router.get('/languages', authMiddleware, async (req, res) => {
   try {
     const languages = codeExecutionService.getSupportedLanguages();
-    
+
     res.json({
       success: true,
       data: {
@@ -117,7 +129,7 @@ router.get('/languages', authMiddleware, async (req, res) => {
 router.get('/status', authMiddleware, async (req, res) => {
   try {
     const activeSandboxes = codeExecutionService.getActiveSandboxCount();
-    
+
     res.json({
       success: true,
       data: {
@@ -137,62 +149,63 @@ router.get('/status', authMiddleware, async (req, res) => {
 });
 
 // Validate code compliance against specifications
-router.post('/validate-compliance', authMiddleware, [
-  body('code')
-    .notEmpty()
-    .withMessage('Code is required')
-    .isLength({ max: 50000 })
-    .withMessage('Code exceeds maximum length (50KB)'),
-  body('language')
-    .isIn(Object.values(SupportedLanguage))
-    .withMessage('Invalid or unsupported language'),
-  body('specifications')
-    .isArray({ min: 1 })
-    .withMessage('At least one specification document is required'),
-  body('specifications.*.id')
-    .notEmpty()
-    .withMessage('Specification ID is required'),
-  body('specifications.*.content')
-    .notEmpty()
-    .withMessage('Specification content is required'),
-  body('specifications.*.phase')
-    .isIn(['requirements', 'design', 'tasks'])
-    .withMessage('Invalid specification phase'),
-], async (req, res) => {
-  try {
-    // Check validation results
-    const errors = validationResult(req);
-    if (!errors.isEmpty()) {
-      return res.status(400).json({
+router.post(
+  '/validate-compliance',
+  authMiddleware,
+  [
+    body('code')
+      .notEmpty()
+      .withMessage('Code is required')
+      .isLength({ max: 50000 })
+      .withMessage('Code exceeds maximum length (50KB)'),
+    body('language')
+      .isIn(Object.values(SupportedLanguage))
+      .withMessage('Invalid or unsupported language'),
+    body('specifications')
+      .isArray({ min: 1 })
+      .withMessage('At least one specification document is required'),
+    body('specifications.*.id').notEmpty().withMessage('Specification ID is required'),
+    body('specifications.*.content').notEmpty().withMessage('Specification content is required'),
+    body('specifications.*.phase')
+      .isIn(['requirements', 'design', 'tasks'])
+      .withMessage('Invalid specification phase'),
+  ],
+  async (req, res) => {
+    try {
+      // Check validation results
+      const errors = validationResult(req);
+      if (!errors.isEmpty()) {
+        return res.status(400).json({
+          success: false,
+          message: 'Validation failed',
+          errors: errors.array(),
+        });
+      }
+
+      const { code, language, specifications } = req.body;
+
+      // Validate compliance
+      const _result = await complianceService.validateCodeCompliance(
+        code,
+        language,
+        specifications
+      );
+
+      res.json({
+        success: true,
+        data: result,
+      });
+    } catch (error) {
+      console.error('Compliance validation error:', error);
+
+      res.status(500).json({
         success: false,
-        message: 'Validation failed',
-        errors: errors.array(),
+        message: 'Compliance validation failed',
+        error: process.env.NODE_ENV === 'development' ? error.message : 'Validation failed',
       });
     }
-
-    const { code, language, specifications } = req.body;
-
-    // Validate compliance
-    const _result = await complianceService.validateCodeCompliance(
-      code,
-      language,
-      specifications
-    );
-
-    res.json({
-      success: true,
-      data: result,
-    });
-  } catch (error) {
-    console.error('Compliance validation error:', error);
-
-    res.status(500).json({
-      success: false,
-      message: 'Compliance validation failed',
-      error: process.env.NODE_ENV === 'development' ? error.message : 'Validation failed',
-    });
   }
-});
+);
 
 // Health check endpoint
 router.get('/health', async (req, res) => {

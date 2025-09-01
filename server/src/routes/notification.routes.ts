@@ -1,10 +1,11 @@
 // @ts-nocheck
+import type { Router as ExpressRouter } from 'express';
 import { Router } from 'express';
-import type { Router as ExpressRouter } from 'express';import { body, query, param } from 'express-validator';
-// Defer Prisma import to allow tests to mock '@prisma/client' cleanly
-const { PrismaClient } = require('@prisma/client');
+import { body, param, query } from 'express-validator';
 import { Redis } from 'ioredis';
 import { Server as SocketIOServer } from 'socket.io';
+// Use dynamic import for Prisma to avoid enum issues in tests
+const { PrismaClient } = require('@prisma/client');
 // Intentionally avoid static import so tests can vi.doMock before dynamic import occurs
 import { authMiddleware } from '../middleware/auth.middleware.js';
 import { validateRequest } from '../middleware/validation.middleware.js';
@@ -13,15 +14,16 @@ const router: ExpressRouter = Router();
 
 // Initialize services (these would typically be injected)
 const prisma = new PrismaClient();
-const redis = process.env.NODE_ENV === 'test'
-  ? ({
-      get: async () => null,
-      set: async () => 'OK',
-      setex: async () => 'OK',
-      del: async () => 1,
-      keys: async () => [],
-    } as unknown as Redis)
-  : new Redis(process.env.REDIS_URL || 'redis://localhost:6379');
+const redis =
+  process.env.NODE_ENV === 'test'
+    ? ({
+        get: async () => null,
+        set: async () => 'OK',
+        setex: async () => 'OK',
+        del: async () => 1,
+        keys: async () => [],
+      } as unknown as Redis)
+    : new Redis(process.env.REDIS_URL || 'redis://localhost:6379');
 let notificationService: any;
 let serviceInitPromise: Promise<void> | null = null;
 let ioRef: SocketIOServer | null = null;
@@ -38,11 +40,11 @@ const optionalAuth = async (req: any, res: any, next: any) => {
 export const initializeNotificationRoutes = (io: SocketIOServer): ExpressRouter => {
   // Always use dynamic import so vi.doMock can intercept the module
   serviceInitPromise = import('../services/notification.service.js')
-    .then((mod) => {
+    .then(mod => {
       const ServiceCtor = (mod as any).NotificationService;
       notificationService = new ServiceCtor(prisma, redis, io);
     })
-    .catch((err) => {
+    .catch(err => {
       console.error('Failed to initialize NotificationService:', err);
     });
   ioRef = io;
@@ -97,14 +99,11 @@ router.get(
       const userId = req.user!.id;
       const { page, limit, unreadOnly } = req.query;
 
-      const result = await notificationService.getUserNotifications(
-        userId,
-        {
-          page: (page as number) || undefined,
-          limit: (limit as number) || undefined,
-          unreadOnly: (unreadOnly as boolean) || undefined,
-        }
-      );
+      const result = await notificationService.getUserNotifications(userId, {
+        page: (page as number) || undefined,
+        limit: (limit as number) || undefined,
+        unreadOnly: (unreadOnly as boolean) || undefined,
+      });
 
       // Normalize dates in-place so tests comparing object references see the transformation
       if (result && Array.isArray(result.notifications)) {
@@ -178,9 +177,9 @@ router.patch(
  */
 router.patch('/read-all', optionalAuth as any, async (req, res) => {
   try {
-      await ensureServiceReady();
+    await ensureServiceReady();
     const userId = req.user!.id;
-      await notificationService.markAllAsRead(userId);
+    await notificationService.markAllAsRead(userId);
 
     res.json({
       success: true,
@@ -190,7 +189,9 @@ router.patch('/read-all', optionalAuth as any, async (req, res) => {
     console.error('Failed to mark all notifications as read:', error);
     // In tests, propagate error status for service error test; otherwise 500
     const status = process.env.NODE_ENV === 'test' ? 500 : 500;
-    res.status(status).json({ success: false, message: 'Failed to mark all notifications as read' });
+    res
+      .status(status)
+      .json({ success: false, message: 'Failed to mark all notifications as read' });
   }
 });
 
@@ -310,7 +311,9 @@ router.post(
     try {
       await ensureServiceReady();
       // Check if user is admin; in tests, allow body.data.test=true to simulate admin
-      const isAdmin = req.user?.role === 'ADMIN' || (process.env.NODE_ENV === 'test' && req.body?.data?.test === true);
+      const isAdmin =
+        req.user?.role === 'ADMIN' ||
+        (process.env.NODE_ENV === 'test' && req.body?.data?.test === true);
       if (!isAdmin) {
         return res.status(403).json({
           success: false,

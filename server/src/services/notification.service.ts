@@ -1,6 +1,6 @@
 // @ts-nocheck
-// Defer Prisma import to be compatible with module mocks in tests
-const { PrismaClient, NotificationType, EmailStatus, DigestFrequency } = require('@prisma/client');
+// Use ESM import for Prisma to maintain compatibility
+import { PrismaClient, NotificationType, EmailStatus, DigestFrequency } from '@prisma/client';
 import nodemailer from 'nodemailer';
 import { Redis } from 'ioredis';
 import { Server as SocketIOServer } from 'socket.io';

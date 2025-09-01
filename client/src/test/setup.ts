@@ -1,12 +1,11 @@
-// @ts-nocheck
 import '@testing-library/jest-dom';
-import { vi } from 'vitest';
 import type { MockedFunction } from 'vitest';
+import { vi } from 'vitest';
 
 // Extend global types for test environment
 declare global {
   var __TEST_ENV__: boolean;
-  
+
   interface Window {
     __TEST_ENV__: boolean;
   }
@@ -14,7 +13,9 @@ declare global {
 
 // Set test environment flag
 globalThis.__TEST_ENV__ = true;
-window.__TEST_ENV__ = true;
+if (typeof window !== 'undefined') {
+  window.__TEST_ENV__ = true;
+}
 
 // Mock IntersectionObserver with proper typing
 global.IntersectionObserver = class MockIntersectionObserver implements IntersectionObserver {
@@ -47,16 +48,18 @@ global.ResizeObserver = class MockResizeObserver implements ResizeObserver {
 // Mock matchMedia with proper typing
 Object.defineProperty(window, 'matchMedia', {
   writable: true,
-  value: vi.fn().mockImplementation((query: string): MediaQueryList => ({
-    matches: false,
-    media: query,
-    onchange: null,
-    addListener: vi.fn(), // deprecated
-    removeListener: vi.fn(), // deprecated
-    addEventListener: vi.fn(),
-    removeEventListener: vi.fn(),
-    dispatchEvent: vi.fn(),
-  })) as MockedFunction<(query: string) => MediaQueryList>,
+  value: vi.fn().mockImplementation(
+    (query: string): MediaQueryList => ({
+      matches: false,
+      media: query,
+      onchange: null,
+      addListener: vi.fn(), // deprecated
+      removeListener: vi.fn(), // deprecated
+      addEventListener: vi.fn(),
+      removeEventListener: vi.fn(),
+      dispatchEvent: vi.fn(),
+    })
+  ) as MockedFunction<(query: string) => MediaQueryList>,
 });
 
 // Mock localStorage
@@ -103,18 +106,25 @@ if (!globalThis.fetch) {
   globalThis.fetch = vi.fn() as MockedFunction<typeof fetch>;
 }
 
-// Mock console methods for cleaner test output
+// Mock console methods for cleaner test output (but keep errors visible)
 const originalConsole = { ...console };
 global.console = {
   ...originalConsole,
   log: vi.fn(),
   debug: vi.fn(),
   info: vi.fn(),
-  warn: vi.fn(),
-  error: vi.fn(),
+  warn: originalConsole.warn, // Keep warnings visible
+  error: originalConsole.error, // Keep errors visible for debugging
 };
 
 // Restore console in afterEach if needed
 export const restoreConsole = () => {
   global.console = originalConsole;
 };
+
+// Add unhandled rejection handler for better test debugging
+if (typeof process !== 'undefined') {
+  process.on('unhandledRejection', (reason, promise) => {
+    console.error('Unhandled Rejection at:', promise, 'reason:', reason);
+  });
+}

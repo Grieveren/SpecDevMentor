@@ -324,7 +324,7 @@ export class FileUploadService {
       mimeType: (updatedFile as any).mimeType,
       size: updatedFile.size,
       path: updatedFile.path,
-      url: (updatedFile as any).url ?? undefined,
+      url: updatedFile.url ?? null,
       checksum: updatedFile.checksum,
     };
   }

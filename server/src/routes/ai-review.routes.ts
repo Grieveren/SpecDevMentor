@@ -17,7 +17,7 @@ const redis = process.env.NODE_ENV === 'test'
       del: async () => 1,
       keys: async () => [],
     } as unknown as Redis)
-  : new (require('ioredis'))(process.env.REDIS_URL || 'redis://localhost:6379');
+  : new Redis(process.env.REDIS_URL || 'redis://localhost:6379');
 // Allow tests to run without OPENAI key by falling back to a lightweight stub
 const aiService = (() => {
   try {

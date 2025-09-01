@@ -1,14 +1,14 @@
 // @ts-nocheck
-import React, { useState, useEffect, useCallback } from 'react';
-import { 
-  DocumentTextIcon, 
-  EyeIcon, 
-  PencilIcon,
-  ClockIcon,
+import {
   CheckCircleIcon,
-  ExclamationTriangleIcon
+  ClockIcon,
+  DocumentTextIcon,
+  ExclamationTriangleIcon,
+  EyeIcon,
+  PencilIcon,
 } from '@heroicons/react/24/outline';
-import { SpecificationPhase, DocumentStatus } from '../../types/project';
+import React, { useCallback, useEffect, useState } from 'react';
+import { DocumentStatus, SpecificationPhase } from '../../types/project';
 import { cn } from '../../utils/cn';
 
 export interface SpecificationDocument {
@@ -65,10 +65,13 @@ export const SpecificationEditor: React.FC<SpecificationEditorProps> = ({
     return () => clearTimeout(timer);
   }, [content, document.content, hasUnsavedChanges, mode, onSave]);
 
-  const handleContentChange = useCallback((newContent: string) => {
-    setContent(newContent);
-    setHasUnsavedChanges(newContent !== document.content);
-  }, [document.content]);
+  const handleContentChange = useCallback(
+    (newContent: string) => {
+      setContent(newContent);
+      setHasUnsavedChanges(newContent !== document.content);
+    },
+    [document.content]
+  );
 
   const handleManualSave = async () => {
     if (!hasUnsavedChanges) return;
@@ -131,16 +134,36 @@ export const SpecificationEditor: React.FC<SpecificationEditorProps> = ({
       case SpecificationPhase.REQUIREMENTS:
         return [
           ...baseItems,
-          { label: 'User Story', action: () => insertTemplate('**User Story:** As a [role], I want [feature], so that [benefit]') },
-          { label: 'EARS Format', action: () => insertTemplate('WHEN [event] THEN [system] SHALL [response]') },
-          { label: 'Requirement', action: () => insertTemplate('### Requirement [number]\n\n**User Story:** \n\n#### Acceptance Criteria\n\n1. ') },
+          {
+            label: 'User Story',
+            action: () =>
+              insertTemplate('**User Story:** As a [role], I want [feature], so that [benefit]'),
+          },
+          {
+            label: 'EARS Format',
+            action: () => insertTemplate('WHEN [event] THEN [system] SHALL [response]'),
+          },
+          {
+            label: 'Requirement',
+            action: () =>
+              insertTemplate(
+                '### Requirement [number]\n\n**User Story:** \n\n#### Acceptance Criteria\n\n1. '
+              ),
+          },
         ];
       case SpecificationPhase.DESIGN:
         return [
           ...baseItems,
           { label: 'Architecture', action: () => insertTemplate('## Architecture\n\n') },
-          { label: 'Component', action: () => insertTemplate('### [Component Name]\n\n**Purpose:** \n\n**Interfaces:** \n\n') },
-          { label: 'Mermaid Diagram', action: () => insertTemplate('```mermaid\ngraph TD\n    A[Start] --> B[End]\n```') },
+          {
+            label: 'Component',
+            action: () =>
+              insertTemplate('### [Component Name]\n\n**Purpose:** \n\n**Interfaces:** \n\n'),
+          },
+          {
+            label: 'Mermaid Diagram',
+            action: () => insertTemplate('```mermaid\ngraph TD\n    A[Start] --> B[End]\n```'),
+          },
         ];
       case SpecificationPhase.TASKS:
         return [
@@ -155,16 +178,18 @@ export const SpecificationEditor: React.FC<SpecificationEditorProps> = ({
   };
 
   const insertMarkdown = (before: string, after: string) => {
+    if (typeof document === 'undefined' || !document.querySelector) return; // Handle test environment
     const textarea = document.querySelector('textarea') as HTMLTextAreaElement;
     if (!textarea) return;
 
     const start = textarea.selectionStart;
     const end = textarea.selectionEnd;
     const selectedText = content.substring(start, end);
-    const newContent = content.substring(0, start) + before + selectedText + after + content.substring(end);
-    
+    const newContent =
+      content.substring(0, start) + before + selectedText + after + content.substring(end);
+
     handleContentChange(newContent);
-    
+
     // Restore cursor position
     setTimeout(() => {
       textarea.focus();
@@ -178,9 +203,9 @@ export const SpecificationEditor: React.FC<SpecificationEditorProps> = ({
 
     const start = textarea.selectionStart;
     const newContent = content.substring(0, start) + template + content.substring(start);
-    
+
     handleContentChange(newContent);
-    
+
     // Position cursor at end of inserted template
     setTimeout(() => {
       textarea.focus();
@@ -189,7 +214,12 @@ export const SpecificationEditor: React.FC<SpecificationEditorProps> = ({
   };
 
   return (
-    <div className={cn('flex flex-col h-full bg-white border border-gray-200 rounded-lg shadow-sm', className)}>
+    <div
+      className={cn(
+        'flex flex-col h-full bg-white border border-gray-200 rounded-lg shadow-sm',
+        className
+      )}
+    >
       {/* Header */}
       <div className="flex items-center justify-between p-4 border-b border-gray-200">
         <div className="flex items-center space-x-3">
@@ -240,7 +270,7 @@ export const SpecificationEditor: React.FC<SpecificationEditorProps> = ({
                   Save Now
                 </button>
               )}
-              
+
               {onRequestReview && document.status === DocumentStatus.DRAFT && (
                 <button
                   onClick={onRequestReview}
@@ -287,7 +317,7 @@ export const SpecificationEditor: React.FC<SpecificationEditorProps> = ({
         {isEditing ? (
           <textarea
             value={content}
-            onChange={(e) => handleContentChange(e.target.value)}
+            onChange={e => handleContentChange(e.target.value)}
             placeholder={`Enter your ${document.phase.toLowerCase()} content here...`}
             className="flex-1 p-4 border-none resize-none focus:outline-none font-mono text-sm leading-relaxed"
             style={{ minHeight: '400px' }}
@@ -311,9 +341,7 @@ export const SpecificationEditor: React.FC<SpecificationEditorProps> = ({
 
       {/* Footer */}
       <div className="flex items-center justify-between p-2 border-t border-gray-200 bg-gray-50 text-xs text-gray-500">
-        <div>
-          Last updated: {new Date(document.updatedAt).toLocaleString()}
-        </div>
+        <div>Last updated: {new Date(document.updatedAt).toLocaleString()}</div>
         <div className="flex items-center space-x-4">
           {collaborationEnabled && (
             <span className="flex items-center space-x-1">

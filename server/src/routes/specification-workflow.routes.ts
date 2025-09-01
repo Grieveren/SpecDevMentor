@@ -5,6 +5,7 @@ import Redis from 'ioredis';
 import { authenticateToken } from '../middleware/auth.middleware.js';
 import { SpecificationWorkflowService } from '../services/specification-workflow.service';
 import { createAIService } from '../services/ai.service';
+import { PrismaClient } from '@prisma/client';
 
 const router: ExpressRouter = Router();
 // Lazy Prisma resolution so tests can mock '@prisma/client' before handlers run
@@ -15,8 +16,7 @@ export const __setTestPrisma = (instance: any) => {
 };
 const getPrisma = () => {
   if (prismaInstance) return prismaInstance;
-  // Resolve via require at call time so vi.doMock can intercept
-  const { PrismaClient } = require('@prisma/client');
+  // Use imported PrismaClient for ESM compatibility
   prismaInstance = new PrismaClient();
   return prismaInstance;
 };

@@ -1,11 +1,9 @@
-import { describe, it, expect, beforeEach, afterEach, vi } from 'vitest';
-import request from 'supertest';
 import express from 'express';
-import { PrismaClient } from '@prisma/client';
-import { Redis } from 'ioredis';
 import { Server as SocketIOServer } from 'socket.io';
-import { initializeNotificationRoutes } from '../routes/notification.routes.js';
+import request from 'supertest';
+import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import { authMiddleware } from '../middleware/auth.middleware.js';
+import { initializeNotificationRoutes } from '../routes/notification.routes.js';
 
 let response: any;
 
@@ -25,7 +23,7 @@ describe('Notification Routes', () => {
     app.use(express.json());
 
     // Mock auth middleware
-    (authMiddleware as any).mockImplementation((_req: unknown, _res: unknown, _next: unknown) => {
+    (authMiddleware as any).mockImplementation((req: any, _res: unknown, next: any) => {
       req.user = { id: 'user1', role: 'DEVELOPER' };
       next();
     });
@@ -78,9 +76,7 @@ describe('Notification Routes', () => {
 
       mockNotificationService.getUserNotifications.mockResolvedValue(mockResponse);
 
-       response = await request(app)
-        .get('/api/notifications')
-        .expect(200);
+      response = await request(app).get('/api/notifications').expect(200);
 
       expect(response.body).toEqual({
         success: true,
@@ -100,9 +96,7 @@ describe('Notification Routes', () => {
         pagination: { page: 2, limit: 10, total: 0, pages: 0 },
       });
 
-      await request(app)
-        .get('/api/notifications?page=2&limit=10&unreadOnly=true')
-        .expect(200);
+      await request(app).get('/api/notifications?page=2&limit=10&unreadOnly=true').expect(200);
 
       expect(mockNotificationService.getUserNotifications).toHaveBeenCalledWith('user1', {
         page: 2,
@@ -114,9 +108,7 @@ describe('Notification Routes', () => {
     it('should handle service errors', async () => {
       mockNotificationService.getUserNotifications.mockRejectedValue(new Error('Service error'));
 
-       response = await request(app)
-        .get('/api/notifications')
-        .expect(500);
+      response = await request(app).get('/api/notifications').expect(500);
 
       expect(response.body).toEqual({
         success: false,
@@ -129,9 +121,7 @@ describe('Notification Routes', () => {
     it('should return unread count', async () => {
       mockNotificationService.getUnreadCount.mockResolvedValue(5);
 
-       response = await request(app)
-        .get('/api/notifications/unread-count')
-        .expect(200);
+      response = await request(app).get('/api/notifications/unread-count').expect(200);
 
       expect(response.body).toEqual({
         success: true,
@@ -146,9 +136,7 @@ describe('Notification Routes', () => {
     it('should mark notification as read', async () => {
       mockNotificationService.markAsRead.mockResolvedValue();
 
-       response = await request(app)
-        .patch('/api/notifications/notif1/read')
-        .expect(200);
+      response = await request(app).patch('/api/notifications/notif1/read').expect(200);
 
       expect(response.body).toEqual({
         success: true,
@@ -159,9 +147,7 @@ describe('Notification Routes', () => {
     });
 
     it('should validate notification ID', async () => {
-      await request(app)
-        .patch('/api/notifications//read')
-        .expect(404);
+      await request(app).patch('/api/notifications//read').expect(404);
     });
   });
 
@@ -169,9 +155,7 @@ describe('Notification Routes', () => {
     it('should mark all notifications as read', async () => {
       mockNotificationService.markAllAsRead.mockResolvedValue();
 
-       response = await request(app)
-        .patch('/api/notifications/read-all')
-        .expect(200);
+      response = await request(app).patch('/api/notifications/read-all').expect(200);
 
       expect(response.body).toEqual({
         success: true,
@@ -196,9 +180,7 @@ describe('Notification Routes', () => {
 
       mockNotificationService.getUserNotificationSettings.mockResolvedValue(mockSettings);
 
-       response = await request(app)
-        .get('/api/notifications/settings')
-        .expect(200);
+      response = await request(app).get('/api/notifications/settings').expect(200);
 
       expect(response.body).toEqual({
         success: true,
@@ -218,7 +200,7 @@ describe('Notification Routes', () => {
 
       mockNotificationService.updateNotificationSettings.mockResolvedValue();
 
-       response = await request(app)
+      response = await request(app)
         .put('/api/notifications/settings')
         .send(settingsUpdate)
         .expect(200);
@@ -245,7 +227,7 @@ describe('Notification Routes', () => {
   describe('POST /api/notifications/test', () => {
     it('should send test notification for admin users', async () => {
       // Mock admin user
-      (authMiddleware as any).mockImplementation((_req: unknown, _res: unknown, _next: unknown) => {
+      (authMiddleware as any).mockImplementation((req: any, _res: unknown, next: any) => {
         req.user = { id: 'admin1', role: 'ADMIN' };
         next();
       });
@@ -260,7 +242,7 @@ describe('Notification Routes', () => {
 
       mockNotificationService.sendNotification.mockResolvedValue();
 
-       response = await request(app)
+      response = await request(app)
         .post('/api/notifications/test')
         .send(testNotification)
         .expect(200);
@@ -281,7 +263,7 @@ describe('Notification Routes', () => {
         message: 'This is a test',
       };
 
-       response = await request(app)
+      response = await request(app)
         .post('/api/notifications/test')
         .send(testNotification)
         .expect(403);
@@ -296,7 +278,7 @@ describe('Notification Routes', () => {
 
     it('should validate test notification data', async () => {
       // Mock admin user
-      (authMiddleware as any).mockImplementation((_req: unknown, _res: unknown, _next: unknown) => {
+      (authMiddleware as any).mockImplementation((req: any, _res: unknown, next: any) => {
         req.user = { id: 'admin1', role: 'ADMIN' };
         next();
       });

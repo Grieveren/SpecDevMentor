@@ -1,9 +1,11 @@
-import { describe, it, expect, beforeEach, afterEach, vi } from 'vitest';
-import request from 'supertest';
+import { DocumentStatus, SpecificationPhase } from '@prisma/client';
 import express from 'express';
-import { PrismaClient, SpecificationPhase, DocumentStatus } from '@prisma/client';
-import Redis from 'ioredis';
-import workflowRoutes, { __setTestPrisma, __setTestRedis } from '../routes/specification-workflow.routes.js';
+import request from 'supertest';
+import { beforeEach, describe, expect, it, vi } from 'vitest';
+import workflowRoutes, {
+  __setTestPrisma,
+  __setTestRedis,
+} from '../routes/specification-workflow.routes.js';
 
 // Mock dependencies
 const mockPrisma = {
@@ -47,12 +49,12 @@ const mockAuthMiddleware = (req: any, _res: any, next: any) => {
 const createTestApp = () => {
   const app = express();
   app.use(express.json());
-  
+
   // Replace auth middleware with mock
   vi.doMock('../middleware/auth.middleware.js', () => ({
     authenticateToken: mockAuthMiddleware,
   }));
-  
+
   app.use('/api', workflowRoutes);
   return app;
 };
@@ -114,7 +116,7 @@ This document meets all validation requirements including word count and proper 
       mockPrisma.specificationProject.findFirst.mockResolvedValue(mockProject);
       mockPrisma.specificationDocument.findUnique.mockResolvedValue(mockDocument);
 
-       response = await request(app)
+      response = await request(app)
         .get('/api/projects/project1/workflow/validate/REQUIREMENTS')
         .expect(200);
 
@@ -126,7 +128,7 @@ This document meets all validation requirements including word count and proper 
     it('should return 404 when project not found', async () => {
       mockPrisma.specificationProject.findFirst.mockResolvedValue(null);
 
-       response = await request(app)
+      response = await request(app)
         .get('/api/projects/nonexistent/workflow/validate/REQUIREMENTS')
         .expect(404);
 
@@ -150,7 +152,7 @@ This document meets all validation requirements including word count and proper 
       mockPrisma.specificationProject.findFirst.mockResolvedValue(mockProject);
       mockPrisma.specificationDocument.findUnique.mockResolvedValue(mockDocument);
 
-       response = await request(app)
+      response = await request(app)
         .get('/api/projects/project1/workflow/validate/REQUIREMENTS')
         .expect(200);
 
@@ -183,9 +185,7 @@ This document meets all validation requirements including word count and proper 
       mockRedis.keys.mockResolvedValue([]);
       mockRedis.setex.mockResolvedValue('OK');
 
-       response = await request(app)
-        .get('/api/projects/project1/workflow/state')
-        .expect(200);
+      response = await request(app).get('/api/projects/project1/workflow/state').expect(200);
 
       expect(response.body.projectId).toBe('project1');
       expect(response.body.currentPhase).toBe(SpecificationPhase.REQUIREMENTS);
@@ -217,9 +217,7 @@ This document meets all validation requirements including word count and proper 
       mockRedis.get.mockResolvedValue(JSON.stringify(mockWorkflowState));
       mockPrisma.user.findMany.mockResolvedValue([]);
 
-       response = await request(app)
-        .get('/api/projects/project1/workflow/state')
-        .expect(200);
+      response = await request(app).get('/api/projects/project1/workflow/state').expect(200);
 
       expect(response.body.projectId).toBe('project1');
       expect(response.body.currentPhase).toBe(SpecificationPhase.REQUIREMENTS);
@@ -240,7 +238,7 @@ This document meets all validation requirements including word count and proper 
       mockRedis.setex.mockResolvedValue('OK');
       mockPrisma.auditLog.create.mockResolvedValue({});
 
-       response = await request(app)
+      response = await request(app)
         .post('/api/projects/project1/workflow/approve')
         .send({
           phase: SpecificationPhase.REQUIREMENTS,
@@ -257,7 +255,7 @@ This document meets all validation requirements including word count and proper 
     it('should return 404 for non-existent project', async () => {
       mockPrisma.specificationProject.findFirst.mockResolvedValue(null);
 
-       response = await request(app)
+      response = await request(app)
         .post('/api/projects/nonexistent/workflow/approve')
         .send({
           phase: SpecificationPhase.REQUIREMENTS,
@@ -328,18 +326,20 @@ This document meets all validation requirements including word count and proper 
             { phase: SpecificationPhase.DESIGN, status: DocumentStatus.DRAFT },
           ],
         });
-      
+
       mockPrisma.specificationDocument.findUnique.mockResolvedValue(mockDocument);
       mockRedis.keys.mockResolvedValue(['approval:project1:REQUIREMENTS:user1']);
       mockRedis.get
-        .mockResolvedValueOnce(JSON.stringify({
-          userId: 'user1',
-          timestamp: new Date(),
-          approved: true,
-        }))
+        .mockResolvedValueOnce(
+          JSON.stringify({
+            userId: 'user1',
+            timestamp: new Date(),
+            approved: true,
+          })
+        )
         .mockResolvedValueOnce(null); // No cache for workflow state
 
-      mockPrisma.$transaction.mockImplementation(async (callback) => {
+      mockPrisma.$transaction.mockImplementation(async callback => {
         return await callback({
           specificationProject: {
             update: vi.fn().mockResolvedValue(mockUpdatedProject),
@@ -355,7 +355,7 @@ This document meets all validation requirements including word count and proper 
 
       mockRedis.setex.mockResolvedValue('OK');
 
-       response = await request(app)
+      response = await request(app)
         .post('/api/projects/project1/workflow/transition')
         .send({
           targetPhase: SpecificationPhase.DESIGN,
@@ -380,7 +380,7 @@ This document meets all validation requirements including word count and proper 
       mockPrisma.specificationProject.findFirst.mockResolvedValue(mockProject);
       mockPrisma.specificationProject.findUnique.mockResolvedValue(mockProject);
 
-       response = await request(app)
+      response = await request(app)
         .post('/api/projects/project1/workflow/transition')
         .send({
           targetPhase: SpecificationPhase.DESIGN,
@@ -415,15 +415,13 @@ This document meets all validation requirements including word count and proper 
         status: DocumentStatus.DRAFT,
       };
 
-      mockPrisma.specificationProject.findFirst
-        .mockResolvedValueOnce(mockProject)
-        .mockResolvedValueOnce(mockProject);
+      mockPrisma.specificationProject.findFirst.mockResolvedValue(mockProject);
       mockPrisma.specificationDocument.findUnique.mockResolvedValue(mockDocument);
       mockPrisma.documentVersion.create.mockResolvedValue({});
       mockPrisma.specificationDocument.update.mockResolvedValue(mockUpdatedDocument);
       mockPrisma.auditLog.create.mockResolvedValue({});
 
-       response = await request(app)
+      response = await request(app)
         .put('/api/projects/project1/workflow/documents/REQUIREMENTS')
         .send({
           content: 'Updated content',
@@ -446,7 +444,7 @@ This document meets all validation requirements including word count and proper 
 
       mockPrisma.specificationProject.findFirst.mockResolvedValue(mockProject);
 
-       response = await request(app)
+      response = await request(app)
         .put('/api/projects/project1/workflow/documents/REQUIREMENTS')
         .send({
           content: 'Updated content',
@@ -459,9 +457,7 @@ This document meets all validation requirements including word count and proper 
 
   describe('GET /workflow/validation-rules', () => {
     it('should return validation rules for all phases', async () => {
-       response = await request(app)
-        .get('/api/workflow/validation-rules')
-        .expect(200);
+      response = await request(app).get('/api/workflow/validation-rules').expect(200);
 
       expect(response.body.REQUIREMENTS).toBeDefined();
       expect(response.body.DESIGN).toBeDefined();
@@ -523,13 +519,15 @@ This document meets all validation requirements including word count and proper 
       mockPrisma.specificationProject.findUnique.mockResolvedValue(mockProject);
       mockPrisma.specificationDocument.findUnique.mockResolvedValue(mockDocument);
       mockRedis.keys.mockResolvedValue(['approval:project1:REQUIREMENTS:user1']);
-      mockRedis.get.mockResolvedValue(JSON.stringify({
-        userId: 'user1',
-        timestamp: new Date(),
-        approved: true,
-      }));
+      mockRedis.get.mockResolvedValue(
+        JSON.stringify({
+          userId: 'user1',
+          timestamp: new Date(),
+          approved: true,
+        })
+      );
 
-       response = await request(app)
+      response = await request(app)
         .get('/api/projects/project1/workflow/can-transition/DESIGN')
         .expect(200);
 
@@ -547,7 +545,7 @@ This document meets all validation requirements including word count and proper 
       mockPrisma.specificationProject.findFirst.mockResolvedValue(mockProject);
       mockPrisma.specificationProject.findUnique.mockResolvedValue(mockProject);
 
-       response = await request(app)
+      response = await request(app)
         .get('/api/projects/project1/workflow/can-transition/DESIGN')
         .expect(200);
 
@@ -609,7 +607,7 @@ This document meets all validation requirements including word count and proper 
       mockPrisma.specificationDocument.findUnique.mockResolvedValue(mockDocument);
 
       // Step 1: Validate phase completion
-       response = await request(app)
+      response = await request(app)
         .get(`/api/projects/${projectId}/workflow/validate/REQUIREMENTS`)
         .expect(200);
 
@@ -632,11 +630,13 @@ This document meets all validation requirements including word count and proper 
 
       // Step 3: Check if can transition
       mockRedis.keys.mockResolvedValue([`approval:${projectId}:REQUIREMENTS:${userId}`]);
-      mockRedis.get.mockResolvedValue(JSON.stringify({
-        userId,
-        timestamp: new Date(),
-        approved: true,
-      }));
+      mockRedis.get.mockResolvedValue(
+        JSON.stringify({
+          userId,
+          timestamp: new Date(),
+          approved: true,
+        })
+      );
 
       response = await request(app)
         .get(`/api/projects/${projectId}/workflow/can-transition/DESIGN`)
@@ -650,7 +650,7 @@ This document meets all validation requirements including word count and proper 
         currentPhase: SpecificationPhase.DESIGN,
       };
 
-      mockPrisma.$transaction.mockImplementation(async (callback) => {
+      mockPrisma.$transaction.mockImplementation(async callback => {
         return await callback({
           specificationProject: {
             update: vi.fn().mockResolvedValue(mockUpdatedProject),
@@ -690,12 +690,12 @@ This document meets all validation requirements including word count and proper 
       expect(response.body.workflowState.currentPhase).toBe(SpecificationPhase.DESIGN);
 
       // Step 5: Verify workflow state
-      response = await request(app)
-        .get(`/api/projects/${projectId}/workflow/state`)
-        .expect(200);
+      response = await request(app).get(`/api/projects/${projectId}/workflow/state`).expect(200);
 
       expect(response.body.currentPhase).toBe(SpecificationPhase.DESIGN);
-      expect(response.body.documentStatuses[SpecificationPhase.REQUIREMENTS]).toBe(DocumentStatus.APPROVED);
+      expect(response.body.documentStatuses[SpecificationPhase.REQUIREMENTS]).toBe(
+        DocumentStatus.APPROVED
+      );
       expect(response.body.documentStatuses[SpecificationPhase.DESIGN]).toBe(DocumentStatus.DRAFT);
     });
   });

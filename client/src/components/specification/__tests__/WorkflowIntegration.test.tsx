@@ -1,14 +1,14 @@
 // @ts-nocheck
-import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest';
-import { render, screen, fireEvent, waitFor } from '@testing-library/react';
+import { render, screen, waitFor } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import { rest } from 'msw';
 import { setupServer } from 'msw/node';
-import { WorkflowIntegration } from '../WorkflowIntegration';
-import { SpecificationLayout } from '../SpecificationLayout';
-import { BreadcrumbNavigation } from '../BreadcrumbNavigation';
-import { SpecificationPhase, DocumentStatus } from '../../../types/project';
+import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import { workflowService } from '../../../services/workflow.service';
+import { DocumentStatus, SpecificationPhase } from '../../../types/project';
+import { BreadcrumbNavigation } from '../BreadcrumbNavigation';
+import { SpecificationLayout } from '../SpecificationLayout';
+import { WorkflowIntegration } from '../WorkflowIntegration';
 
 // Mock the workflow service
 vi.mock('../../../services/workflow.service', () => ({
@@ -18,9 +18,12 @@ vi.mock('../../../services/workflow.service', () => ({
     transitionPhase: vi.fn(),
     getWorkflowState: vi.fn(),
     getNavigationState: vi.fn(),
-    getPhaseDisplayName: vi.fn((phase) => phase.charAt(0) + phase.slice(1).toLowerCase()),
-    getPhaseDescription: vi.fn((phase) => `Description for ${phase}`),
+    getPhaseDisplayName: vi.fn(phase => phase.charAt(0) + phase.slice(1).toLowerCase()),
+    getPhaseDescription: vi.fn(phase => `Description for ${phase}`),
     isPhaseAccessible: vi.fn(),
+    getAIServiceStatus: vi.fn(),
+    getAIValidation: vi.fn(),
+    canTransitionToPhase: vi.fn(),
   },
 }));
 
@@ -109,27 +112,38 @@ const server = setupServer(
     return res(ctx.json({ success: true, message: 'Approval recorded successfully' }));
   }),
   rest.post('/api/projects/:projectId/workflow/transition', (req, res, ctx) => {
-    return res(ctx.json({ 
-      success: true, 
-      message: 'Successfully transitioned to DESIGN',
-      workflowState: {
-        ...mockWorkflowState,
-        currentPhase: SpecificationPhase.DESIGN,
-      },
-    }));
+    return res(
+      ctx.json({
+        success: true,
+        message: 'Successfully transitioned to DESIGN',
+        workflowState: {
+          ...mockWorkflowState,
+          currentPhase: SpecificationPhase.DESIGN,
+        },
+      })
+    );
   })
 );
 
 beforeEach(() => {
   server.listen();
   vi.clearAllMocks();
-  
+
   // Setup default mock implementations
   (workflowService.getWorkflowState as any).mockResolvedValue(mockWorkflowState);
   (workflowService.validatePhaseCompletion as any).mockResolvedValue(mockValidationResult);
   (workflowService.getNavigationState as any).mockReturnValue(mockNavigationState);
   (workflowService.requestApproval as any).mockResolvedValue(undefined);
   (workflowService.transitionPhase as any).mockResolvedValue(undefined);
+  (workflowService.getAIServiceStatus as any).mockResolvedValue({
+    available: true,
+    status: 'healthy',
+  });
+  (workflowService.getAIValidation as any).mockResolvedValue({ score: 85, suggestions: [] });
+  (workflowService.canTransitionToPhase as any).mockResolvedValue({
+    canTransition: true,
+    reason: null,
+  });
 });
 
 afterEach(() => {
@@ -179,7 +193,7 @@ describe('Workflow Integration Tests', () => {
     });
 
     it('should handle phase change when accessible phase is clicked', async () => {
-      const _user = userEvent.setup();
+      const user = userEvent.setup();
       const mockOnPhaseChange = vi.fn();
 
       render(
@@ -226,7 +240,7 @@ describe('Workflow Integration Tests', () => {
     });
 
     it('should handle approval request', async () => {
-      const _user = userEvent.setup();
+      const user = userEvent.setup();
       const mockOnRequestApproval = vi.fn();
 
       const completeValidationResult = {
@@ -264,7 +278,7 @@ describe('Workflow Integration Tests', () => {
     });
 
     it('should show proceed button when phase is approved and can progress', async () => {
-      const _user = userEvent.setup();
+      const user = userEvent.setup();
       const mockOnTransitionPhase = vi.fn();
 
       const approvedWorkflowState = {
@@ -311,8 +325,8 @@ describe('Workflow Integration Tests', () => {
     });
 
     it('should handle loading state', () => {
-      (workflowService.getWorkflowState as any).mockImplementation(() => 
-        new Promise(resolve => setTimeout(resolve, 1000))
+      (workflowService.getWorkflowState as any).mockImplementation(
+        () => new Promise(resolve => setTimeout(resolve, 1000))
       );
 
       render(
@@ -323,12 +337,16 @@ describe('Workflow Integration Tests', () => {
         />
       );
 
-      expect(screen.getByRole('generic', { name: /loading/i }) || 
-             document.querySelector('.animate-pulse')).toBeInTheDocument();
+      expect(
+        screen.getByRole('generic', { name: /loading/i }) ||
+          document.querySelector('.animate-pulse')
+      ).toBeInTheDocument();
     });
 
     it('should handle error state', async () => {
-      (workflowService.getWorkflowState as any).mockRejectedValue(new Error('Failed to load workflow'));
+      (workflowService.getWorkflowState as any).mockRejectedValue(
+        new Error('Failed to load workflow')
+      );
 
       render(
         <WorkflowIntegration
@@ -350,32 +368,26 @@ describe('Workflow Integration Tests', () => {
   describe('SpecificationLayout Integration', () => {
     it('should render layout with breadcrumb navigation', () => {
       render(
-        <SpecificationLayout
-          currentPhase={SpecificationPhase.REQUIREMENTS}
-          project={mockProject}
-        >
+        <SpecificationLayout currentPhase={SpecificationPhase.REQUIREMENTS} project={mockProject}>
           <div>Test Content</div>
         </SpecificationLayout>
       );
 
       // Should show project name
       expect(screen.getByText('Test Project')).toBeInTheDocument();
-      
+
       // Should show breadcrumb navigation
       expect(screen.getByRole('navigation', { name: /breadcrumb/i })).toBeInTheDocument();
-      
+
       // Should show current phase
       expect(screen.getByText('Requirements')).toBeInTheDocument();
     });
 
     it('should handle sidebar collapse and expand', async () => {
-      const _user = userEvent.setup();
+      const user = userEvent.setup();
 
       render(
-        <SpecificationLayout
-          currentPhase={SpecificationPhase.REQUIREMENTS}
-          project={mockProject}
-        >
+        <SpecificationLayout currentPhase={SpecificationPhase.REQUIREMENTS} project={mockProject}>
           <div>Test Content</div>
         </SpecificationLayout>
       );
@@ -393,10 +405,7 @@ describe('Workflow Integration Tests', () => {
 
     it('should integrate workflow navigation in sidebar', async () => {
       render(
-        <SpecificationLayout
-          currentPhase={SpecificationPhase.REQUIREMENTS}
-          project={mockProject}
-        >
+        <SpecificationLayout currentPhase={SpecificationPhase.REQUIREMENTS} project={mockProject}>
           <div>Test Content</div>
         </SpecificationLayout>
       );
@@ -428,7 +437,7 @@ describe('Workflow Integration Tests', () => {
     });
 
     it('should handle navigation clicks', async () => {
-      const _user = userEvent.setup();
+      const user = userEvent.setup();
       const mockOnNavigateToProject = vi.fn();
       const mockOnNavigateToPhase = vi.fn();
 
@@ -455,22 +464,22 @@ describe('Workflow Integration Tests', () => {
 
   describe('Complete Workflow Progression', () => {
     it('should handle end-to-end workflow from requirements to implementation', async () => {
-      const _user = userEvent.setup();
-      
+      const user = userEvent.setup();
+
       // Start with requirements phase
       let currentPhase = SpecificationPhase.REQUIREMENTS;
       const documentStatuses = { ...mockDocumentStatuses };
-      
-      const mockOnPhaseChange = vi.fn().mockImplementation((phase) => {
+
+      const mockOnPhaseChange = vi.fn().mockImplementation(phase => {
         currentPhase = phase;
       });
-      
-      const mockOnTransitionPhase = vi.fn().mockImplementation((phase) => {
+
+      const mockOnTransitionPhase = vi.fn().mockImplementation(phase => {
         currentPhase = phase;
         documentStatuses[phase] = DocumentStatus.DRAFT;
       });
 
-      const mockOnRequestApproval = vi.fn().mockImplementation((phase) => {
+      const mockOnRequestApproval = vi.fn().mockImplementation(phase => {
         documentStatuses[phase] = DocumentStatus.REVIEW;
         // Simulate approval after a delay
         setTimeout(() => {
@@ -530,7 +539,7 @@ describe('Workflow Integration Tests', () => {
 
       // Simulate approval completion
       documentStatuses[SpecificationPhase.REQUIREMENTS] = DocumentStatus.APPROVED;
-      
+
       const approvedNavigationState = {
         ...mockNavigationState,
         canProgress: true,
@@ -553,9 +562,11 @@ describe('Workflow Integration Tests', () => {
 
       // Should show proceed button
       await waitFor(() => {
-        expect(screen.getByText((content, element) => {
-          return element?.textContent?.includes('Proceed to Design') || false;
-        })).toBeInTheDocument();
+        expect(
+          screen.getByText((content, element) => {
+            return element?.textContent?.includes('Proceed to Design') || false;
+          })
+        ).toBeInTheDocument();
       });
 
       // Proceed to next phase
@@ -566,7 +577,7 @@ describe('Workflow Integration Tests', () => {
     });
 
     it('should prevent unauthorized phase transitions', async () => {
-      const _user = userEvent.setup();
+      const user = userEvent.setup();
 
       // Mock validation that prevents transition
       const invalidValidationResult = {
@@ -592,9 +603,11 @@ describe('Workflow Integration Tests', () => {
       });
 
       // Should not show proceed button when validation fails
-      expect(screen.queryByText((content, element) => {
-        return element?.textContent?.includes('Proceed to Design') || false;
-      })).not.toBeInTheDocument();
+      expect(
+        screen.queryByText((content, element) => {
+          return element?.textContent?.includes('Proceed to Design') || false;
+        })
+      ).not.toBeInTheDocument();
     });
 
     it('should handle workflow validation errors gracefully', async () => {
@@ -611,9 +624,11 @@ describe('Workflow Integration Tests', () => {
       );
 
       await waitFor(() => {
-        expect(screen.getByText((content, element) => {
-          return element?.textContent?.includes('Failed to load workflow information') || false;
-        })).toBeInTheDocument();
+        expect(
+          screen.getByText((content, element) => {
+            return element?.textContent?.includes('Failed to load workflow information') || false;
+          })
+        ).toBeInTheDocument();
       });
     });
 
@@ -675,12 +690,14 @@ describe('Workflow Integration Tests', () => {
 
       // Should show phase history section
       expect(screen.getByText('Phase History')).toBeInTheDocument();
-      
+
       // Should show approval information sections
       await waitFor(() => {
-        expect(screen.getByText((content, element) => {
-          return element?.textContent?.includes('Approvals') || false;
-        })).toBeInTheDocument();
+        expect(
+          screen.getByText((content, element) => {
+            return element?.textContent?.includes('Approvals') || false;
+          })
+        ).toBeInTheDocument();
       });
     });
 
@@ -726,7 +743,7 @@ describe('Workflow Integration Tests', () => {
       await waitFor(() => {
         expect(screen.getByText('1/2')).toBeInTheDocument(); // Approval count
       });
-      
+
       // Should show approval status
       expect(screen.getAllByText('Approved').length).toBeGreaterThan(0);
       expect(screen.getAllByText('Pending').length).toBeGreaterThan(0);
@@ -757,7 +774,7 @@ describe('Workflow Integration Tests', () => {
     });
 
     it('should support keyboard navigation', async () => {
-      const _user = userEvent.setup();
+      const user = userEvent.setup();
       const mockOnPhaseChange = vi.fn();
 
       render(
