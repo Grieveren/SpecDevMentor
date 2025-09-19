@@ -1,4 +1,3 @@
-// @ts-nocheck
 import { Router } from 'express';
 import type { Router as ExpressRouter } from 'express';import { body, query, param } from 'express-validator';
 // Defer Prisma import to allow tests to mock '@prisma/client' cleanly

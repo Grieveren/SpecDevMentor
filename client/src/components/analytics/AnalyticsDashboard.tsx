@@ -1,4 +1,3 @@
-// @ts-nocheck
 import {
   ArrowTrendingUpIcon,
   ChartBarIcon,
@@ -6,7 +5,7 @@ import {
   UsersIcon,
 } from '@heroicons/react/24/outline';
 import { InternalServerError } from '@shared/types/errors';
-import React, { useState } from 'react';
+import React, { useEffect, useState } from 'react';
 import { DashboardData, TimeRange, analyticsService } from '../../services/analytics.service';
 import { ErrorAlert } from '../common/ErrorAlert';
 import { LoadingSpinner } from '../common/LoadingSpinner';

@@ -1,4 +1,3 @@
-// @ts-nocheck
 import { EventEmitter } from 'events';
 import { logger } from './logger.service.js';
 import { Request } from 'express';

@@ -3,12 +3,13 @@
 ## Cleanup Backlog (In Progress)
 
 - Status overview:
-  - Remove `@ts-nocheck` overrides – **in progress** (server entrypoint, health service, collaboration service addressed; bulk of client + service layer pending)
+  - Remove `@ts-nocheck` overrides – **in progress** (client workspace now clean and type-safe; server middleware/services still carry targeted suppressions)
   - Cull duplicate/exploratory entry points and scripts – **not started**
   - Stabilize integration-test infrastructure – **not started**
 
 1. **Remove `@ts-nocheck` overrides**
    - Scope: server/service layer, client entry points, stores, and shared utilities where suppression hides real type debt.
+   - Progress: client application now compiles without overrides; introduced typed error-normalisation and notification helpers so lint rules can be re-enabled. Server middleware/routes still need type-safe request handling (auth middleware, specification workflow services).
    - Definition of done: eslint rule `@typescript-eslint/ban-ts-comment` passes without suppressions; type errors resolved or intentionally annotated with `@ts-expect-error` plus rationale.
 2. **Cull duplicate or exploratory entry points and scripts**
    - Target artifacts: `client/src/main-simple.tsx`, `client/src/App-simple.tsx`, legacy test scripts at repo root, and any unused prototype components.
@@ -28,6 +29,7 @@
 3. **Quality Gates & Observability**
    - Restore linting (post `@ts-nocheck` removal), enforce type-check and unit/integration suites in CI.
    - Add structured logging defaults, runtime config validation, and tighten error handling (especially around Prisma and Redis failures).
+   - Analytics HTTP routes now validate request payloads via typed Joi middleware; replicate the pattern across remaining route modules.
 4. **UAT Readiness Checklist**
    - Produce seeded demo tenant with representative data and accounts.
    - Document UAT playbook (launch commands, expected URLs, test credentials, feature toggles).

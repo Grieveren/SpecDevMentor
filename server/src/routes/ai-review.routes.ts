@@ -1,4 +1,3 @@
-// @ts-nocheck
 import { Router } from 'express';
 import type { Router as ExpressRouter } from 'express';import { body, param, query } from 'express-validator';
 import { authenticateToken } from '../middleware/auth.middleware.js';

@@ -1,4 +1,3 @@
-// @ts-nocheck
 import { Router, Request, Response } from 'express';
 import type { Router as ExpressRouter } from 'express';import { authMiddleware } from '../middleware/auth.middleware.js';
 import { HealthService } from '../services/health.service.js';

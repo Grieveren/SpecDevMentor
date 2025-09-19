@@ -1,4 +1,3 @@
-// @ts-nocheck
 import {
   EyeIcon,
   FunnelIcon,

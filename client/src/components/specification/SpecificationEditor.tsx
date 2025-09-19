@@ -1,4 +1,3 @@
-// @ts-nocheck
 import React, { useState, useEffect, useCallback } from 'react';
 import { 
   DocumentTextIcon, 
@@ -18,6 +17,12 @@ export interface SpecificationDocument {
   status: DocumentStatus;
   version: number;
   updatedAt: string;
+}
+
+interface ToolbarItem {
+  label: string;
+  action: () => void;
+  shortcut?: string;
 }
 
 export interface SpecificationEditorProps {
@@ -120,8 +125,8 @@ export const SpecificationEditor: React.FC<SpecificationEditorProps> = ({
     }
   };
 
-  const getPhaseToolbarItems = (phase: SpecificationPhase) => {
-    const baseItems = [
+  const getPhaseToolbarItems = (phase: SpecificationPhase): ToolbarItem[] => {
+    const baseItems: ToolbarItem[] = [
       { label: 'Bold', shortcut: 'Ctrl+B', action: () => insertMarkdown('**', '**') },
       { label: 'Italic', shortcut: 'Ctrl+I', action: () => insertMarkdown('*', '*') },
       { label: 'Code', shortcut: 'Ctrl+`', action: () => insertMarkdown('`', '`') },
@@ -195,12 +200,12 @@ export const SpecificationEditor: React.FC<SpecificationEditorProps> = ({
         <div className="flex items-center space-x-3">
           <DocumentTextIcon className="h-6 w-6 text-gray-400" />
           <div>
-            <h2 className="text-lg font-medium text-gray-900">{getPhaseTitle(document.phase)}</h2>
+            <h2 className="text-lg font-medium text-gray-900">{getPhaseTitle(specDocument.phase)}</h2>
             <div className="flex items-center space-x-2 text-sm text-gray-500">
-              {getStatusIcon(document.status)}
-              <span className="capitalize">{document.status.toLowerCase()}</span>
+              {getStatusIcon(specDocument.status)}
+              <span className="capitalize">{specDocument.status.toLowerCase()}</span>
               <span>•</span>
-              <span>Version {document.version}</span>
+              <span>Version {specDocument.version}</span>
             </div>
           </div>
         </div>
@@ -241,7 +246,7 @@ export const SpecificationEditor: React.FC<SpecificationEditorProps> = ({
                 </button>
               )}
               
-              {onRequestReview && document.status === DocumentStatus.DRAFT && (
+              {onRequestReview && specDocument.status === DocumentStatus.DRAFT && (
                 <button
                   onClick={onRequestReview}
                   className="px-3 py-1 text-sm bg-green-600 text-white rounded hover:bg-green-700"
@@ -269,7 +274,7 @@ export const SpecificationEditor: React.FC<SpecificationEditorProps> = ({
       {/* Toolbar */}
       {isEditing && mode !== 'readonly' && (
         <div className="flex items-center space-x-1 p-2 border-b border-gray-200 bg-gray-50">
-          {getPhaseToolbarItems(document.phase).map((item, index) => (
+          {getPhaseToolbarItems(specDocument.phase).map((item, index) => (
             <button
               key={index}
               onClick={item.action}

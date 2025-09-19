@@ -1,4 +1,4 @@
-// @ts-nocheck
+import React from 'react';
 import {
   AppError,
   AuthenticationError,
@@ -9,7 +9,6 @@ import {
   ValidationError,
   isErrorOfType,
 } from '@shared/types/errors';
-import React from 'react';
 
 interface ErrorAlertProps {
   error: AppError | null;
@@ -18,6 +17,44 @@ interface ErrorAlertProps {
   className?: string;
   showDetails?: boolean;
 }
+
+interface ValidationEntry {
+  key: string;
+  label: string;
+  messages: string[];
+}
+
+const normalizeValidationEntries = (error: ValidationError): ValidationEntry[] => {
+  const contextErrors = (error.context?.errors ?? null) as unknown;
+  const entries: ValidationEntry[] = [];
+
+  if (Array.isArray(contextErrors)) {
+    contextErrors.forEach((message, index) => {
+      entries.push({
+        key: `${error.field ?? 'message'}-${index}`,
+        label: error.field ?? `Issue ${index + 1}`,
+        messages: [String(message)],
+      });
+    });
+    return entries;
+  }
+
+  if (contextErrors && typeof contextErrors === 'object') {
+    Object.entries(contextErrors as Record<string, unknown>).forEach(([field, messages]) => {
+      const normalizedMessages = Array.isArray(messages)
+        ? messages.map(msg => String(msg))
+        : [String(messages)];
+      entries.push({ key: field, label: field, messages: normalizedMessages });
+    });
+    return entries;
+  }
+
+  if (error.field) {
+    entries.push({ key: error.field, label: error.field, messages: [error.message] });
+  }
+
+  return entries;
+};
 
 /**
  * Inline error alert component for displaying errors within forms and components
@@ -31,9 +68,9 @@ export const ErrorAlert: React.FC<ErrorAlertProps> = ({
 }) => {
   if (!error) return null;
 
-  const getErrorSeverity = (error: AppError): ErrorSeverity => {
-    if (error.statusCode >= 500) return ErrorSeverity.CRITICAL;
-    if (error.statusCode >= 400) return ErrorSeverity.HIGH;
+  const getErrorSeverity = (appError: AppError): ErrorSeverity => {
+    if (appError.statusCode >= 500) return ErrorSeverity.CRITICAL;
+    if (appError.statusCode >= 400) return ErrorSeverity.HIGH;
     return ErrorSeverity.MEDIUM;
   };
 
@@ -131,6 +168,9 @@ export const ErrorAlert: React.FC<ErrorAlertProps> = ({
 
   const severity = getErrorSeverity(error);
   const severityStyles = getSeverityStyles(severity);
+  const validationEntries = isErrorOfType(error, ValidationError)
+    ? normalizeValidationEntries(error)
+    : [];
 
   return (
     <div className={`rounded-md border p-4 ${severityStyles} ${className}`}>
@@ -141,31 +181,29 @@ export const ErrorAlert: React.FC<ErrorAlertProps> = ({
           <div className="mt-2 text-sm">
             <p>{error.message}</p>
 
-            {/* Show validation errors */}
-            {isErrorOfType(error, ValidationError) && error.fields && (
+            {validationEntries.length > 0 && (
               <div className="mt-2">
                 <ul className="list-disc list-inside space-y-1">
-                  {Object.entries(error.fields).map(([field, errors]) => (
-                    <li key={field}>
-                      <span className="font-medium">{field}:</span> {errors.join(', ')}
+                  {validationEntries.map(entry => (
+                    <li key={entry.key}>
+                      <span className="font-medium">{entry.label}:</span>{' '}
+                      {entry.messages.join(', ')}
                     </li>
                   ))}
                 </ul>
               </div>
             )}
 
-            {/* Show error details if requested */}
-            {showDetails && error.details && (
+            {showDetails && error.context && (
               <details className="mt-2">
                 <summary className="cursor-pointer text-xs font-medium">Technical Details</summary>
                 <pre className="mt-1 text-xs bg-white bg-opacity-50 p-2 rounded overflow-auto">
-                  {JSON.stringify(error.details, null, 2)}
+                  {JSON.stringify(error.context, null, 2)}
                 </pre>
               </details>
             )}
           </div>
 
-          {/* Action buttons */}
           {(onRetry || onDismiss) && (
             <div className="mt-4 flex space-x-2">
               {onRetry && (
@@ -190,7 +228,6 @@ export const ErrorAlert: React.FC<ErrorAlertProps> = ({
           )}
         </div>
 
-        {/* Close button */}
         {onDismiss && (
           <div className="ml-auto pl-3">
             <div className="-mx-1.5 -my-1.5">
@@ -200,7 +237,7 @@ export const ErrorAlert: React.FC<ErrorAlertProps> = ({
                 className="inline-flex rounded-md p-1.5 hover:bg-black hover:bg-opacity-10 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-current"
               >
                 <span className="sr-only">Dismiss</span>
-                <svg className="h-5 w-5" viewBox="0 0 20 20" fill="currentColor">
+                <svg className="h-5 w-5" fill="currentColor" viewBox="0 0 20 20">
                   <path
                     fillRule="evenodd"
                     d="M4.293 4.293a1 1 0 011.414 0L10 8.586l4.293-4.293a1 1 0 111.414 1.414L11.414 10l4.293 4.293a1 1 0 01-1.414 1.414L10 11.414l-4.293 4.293a1 1 0 01-1.414-1.414L8.586 10 4.293 5.707a1 1 0 010-1.414z"
@@ -215,37 +252,3 @@ export const ErrorAlert: React.FC<ErrorAlertProps> = ({
     </div>
   );
 };
-
-/**
- * Hook for managing error state with automatic dismissal
- */
-export const useErrorAlert = (autoDismissDelay?: number) => {
-  const [error, setError] = React.useState<AppError | null>(null);
-
-  const showError = React.useCallback((error: AppError) => {
-    setError(error);
-  }, []);
-
-  const dismissError = React.useCallback(() => {
-    setError(null);
-  }, []);
-
-  // Auto-dismiss error after delay
-  React.useEffect(() => {
-    if (error && autoDismissDelay) {
-      const timer = setTimeout(() => {
-        setError(null);
-      }, autoDismissDelay);
-
-      return () => clearTimeout(timer);
-    }
-  }, [error, autoDismissDelay]);
-
-  return {
-    error,
-    showError,
-    dismissError,
-  };
-};
-
-export default ErrorAlert;

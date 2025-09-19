@@ -1,14 +1,16 @@
-// @ts-nocheck
 import { PrismaClient } from '@prisma/client';
-import { Response, Router } from 'express';
-import type { Router as ExpressRouter } from 'express';import { Redis } from 'ioredis';
+import { Router, Request, Response, NextFunction } from 'express';
+import type { Router as ExpressRouter } from 'express';
+import { Redis } from 'ioredis';
 import Joi from 'joi';
-import { AnalyticsService } from '../services/analytics.service.js';
+import { AnalyticsServiceImpl } from '../services/analytics.service.js';
+import { authMiddleware } from '../middleware/auth.middleware.js';
+import type { AuthenticatedRequest, ApiError, Middleware } from '../types/express.js';
 
 const router: ExpressRouter = Router();
 const prisma = new PrismaClient();
 const redis = new Redis(process.env.REDIS_URL || 'redis://localhost:6379');
-const analyticsService = new AnalyticsService(prisma, redis);
+const analyticsService = new AnalyticsServiceImpl(prisma, redis);
 
 // Validation schemas
 const trackActivitySchema = Joi.object({
@@ -39,6 +41,43 @@ const timeRangeSchema = Joi.object({
 const periodSchema = Joi.object({
   period: Joi.string().valid('daily', 'weekly', 'monthly').default('weekly'),
 });
+
+type ValidationLocation = 'body' | 'query' | 'params';
+
+const createValidationMiddleware = (
+  schema: Joi.ObjectSchema,
+  location: ValidationLocation = 'body'
+): Middleware => {
+  return (req: Request, res: Response, next: NextFunction): void => {
+    const { error, value } = schema.validate((req as any)[location], {
+      abortEarly: false,
+      allowUnknown: true,
+      stripUnknown: true,
+    });
+
+    if (error) {
+      const validationError: ApiError = {
+        success: false,
+        message: 'Validation failed',
+        code: 'VALIDATION_ERROR',
+        error: 'Validation failed',
+        details: error.details.map(detail => ({
+          field: detail.path.join('.') || location,
+          message: detail.message,
+        })),
+      };
+
+      res.status(400).json(validationError);
+      return;
+    }
+
+    if (value && typeof value === 'object') {
+      (req as any)[location] = value;
+    }
+
+    next();
+  };
+};
 
 // Middleware to check if user has analytics access
 const requireAnalyticsAccess: Middleware = async (
@@ -106,11 +145,19 @@ const requireAnalyticsAccess: Middleware = async (
 router.post(
   '/activity',
   authMiddleware,
-  validationMiddleware(trackActivitySchema),
-  async (_req: unknown, _res: Response) => {
+  createValidationMiddleware(trackActivitySchema),
+  async (req: Request, res: Response) => {
     try {
       const { action, resource, resourceId, metadata, duration, sessionId } = req.body;
-      const userId = req.user.id;
+      const authReq = req as AuthenticatedRequest;
+      const user = authReq.user;
+
+      if (!user) {
+        res.status(401).json({ error: 'Authentication required' });
+        return;
+      }
+
+      const userId = user.id;
       const ipAddress = req.ip;
       const userAgent = req.get('User-Agent');
 
@@ -138,10 +185,18 @@ router.post(
 router.post(
   '/workflow-progress',
   authMiddleware,
-  validationMiddleware(workflowProgressSchema),
-  async (_req: unknown, _res: Response) => {
+  createValidationMiddleware(workflowProgressSchema),
+  async (req: Request, res: Response) => {
     try {
-      const userId = req.user.id;
+      const authReq = req as AuthenticatedRequest;
+      const user = authReq.user;
+
+      if (!user) {
+        res.status(401).json({ error: 'Authentication required' });
+        return;
+      }
+
+      const userId = user.id;
       const workflowData = { ...req.body, userId };
 
       await analyticsService.trackWorkflowProgress(workflowData);
@@ -159,11 +214,11 @@ router.get(
   '/projects/:projectId',
   authMiddleware,
   requireAnalyticsAccess,
-  validationMiddleware(timeRangeSchema, 'query'),
-  async (_req: unknown, _res: Response) => {
+  createValidationMiddleware(timeRangeSchema, 'query'),
+  async (req: Request, res: Response) => {
     try {
       const { projectId } = req.params;
-      const { start, end } = req.query;
+      const { start, end } = req.query as { start?: Date; end?: Date };
 
       const timeRange = start && end ? { start: new Date(start), end: new Date(end) } : undefined;
       const analytics = await analyticsService.getProjectAnalytics(projectId, timeRange);
@@ -181,11 +236,11 @@ router.get(
   '/teams/:projectId',
   authMiddleware,
   requireAnalyticsAccess,
-  validationMiddleware(timeRangeSchema, 'query'),
-  async (_req: unknown, _res: Response) => {
+  createValidationMiddleware(timeRangeSchema, 'query'),
+  async (req: Request, res: Response) => {
     try {
       const { projectId } = req.params;
-      const { start, end } = req.query;
+      const { start, end } = req.query as { start?: Date; end?: Date };
 
       const timeRange = start && end ? { start: new Date(start), end: new Date(end) } : undefined;
       const analytics = await analyticsService.getTeamAnalytics(projectId, timeRange);
@@ -202,12 +257,20 @@ router.get(
 router.get(
   '/users/:userId?',
   authMiddleware,
-  validationMiddleware(timeRangeSchema, 'query'),
-  async (_req: unknown, _res: Response) => {
+  createValidationMiddleware(timeRangeSchema, 'query'),
+  async (req: Request, res: Response) => {
     try {
       const requestedUserId = req.params.userId;
-      const currentUserId = req.user.id;
-      const currentUserRole = req.user.role;
+      const authReq = req as AuthenticatedRequest;
+      const user = authReq.user;
+
+      if (!user) {
+        res.status(401).json({ error: 'Authentication required' });
+        return;
+      }
+
+      const currentUserId = user.id;
+      const currentUserRole = user.role;
 
       // Users can only access their own analytics unless they're team leads or admins
       let userId = currentUserId;
@@ -218,7 +281,7 @@ router.get(
         userId = requestedUserId;
       }
 
-      const { start, end } = req.query;
+      const { start, end } = req.query as { start?: Date; end?: Date };
       const timeRange = start && end ? { start: new Date(start), end: new Date(end) } : undefined;
       const analytics = await analyticsService.getUserAnalytics(userId, timeRange);
 
@@ -235,8 +298,8 @@ router.post(
   '/teams/:projectId/performance',
   authMiddleware,
   requireAnalyticsAccess,
-  validationMiddleware(periodSchema),
-  async (_req: unknown, _res: Response) => {
+  createValidationMiddleware(periodSchema),
+  async (req: Request, res: Response) => {
     try {
       const { projectId } = req.params;
       const { period } = req.body;
@@ -252,11 +315,19 @@ router.post(
 );
 
 // Calculate skill development metrics
-router.post('/users/:userId/skills', authMiddleware, async (_req: unknown, _res: Response) => {
+router.post('/users/:userId/skills', authMiddleware, async (req: Request, res: Response) => {
   try {
     const requestedUserId = req.params.userId;
-    const currentUserId = req.user.id;
-    const currentUserRole = req.user.role;
+    const authReq = req as AuthenticatedRequest;
+    const user = authReq.user;
+
+    if (!user) {
+      res.status(401).json({ error: 'Authentication required' });
+      return;
+    }
+
+    const currentUserId = user.id;
+    const currentUserRole = user.role;
 
     // Users can only access their own skill metrics unless they're team leads or admins
     let userId = currentUserId;
@@ -277,30 +348,37 @@ router.post('/users/:userId/skills', authMiddleware, async (_req: unknown, _res:
 });
 
 // Get system performance metrics (admin only)
-router.get('/system/performance', authMiddleware, async (_req: unknown, _res: Response) => {
+router.get('/system/performance', authMiddleware, async (req: Request, res: Response) => {
   try {
-    const _user = req.user;
+    const user = (req as AuthenticatedRequest).user;
 
-    if (user.role !== 'ADMIN') {
+    if (!user || user.role !== 'ADMIN') {
       return res.status(403).json({ error: 'Admin access required' });
     }
 
-    const { metricType, start, end, limit = 100 } = req.query;
+    const { metricType, start, end, limit = 100 } = req.query as {
+      metricType?: string;
+      start?: string | Date;
+      end?: string | Date;
+      limit?: number | string;
+    };
 
-    const whereClause: unknown = {};
+    const whereClause: Record<string, any> = {};
     if (metricType) {
       whereClause.metricType = metricType;
     }
     if (start || end) {
-      whereClause.timestamp = {};
+      whereClause.timestamp = {} as Record<string, Date>;
       if (start) whereClause.timestamp.gte = new Date(start);
       if (end) whereClause.timestamp.lte = new Date(end);
     }
 
+    const take = typeof limit === 'number' ? limit : parseInt(String(limit), 10) || 100;
+
     const metrics = await prisma.systemPerformanceMetrics.findMany({
       where: whereClause,
       orderBy: { timestamp: 'desc' },
-      take: parseInt(limit as string),
+      take,
     });
 
     res.json(metrics);
@@ -314,12 +392,12 @@ router.get('/system/performance', authMiddleware, async (_req: unknown, _res: Re
 router.post(
   '/aggregate',
   authMiddleware,
-  validationMiddleware(periodSchema),
-  async (_req: unknown, _res: Response) => {
+  createValidationMiddleware(periodSchema),
+  async (req: Request, res: Response) => {
     try {
-      const _user = req.user;
+      const user = (req as AuthenticatedRequest).user;
 
-      if (user.role !== 'ADMIN') {
+      if (!user || user.role !== 'ADMIN') {
         return res.status(403).json({ error: 'Admin access required' });
       }
 
@@ -340,10 +418,17 @@ router.get(
   '/dashboard/:projectId?',
   authMiddleware,
   requireAnalyticsAccess,
-  async (_req: unknown, _res: Response) => {
+  async (req: Request, res: Response) => {
     try {
       const { projectId } = req.params;
-      const userId = req.user.id;
+      const user = (req as AuthenticatedRequest).user;
+
+      if (!user) {
+        res.status(401).json({ error: 'Authentication required' });
+        return;
+      }
+
+      const userId = user.id;
 
       let dashboardData: unknown = {};
 
@@ -380,11 +465,11 @@ router.get(
 );
 
 // Get real-time metrics from Redis
-router.get('/realtime', authMiddleware, async (_req: unknown, _res: Response) => {
+router.get('/realtime', authMiddleware, async (req: Request, res: Response) => {
   try {
-    const _user = req.user;
+    const user = (req as AuthenticatedRequest).user;
 
-    if (user.role !== 'TEAM_LEAD' && user.role !== 'ADMIN') {
+    if (!user || (user.role !== 'TEAM_LEAD' && user.role !== 'ADMIN')) {
       return res.status(403).json({ error: 'Insufficient permissions' });
     }
 

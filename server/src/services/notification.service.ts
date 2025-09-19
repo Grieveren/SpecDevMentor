@@ -1,4 +1,3 @@
-// @ts-nocheck
 // Defer Prisma import to be compatible with module mocks in tests
 const { PrismaClient, NotificationType, EmailStatus, DigestFrequency } = require('@prisma/client');
 // Import types separately so generated declarations reference public types

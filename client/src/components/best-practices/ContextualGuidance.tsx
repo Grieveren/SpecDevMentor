@@ -1,4 +1,3 @@
-// @ts-nocheck
 import React, { useState, useEffect } from 'react';
 import { 
   LightBulbIcon, 
@@ -54,7 +53,7 @@ export const ContextualGuidancePanel: React.FC<ContextualGuidanceProps> = ({
     try {
       setLoading(true);
       setError(null);
-      const _result = await bestPracticesService.getContextualGuidance({
+      const result = await bestPracticesService.getContextualGuidance({
         phase,
         content,
         context,

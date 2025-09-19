@@ -1,4 +1,3 @@
-// @ts-nocheck
 import React, { useState, useCallback } from 'react';
 import { SupportedLanguage } from '../../types/code-execution';
 

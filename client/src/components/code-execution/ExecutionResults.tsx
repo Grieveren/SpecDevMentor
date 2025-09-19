@@ -1,4 +1,3 @@
-// @ts-nocheck
 import React from 'react';
 import { ExecutionResult } from '../../types/code-execution';
 import { CheckCircleIcon, XCircleIcon, ClockIcon, ExclamationTriangleIcon } from '@heroicons/react/24/outline';

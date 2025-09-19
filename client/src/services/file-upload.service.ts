@@ -1,4 +1,3 @@
-// @ts-nocheck
 import { AxiosRequestConfig } from 'axios';
 import { BaseService, typedApiClient } from './api.service';
 

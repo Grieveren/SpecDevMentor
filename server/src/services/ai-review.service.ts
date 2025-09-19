@@ -1,4 +1,3 @@
-// @ts-nocheck
 // Defer PrismaClient resolution to accommodate module mocks in tests
 // Import enums via require to avoid ESM __esModule issues in mocks
 import type { PrismaClient as PrismaClientType } from '@prisma/client';

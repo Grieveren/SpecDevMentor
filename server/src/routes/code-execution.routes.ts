@@ -1,4 +1,3 @@
-// @ts-nocheck
 import { Router } from 'express';
 import type { Router as ExpressRouter } from 'express';import { body, validationResult } from 'express-validator';
 import { CodeExecutionService } from '../services/code-execution.service.js';

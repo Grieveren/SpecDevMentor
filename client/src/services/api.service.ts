@@ -1,4 +1,3 @@
-// @ts-nocheck
 import { ApiError, ApiResponse } from '@shared/types/api';
 import {
   AppError,

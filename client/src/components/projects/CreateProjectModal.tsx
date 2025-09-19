@@ -1,4 +1,3 @@
-// @ts-nocheck
 import React, { useState } from 'react';
 import { XMarkIcon } from '@heroicons/react/24/outline';
 import { useProjectActions } from '../../stores/project.store';
@@ -45,16 +44,20 @@ export const CreateProjectModal: React.FC<CreateProjectModalProps> = ({
       
       onSuccess();
     } catch (err: unknown) {
-      setError(err.message || 'Failed to create project');
+      const message = err instanceof Error ? err.message : 'Failed to create project';
+      setError(message);
     } finally {
       setLoading(false);
     }
   };
 
-  const handleInputChange = (field: keyof CreateProjectRequest, _value: string) => {
+  function handleInputChange<K extends keyof CreateProjectRequest>(
+    field: K,
+    value: CreateProjectRequest[K]
+  ) {
     setFormData(prev => ({ ...prev, [field]: value }));
     if (error) setError(null);
-  };
+  }
 
   return (
     <div className="fixed inset-0 z-50 overflow-y-auto">

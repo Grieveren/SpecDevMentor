@@ -1,4 +1,3 @@
-// @ts-nocheck
 import React from 'react';
 import { CollaborationUser } from '../../hooks/useCollaboration';
 import { cn } from '../../utils/cn';

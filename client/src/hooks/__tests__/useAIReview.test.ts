@@ -1,4 +1,3 @@
-// @ts-nocheck
 import { renderHook, act } from '@testing-library/react';
 import { vi } from 'vitest';
 import type { MockedFunction } from 'vitest';

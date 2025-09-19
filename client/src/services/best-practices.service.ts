@@ -1,4 +1,3 @@
-// @ts-nocheck
 import { typedApiClient } from './api.service';
 
 export interface InteractiveTip {

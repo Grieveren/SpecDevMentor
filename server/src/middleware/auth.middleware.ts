@@ -1,5 +1,4 @@
 // @ts-nocheck
-// @ts-nocheck
 import { NextFunction, Request, Response } from 'express';
 import { AuthService } from '../services/auth.service.js';
 import { AuthenticationError } from '../../../shared/types/index.js';
