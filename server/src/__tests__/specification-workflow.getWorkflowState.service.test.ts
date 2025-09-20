@@ -134,7 +134,7 @@ const createPrismaMock = () => {
   };
 };
 
-describe('SpecificationWorkflowService', () => {
+describe('SpecificationWorkflowService getWorkflowState behavior', () => {
   let service: SpecificationWorkflowService;
   let mockPrisma: ReturnType<typeof createPrismaMock>['mocks'];
   let mockRedis: ReturnType<typeof createRedisMock>['mocks'];
@@ -767,7 +767,7 @@ This document meets all validation requirements including word count and proper 
   });
 
   describe('getWorkflowState', () => {
-    it('should return cached workflow state', async () => {
+    it('getWorkflowState returns cached workflow state', async () => {
       const transitionTimestamp = '2024-01-01T00:00:00.000Z';
       const approvalTimestamp = '2024-01-02T00:00:00.000Z';
       const cachedWorkflowState = {
@@ -821,7 +821,7 @@ This document meets all validation requirements including word count and proper 
       expect(mockPrisma.specificationProject.findUnique).not.toHaveBeenCalled();
     });
 
-    it('should build workflow state from database', async () => {
+    it('getWorkflowState builds workflow state from database', async () => {
       const mockProject = {
         id: 'project1',
         ownerId: 'user1',
@@ -845,7 +845,7 @@ This document meets all validation requirements including word count and proper 
       expect(mockRedis.setex).toHaveBeenCalled();
     });
 
-    it('should throw error when project not found', async () => {
+    it('getWorkflowState throws error when project not found', async () => {
       mockRedis.get.mockResolvedValue(null);
       mockPrisma.specificationProject.findUnique.mockResolvedValue(null);
 
@@ -854,7 +854,7 @@ This document meets all validation requirements including word count and proper 
       ).rejects.toThrow(SpecificationWorkflowError);
     });
 
-    it('should determine canProgress correctly', async () => {
+    it('getWorkflowState determines canProgress correctly', async () => {
       const mockProject = {
         id: 'project1',
         ownerId: 'user1',
