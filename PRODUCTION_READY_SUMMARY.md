@@ -8,7 +8,7 @@ Your CodeMentor AI platform is now running in a production-ready environment and
 
 ### **Frontend Application**
 
-- **URL**: http://localhost:3000/simple.html
+- **URL**: http://localhost:3000
 - **Status**: ✅ Running and Connected
 - **Features**: User management, Project overview, Test login functionality
 
@@ -97,7 +97,7 @@ tail -f logs/server.log
 ./scripts/stop-production-local.sh
 
 # Restart environment
-./scripts/start-simple-production.sh
+./scripts/start-production-local.sh
 ```
 
 ## 🔧 Technical Architecture
@@ -125,7 +125,7 @@ tail -f logs/server.log
 
 ### **Immediate Testing (Available Now):**
 
-- [ ] Access frontend at http://localhost:3000/simple.html
+- [ ] Access frontend at http://localhost:3000
 - [ ] Verify all test users are displayed
 - [ ] Check sample projects are loaded
 - [ ] Test login functionality with admin account

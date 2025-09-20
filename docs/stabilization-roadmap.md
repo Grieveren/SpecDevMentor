@@ -4,7 +4,7 @@
 
 - Status overview:
   - Remove `@ts-nocheck` overrides – **in progress** (client workspace now clean and type-safe; server middleware/services still carry targeted suppressions)
-  - Cull duplicate/exploratory entry points and scripts – **not started**
+  - Cull duplicate/exploratory entry points and scripts – **completed** (legacy simple client entry points and ad-hoc auth test scripts removed)
   - Stabilize integration-test infrastructure – **not started**
 
 1. **Remove `@ts-nocheck` overrides**
@@ -12,7 +12,7 @@
    - Progress: client application now compiles without overrides; introduced typed error-normalisation and notification helpers so lint rules can be re-enabled. Server middleware/routes still need type-safe request handling (auth middleware, specification workflow services).
    - Definition of done: eslint rule `@typescript-eslint/ban-ts-comment` passes without suppressions; type errors resolved or intentionally annotated with `@ts-expect-error` plus rationale.
 2. **Cull duplicate or exploratory entry points and scripts**
-   - Target artifacts: `client/src/main-simple.tsx`, `client/src/App-simple.tsx`, legacy test scripts at repo root, and any unused prototype components.
+   - Completed: retired the `main-simple`/`App-simple` client boot path and the unaudited root-level auth validation scripts; updated helper scripts to rely on primary entries.
    - Goal: single authoritative boot path for client/server and reduced cognitive load when onboarding.
 3. **Stabilize integration-test infrastructure**
    - Provide disposable Postgres + Redis (Docker Compose profile or scripts), seed minimal fixtures, and gate heavier suites behind opt-in flag.

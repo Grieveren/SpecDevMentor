@@ -23,7 +23,7 @@ fi
 echo -e "${BLUE}🔍 Running TypeScript check on staged files...${NC}"
 
 # Get staged TypeScript files
-STAGED_TS_FILES=$(git diff --cached --name-only --diff-filter=ACM | grep -E '\.(ts|tsx)$' | grep -v node_modules | grep -v dist)
+STAGED_TS_FILES=$(git diff --cached --name-only --diff-filter=ACM | grep -E '\.(ts|tsx)$' | grep -v node_modules | grep -v dist || true)
 
 if [ -n "$STAGED_TS_FILES" ]; then
     # Check if staged files are in client or server

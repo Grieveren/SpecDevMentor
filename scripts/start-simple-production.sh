@@ -1,9 +1,9 @@
 #!/bin/bash
 
-# CodeMentor AI - Simple Production Environment Startup Script
+# CodeMentor AI - Simplified Production Environment Startup Script
 set -e
 
-echo "🚀 Starting CodeMentor AI Simple Production Environment..."
+echo "🚀 Starting CodeMentor AI Simplified Production Environment..."
 
 # Colors for output
 RED='\033[0;31m'
@@ -90,16 +90,16 @@ setup_database() {
     print_success "Database setup completed"
 }
 
-# Start simple server
+# Start application server
 start_server() {
-    print_status "Starting simple server..."
+    print_status "Starting application server..."
     
     # Create logs directory
     mkdir -p logs
     
-    # Start server using the simple version
+    # Start server using the primary entry point
     cd server
-    npx tsx src/index-simple.ts > ../logs/server.log 2>&1 &
+    pnpm dev > ../logs/server.log 2>&1 &
     SERVER_PID=$!
     echo $SERVER_PID > ../logs/server.pid
     cd ..
@@ -120,47 +120,12 @@ start_server() {
     print_success "Server started successfully"
 }
 
-# Start simple client
+# Start client application
 start_client() {
-    print_status "Starting simple client..."
-    
-    # Create a temporary vite config for the simple version
-    cd client
-    cat > vite.config.simple.ts << 'EOF'
-import { defineConfig } from 'vite'
-import react from '@vitejs/plugin-react'
+    print_status "Starting client application..."
 
-export default defineConfig({
-  plugins: [react()],
-  server: {
-    port: 3000,
-    host: true
-  },
-  build: {
-    outDir: 'dist'
-  }
-})
-EOF
-    
-    # Create a temporary index.html that uses the simple main
-    cat > index.simple.html << 'EOF'
-<!doctype html>
-<html lang="en">
-  <head>
-    <meta charset="UTF-8" />
-    <link rel="icon" type="image/svg+xml" href="/vite.svg" />
-    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-    <title>CodeMentor AI - Production UAT</title>
-  </head>
-  <body>
-    <div id="root"></div>
-    <script type="module" src="/src/main-simple.tsx"></script>
-  </body>
-</html>
-EOF
-    
-    # Start the client with the simple configuration
-    VITE_CONFIG_FILE=vite.config.simple.ts npx vite --port 3000 --host --config vite.config.simple.ts > ../logs/client.log 2>&1 &
+    cd client
+    pnpm dev -- --port 3000 --host > ../logs/client.log 2>&1 &
     CLIENT_PID=$!
     echo $CLIENT_PID > ../logs/client.pid
     cd ..
@@ -184,7 +149,7 @@ EOF
 # Display status and URLs
 display_status() {
     echo ""
-    echo "🎉 CodeMentor AI Simple Production Environment is ready!"
+    echo "🎉 CodeMentor AI Simplified Production Environment is ready!"
     echo ""
     echo "📱 Application URLs:"
     echo "   Frontend:  http://localhost:3000"
@@ -213,7 +178,7 @@ display_status() {
 
 # Main execution
 main() {
-    echo "🚀 CodeMentor AI - Simple Production Setup"
+    echo "🚀 CodeMentor AI - Simplified Production Setup"
     echo "=========================================="
     
     cleanup_existing

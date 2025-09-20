@@ -71,8 +71,8 @@ EOF
     # Create a simplified package.json script for development
     print_status "Updating server package.json scripts..."
     
-    # Update the dev script to use a simpler approach
-    npm pkg set scripts.dev="tsx watch --clear-screen=false src/index-simple.ts"
+    # Update the dev script to use the primary application entry point
+    npm pkg set scripts.dev="tsx watch --clear-screen=false src/index.ts"
     npm pkg set scripts.start="node dist/index.js"
     npm pkg set scripts.build="tsc --noEmit false"
     
