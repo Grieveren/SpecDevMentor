@@ -1,30 +1,112 @@
 import { PrismaClient } from '@prisma/client';
-import { Router, Request, Response, NextFunction } from 'express';
-import type { Router as ExpressRouter } from 'express';
+import { Router } from 'express';
+import type { NextFunction, Request, Response, Router as ExpressRouter } from 'express';
 import { Redis } from 'ioredis';
 import Joi from 'joi';
 import { AnalyticsServiceImpl } from '../services/analytics.service.js';
 import { authMiddleware } from '../middleware/auth.middleware.js';
-import type { AuthenticatedRequest, ApiError, Middleware } from '../types/express.js';
+import type { ApiError, Middleware, TypedRequest } from '../types/express.js';
+import type { ParamsDictionary } from 'express-serve-static-core';
 
 const router: ExpressRouter = Router();
 const prisma = new PrismaClient();
 const redis = new Redis(process.env.REDIS_URL || 'redis://localhost:6379');
 const analyticsService = new AnalyticsServiceImpl(prisma, redis);
 
+type EmptyParams = Record<string, never>;
+
+type AnalyticsPeriod = 'daily' | 'weekly' | 'monthly';
+
+const ACTIVITY_TYPES = [
+  'LOGIN',
+  'LOGOUT',
+  'PROJECT_CREATED',
+  'PROJECT_UPDATED',
+  'PROJECT_DELETED',
+  'DOCUMENT_CREATED',
+  'DOCUMENT_UPDATED',
+  'DOCUMENT_VIEWED',
+  'PHASE_TRANSITIONED',
+  'COMMENT_CREATED',
+  'COMMENT_UPDATED',
+  'COMMENT_RESOLVED',
+  'AI_REVIEW_REQUESTED',
+  'AI_SUGGESTION_APPLIED',
+  'TEMPLATE_APPLIED',
+  'TEMPLATE_CREATED',
+  'COLLABORATION_JOINED',
+  'COLLABORATION_LEFT',
+  'CODE_EXECUTED',
+  'LEARNING_MODULE_STARTED',
+  'LEARNING_MODULE_COMPLETED',
+  'EXERCISE_COMPLETED',
+] as const;
+
+type ActivityTypeValue = (typeof ACTIVITY_TYPES)[number];
+
+const SPECIFICATION_PHASES = ['REQUIREMENTS', 'DESIGN', 'TASKS', 'IMPLEMENTATION'] as const;
+
+type SpecificationPhaseValue = (typeof SPECIFICATION_PHASES)[number];
+
+interface TrackActivityRequestBody {
+  action: ActivityTypeValue;
+  resource: string;
+  resourceId: string;
+  metadata?: Record<string, unknown>;
+  duration?: number;
+  sessionId?: string;
+}
+
+interface WorkflowProgressRequestBody {
+  projectId: string;
+  phase: SpecificationPhaseValue;
+  action: 'started' | 'completed' | 'review_cycle' | 'quality_updated';
+  qualityScore?: number;
+  collaboratorCount?: number;
+  commentCount?: number;
+  revisionCount?: number;
+  aiSuggestionsApplied?: number;
+}
+
+interface TimeRangeQuery {
+  start?: Date;
+  end?: Date;
+}
+
+interface PeriodRequestBody {
+  period: AnalyticsPeriod;
+}
+
+type ProjectParams = ParamsDictionary & { projectId: string };
+type OptionalProjectParams = ParamsDictionary & { projectId?: string };
+type OptionalUserParams = ParamsDictionary & { userId?: string };
+type UserParams = ParamsDictionary & { userId: string };
+
+interface SystemPerformanceFilter {
+  metricType?: string;
+  timestamp?: {
+    gte?: Date;
+    lte?: Date;
+  };
+}
+
 // Validation schemas
-const trackActivitySchema = Joi.object({
-  action: Joi.string().required(),
+const trackActivitySchema = Joi.object<TrackActivityRequestBody>({
+  action: Joi.string()
+    .valid(...ACTIVITY_TYPES)
+    .required(),
   resource: Joi.string().required(),
   resourceId: Joi.string().required(),
-  metadata: Joi.object().optional(),
+  metadata: Joi.object().unknown(true).optional(),
   duration: Joi.number().optional(),
   sessionId: Joi.string().optional(),
 });
 
-const workflowProgressSchema = Joi.object({
+const workflowProgressSchema = Joi.object<WorkflowProgressRequestBody>({
   projectId: Joi.string().required(),
-  phase: Joi.string().valid('REQUIREMENTS', 'DESIGN', 'TASKS', 'IMPLEMENTATION').required(),
+  phase: Joi.string()
+    .valid(...SPECIFICATION_PHASES)
+    .required(),
   action: Joi.string().valid('started', 'completed', 'review_cycle', 'quality_updated').required(),
   qualityScore: Joi.number().min(0).max(100).optional(),
   collaboratorCount: Joi.number().min(0).optional(),
@@ -33,23 +115,26 @@ const workflowProgressSchema = Joi.object({
   aiSuggestionsApplied: Joi.number().min(0).optional(),
 });
 
-const timeRangeSchema = Joi.object({
+const timeRangeSchema = Joi.object<TimeRangeQuery>({
   start: Joi.date().optional(),
   end: Joi.date().optional(),
 });
 
-const periodSchema = Joi.object({
+const periodSchema = Joi.object<PeriodRequestBody>({
   period: Joi.string().valid('daily', 'weekly', 'monthly').default('weekly'),
 });
 
 type ValidationLocation = 'body' | 'query' | 'params';
 
-const createValidationMiddleware = (
-  schema: Joi.ObjectSchema,
+const createValidationMiddleware = <TPayload>(
+  schema: Joi.ObjectSchema<TPayload>,
   location: ValidationLocation = 'body'
 ): Middleware => {
   return (req: Request, res: Response, next: NextFunction): void => {
-    const { error, value } = schema.validate((req as any)[location], {
+    const target =
+      location === 'body' ? req.body : location === 'query' ? req.query : req.params;
+
+    const { error, value } = schema.validate(target, {
       abortEarly: false,
       allowUnknown: true,
       stripUnknown: true,
@@ -72,11 +157,48 @@ const createValidationMiddleware = (
     }
 
     if (value && typeof value === 'object') {
-      (req as any)[location] = value;
+      if (location === 'body') {
+        req.body = value as typeof req.body;
+      } else if (location === 'query') {
+        req.query = value as typeof req.query;
+      } else {
+        req.params = value as typeof req.params;
+      }
     }
 
     next();
   };
+};
+
+const firstQueryValue = (value: unknown): unknown => (Array.isArray(value) ? value[0] : value);
+
+const getStringQueryValue = (value: unknown): string | undefined => {
+  const first = firstQueryValue(value);
+  return typeof first === 'string' ? first : undefined;
+};
+
+const getNumberQueryValue = (value: unknown): number | undefined => {
+  const first = firstQueryValue(value);
+  if (typeof first === 'number') {
+    return first;
+  }
+  if (typeof first === 'string') {
+    const parsed = Number.parseInt(first, 10);
+    return Number.isNaN(parsed) ? undefined : parsed;
+  }
+  return undefined;
+};
+
+const getDateQueryValue = (value: unknown): Date | undefined => {
+  const first = firstQueryValue(value);
+  if (first instanceof Date) {
+    return first;
+  }
+  if (typeof first === 'string') {
+    const parsed = new Date(first);
+    return Number.isNaN(parsed.getTime()) ? undefined : parsed;
+  }
+  return undefined;
 };
 
 // Middleware to check if user has analytics access
@@ -86,8 +208,7 @@ const requireAnalyticsAccess: Middleware = async (
   next: NextFunction
 ): Promise<void> => {
   try {
-    const authReq = req as AuthenticatedRequest;
-    const user = authReq.user;
+    const user = req.user;
 
     if (!user) {
       const errorResponse: ApiError = {
@@ -106,7 +227,15 @@ const requireAnalyticsAccess: Middleware = async (
     }
 
     // For project-specific analytics, check if user is project owner or team member
-    const projectId = req.params.projectId || (req.query.projectId as string);
+    const paramsProjectId = 'projectId' in req.params ? req.params.projectId : undefined;
+    const queryProjectIdRaw = req.query.projectId;
+    const queryProjectId = Array.isArray(queryProjectIdRaw)
+      ? queryProjectIdRaw[0]
+      : typeof queryProjectIdRaw === 'string'
+        ? queryProjectIdRaw
+        : undefined;
+    const projectId = paramsProjectId || queryProjectId;
+
     if (projectId) {
       const project = await prisma.specificationProject.findFirst({
         where: {
@@ -145,19 +274,21 @@ const requireAnalyticsAccess: Middleware = async (
 router.post(
   '/activity',
   authMiddleware,
-  createValidationMiddleware(trackActivitySchema),
-  async (req: Request, res: Response) => {
+  createValidationMiddleware<TrackActivityRequestBody>(trackActivitySchema),
+  async (
+    req: TypedRequest<EmptyParams, unknown, TrackActivityRequestBody>,
+    res: Response
+  ) => {
     try {
       const { action, resource, resourceId, metadata, duration, sessionId } = req.body;
-      const authReq = req as AuthenticatedRequest;
-      const user = authReq.user;
+      const user = req.user;
 
       if (!user) {
         res.status(401).json({ error: 'Authentication required' });
         return;
       }
 
-      const userId = user.id;
+      const userId = user.id ?? user.userId;
       const ipAddress = req.ip;
       const userAgent = req.get('User-Agent');
 
@@ -185,18 +316,20 @@ router.post(
 router.post(
   '/workflow-progress',
   authMiddleware,
-  createValidationMiddleware(workflowProgressSchema),
-  async (req: Request, res: Response) => {
+  createValidationMiddleware<WorkflowProgressRequestBody>(workflowProgressSchema),
+  async (
+    req: TypedRequest<EmptyParams, unknown, WorkflowProgressRequestBody>,
+    res: Response
+  ) => {
     try {
-      const authReq = req as AuthenticatedRequest;
-      const user = authReq.user;
+      const user = req.user;
 
       if (!user) {
         res.status(401).json({ error: 'Authentication required' });
         return;
       }
 
-      const userId = user.id;
+      const userId = user.id ?? user.userId;
       const workflowData = { ...req.body, userId };
 
       await analyticsService.trackWorkflowProgress(workflowData);
@@ -214,13 +347,16 @@ router.get(
   '/projects/:projectId',
   authMiddleware,
   requireAnalyticsAccess,
-  createValidationMiddleware(timeRangeSchema, 'query'),
-  async (req: Request, res: Response) => {
+  createValidationMiddleware<TimeRangeQuery>(timeRangeSchema, 'query'),
+  async (
+    req: TypedRequest<ProjectParams, unknown, unknown, TimeRangeQuery>,
+    res: Response
+  ) => {
     try {
       const { projectId } = req.params;
-      const { start, end } = req.query as { start?: Date; end?: Date };
+      const { start, end } = req.query;
 
-      const timeRange = start && end ? { start: new Date(start), end: new Date(end) } : undefined;
+      const timeRange = start && end ? { start, end } : undefined;
       const analytics = await analyticsService.getProjectAnalytics(projectId, timeRange);
 
       res.json(analytics);
@@ -236,13 +372,16 @@ router.get(
   '/teams/:projectId',
   authMiddleware,
   requireAnalyticsAccess,
-  createValidationMiddleware(timeRangeSchema, 'query'),
-  async (req: Request, res: Response) => {
+  createValidationMiddleware<TimeRangeQuery>(timeRangeSchema, 'query'),
+  async (
+    req: TypedRequest<ProjectParams, unknown, unknown, TimeRangeQuery>,
+    res: Response
+  ) => {
     try {
       const { projectId } = req.params;
-      const { start, end } = req.query as { start?: Date; end?: Date };
+      const { start, end } = req.query;
 
-      const timeRange = start && end ? { start: new Date(start), end: new Date(end) } : undefined;
+      const timeRange = start && end ? { start, end } : undefined;
       const analytics = await analyticsService.getTeamAnalytics(projectId, timeRange);
 
       res.json(analytics);
@@ -257,19 +396,21 @@ router.get(
 router.get(
   '/users/:userId?',
   authMiddleware,
-  createValidationMiddleware(timeRangeSchema, 'query'),
-  async (req: Request, res: Response) => {
+  createValidationMiddleware<TimeRangeQuery>(timeRangeSchema, 'query'),
+  async (
+    req: TypedRequest<OptionalUserParams, unknown, unknown, TimeRangeQuery>,
+    res: Response
+  ) => {
     try {
       const requestedUserId = req.params.userId;
-      const authReq = req as AuthenticatedRequest;
-      const user = authReq.user;
+      const user = req.user;
 
       if (!user) {
         res.status(401).json({ error: 'Authentication required' });
         return;
       }
 
-      const currentUserId = user.id;
+      const currentUserId = user.id ?? user.userId;
       const currentUserRole = user.role;
 
       // Users can only access their own analytics unless they're team leads or admins
@@ -281,8 +422,8 @@ router.get(
         userId = requestedUserId;
       }
 
-      const { start, end } = req.query as { start?: Date; end?: Date };
-      const timeRange = start && end ? { start: new Date(start), end: new Date(end) } : undefined;
+      const { start, end } = req.query;
+      const timeRange = start && end ? { start, end } : undefined;
       const analytics = await analyticsService.getUserAnalytics(userId, timeRange);
 
       res.json(analytics);
@@ -298,8 +439,11 @@ router.post(
   '/teams/:projectId/performance',
   authMiddleware,
   requireAnalyticsAccess,
-  createValidationMiddleware(periodSchema),
-  async (req: Request, res: Response) => {
+  createValidationMiddleware<PeriodRequestBody>(periodSchema),
+  async (
+    req: TypedRequest<ProjectParams, unknown, PeriodRequestBody>,
+    res: Response
+  ) => {
     try {
       const { projectId } = req.params;
       const { period } = req.body;
@@ -315,87 +459,97 @@ router.post(
 );
 
 // Calculate skill development metrics
-router.post('/users/:userId/skills', authMiddleware, async (req: Request, res: Response) => {
-  try {
-    const requestedUserId = req.params.userId;
-    const authReq = req as AuthenticatedRequest;
-    const user = authReq.user;
+router.post(
+  '/users/:userId/skills',
+  authMiddleware,
+  async (req: TypedRequest<UserParams>, res: Response) => {
+    try {
+      const requestedUserId = req.params.userId;
+      const user = req.user;
 
-    if (!user) {
-      res.status(401).json({ error: 'Authentication required' });
-      return;
-    }
-
-    const currentUserId = user.id;
-    const currentUserRole = user.role;
-
-    // Users can only access their own skill metrics unless they're team leads or admins
-    let userId = currentUserId;
-    if (requestedUserId && requestedUserId !== currentUserId) {
-      if (currentUserRole !== 'TEAM_LEAD' && currentUserRole !== 'ADMIN') {
-        return res.status(403).json({ error: 'Cannot access other user skill metrics' });
+      if (!user) {
+        res.status(401).json({ error: 'Authentication required' });
+        return;
       }
-      userId = requestedUserId;
+
+      const currentUserId = user.id ?? user.userId;
+      const currentUserRole = user.role;
+
+      // Users can only access their own skill metrics unless they're team leads or admins
+      let userId = currentUserId;
+      if (requestedUserId && requestedUserId !== currentUserId) {
+        if (currentUserRole !== 'TEAM_LEAD' && currentUserRole !== 'ADMIN') {
+          return res.status(403).json({ error: 'Cannot access other user skill metrics' });
+        }
+        userId = requestedUserId;
+      }
+
+      const skillMetrics = await analyticsService.calculateSkillDevelopment(userId);
+
+      res.json(skillMetrics);
+    } catch (error) {
+      console.error('Error calculating skill development:', error);
+      res.status(500).json({ error: 'Failed to calculate skill development' });
     }
-
-    const skillMetrics = await analyticsService.calculateSkillDevelopment(userId);
-
-    res.json(skillMetrics);
-  } catch (error) {
-    console.error('Error calculating skill development:', error);
-    res.status(500).json({ error: 'Failed to calculate skill development' });
   }
-});
+);
 
 // Get system performance metrics (admin only)
-router.get('/system/performance', authMiddleware, async (req: Request, res: Response) => {
-  try {
-    const user = (req as AuthenticatedRequest).user;
+router.get(
+  '/system/performance',
+  authMiddleware,
+  async (req: TypedRequest<EmptyParams>, res: Response) => {
+    try {
+      const user = req.user;
 
-    if (!user || user.role !== 'ADMIN') {
-      return res.status(403).json({ error: 'Admin access required' });
+      if (!user || user.role !== 'ADMIN') {
+        return res.status(403).json({ error: 'Admin access required' });
+      }
+
+      const metricType = getStringQueryValue(req.query.metricType);
+      const start = getDateQueryValue(req.query.start);
+      const end = getDateQueryValue(req.query.end);
+      const limit = getNumberQueryValue(req.query.limit) ?? 100;
+
+      const whereClause: SystemPerformanceFilter = {};
+      if (metricType) {
+        whereClause.metricType = metricType;
+      }
+      if (start || end) {
+        whereClause.timestamp = {};
+        if (start) {
+          whereClause.timestamp.gte = start;
+        }
+        if (end) {
+          whereClause.timestamp.lte = end;
+        }
+      }
+
+      const metrics = await prisma.systemPerformanceMetrics.findMany({
+        where: whereClause,
+        orderBy: { timestamp: 'desc' },
+        take: limit,
+      });
+
+      res.json(metrics);
+    } catch (error) {
+      console.error('Error getting system performance metrics:', error);
+      res.status(500).json({ error: 'Failed to get system performance metrics' });
     }
-
-    const { metricType, start, end, limit = 100 } = req.query as {
-      metricType?: string;
-      start?: string | Date;
-      end?: string | Date;
-      limit?: number | string;
-    };
-
-    const whereClause: Record<string, any> = {};
-    if (metricType) {
-      whereClause.metricType = metricType;
-    }
-    if (start || end) {
-      whereClause.timestamp = {} as Record<string, Date>;
-      if (start) whereClause.timestamp.gte = new Date(start);
-      if (end) whereClause.timestamp.lte = new Date(end);
-    }
-
-    const take = typeof limit === 'number' ? limit : parseInt(String(limit), 10) || 100;
-
-    const metrics = await prisma.systemPerformanceMetrics.findMany({
-      where: whereClause,
-      orderBy: { timestamp: 'desc' },
-      take,
-    });
-
-    res.json(metrics);
-  } catch (error) {
-    console.error('Error getting system performance metrics:', error);
-    res.status(500).json({ error: 'Failed to get system performance metrics' });
   }
-});
+);
 
 // Trigger metrics aggregation (admin only)
 router.post(
   '/aggregate',
   authMiddleware,
-  createValidationMiddleware(periodSchema),
-  async (req: Request, res: Response) => {
+  createValidationMiddleware<PeriodRequestBody>(periodSchema),
+  async (
+    req: TypedRequest<EmptyParams, unknown, PeriodRequestBody>,
+    res: Response
+  ) => {
     try {
-      const user = (req as AuthenticatedRequest).user;
+      const user = req.user;
 
       if (!user || user.role !== 'ADMIN') {
         return res.status(403).json({ error: 'Admin access required' });
@@ -418,17 +572,20 @@ router.get(
   '/dashboard/:projectId?',
   authMiddleware,
   requireAnalyticsAccess,
-  async (req: Request, res: Response) => {
+  async (
+    req: TypedRequest<OptionalProjectParams>,
+    res: Response
+  ) => {
     try {
       const { projectId } = req.params;
-      const user = (req as AuthenticatedRequest).user;
+      const user = req.user;
 
       if (!user) {
         res.status(401).json({ error: 'Authentication required' });
         return;
       }
 
-      const userId = user.id;
+      const userId = user.id ?? user.userId;
 
       let dashboardData: unknown = {};
 
@@ -465,28 +622,32 @@ router.get(
 );
 
 // Get real-time metrics from Redis
-router.get('/realtime', authMiddleware, async (req: Request, res: Response) => {
-  try {
-    const user = (req as AuthenticatedRequest).user;
+router.get(
+  '/realtime',
+  authMiddleware,
+  async (req: TypedRequest<EmptyParams>, res: Response) => {
+    try {
+      const user = req.user;
 
-    if (!user || (user.role !== 'TEAM_LEAD' && user.role !== 'ADMIN')) {
-      return res.status(403).json({ error: 'Insufficient permissions' });
+      if (!user || (user.role !== 'TEAM_LEAD' && user.role !== 'ADMIN')) {
+        return res.status(403).json({ error: 'Insufficient permissions' });
+      }
+
+      const keys = await redis.keys('analytics:realtime:*');
+      const realTimeMetrics: Record<string, number> = {};
+
+      for (const key of keys) {
+        const value = await redis.get(key);
+        const metricName = key.replace('analytics:realtime:', '');
+        realTimeMetrics[metricName] = Number.parseInt(value || '0', 10);
+      }
+
+      res.json(realTimeMetrics);
+    } catch (error) {
+      console.error('Error getting real-time metrics:', error);
+      res.status(500).json({ error: 'Failed to get real-time metrics' });
     }
-
-    const keys = await redis.keys('analytics:realtime:*');
-    const realTimeMetrics: Record<string, number> = {};
-
-    for (const key of keys) {
-      const value = await redis.get(key);
-      const metricName = key.replace('analytics:realtime:', '');
-      realTimeMetrics[metricName] = parseInt(value || '0');
-    }
-
-    res.json(realTimeMetrics);
-  } catch (error) {
-    console.error('Error getting real-time metrics:', error);
-    res.status(500).json({ error: 'Failed to get real-time metrics' });
   }
-});
+);
 
 export default router;
