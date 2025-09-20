@@ -3,13 +3,13 @@
 ## Cleanup Backlog (In Progress)
 
 - Status overview:
-  - Remove `@ts-nocheck` overrides – **in progress** (client workspace now clean and type-safe; server middleware/services still carry targeted suppressions)
+  - Remove `@ts-nocheck` overrides – **in progress** (client workspace clean and type-safe; server auth middleware and specification workflow service now typed with remaining routes still carrying targeted suppressions)
   - Cull duplicate/exploratory entry points and scripts – **not started**
   - Stabilize integration-test infrastructure – **not started**
 
 1. **Remove `@ts-nocheck` overrides**
    - Scope: server/service layer, client entry points, stores, and shared utilities where suppression hides real type debt.
-   - Progress: client application now compiles without overrides; introduced typed error-normalisation and notification helpers so lint rules can be re-enabled. Server middleware/routes still need type-safe request handling (auth middleware, specification workflow services).
+   - Progress: client application now compiles without overrides; introduced typed error-normalisation and notification helpers so lint rules can be re-enabled. Server auth middleware and specification workflow service now run with TypeScript checks enabled, with remaining routes still needing type-safe request handling.
    - Definition of done: eslint rule `@typescript-eslint/ban-ts-comment` passes without suppressions; type errors resolved or intentionally annotated with `@ts-expect-error` plus rationale.
 2. **Cull duplicate or exploratory entry points and scripts**
    - Target artifacts: `client/src/main-simple.tsx`, `client/src/App-simple.tsx`, legacy test scripts at repo root, and any unused prototype components.

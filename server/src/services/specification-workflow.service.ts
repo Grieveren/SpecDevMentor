@@ -1,8 +1,7 @@
-// eslint-disable-next-line @typescript-eslint/ban-ts-comment
-// @ts-nocheck
 /* eslint-disable @typescript-eslint/no-explicit-any */
 import {
   DocumentStatus,
+  Prisma,
   PrismaClient,
   SpecificationDocument,
   SpecificationPhase,
@@ -11,6 +10,8 @@ import {
 } from '@prisma/client';
 import Redis from 'ioredis';
 import { AIReviewResult, AIService } from './ai.service.js';
+
+const toJsonValue = <T>(value: T): Prisma.InputJsonValue => value as unknown as Prisma.InputJsonValue;
 
 export interface PhaseTransitionRequest {
   targetPhase: SpecificationPhase;
@@ -129,6 +130,24 @@ export class SpecificationWorkflowService {
     private aiService?: AIService
   ) {
     this.resetMockRedisState();
+  }
+
+  private createEmptyDocumentStatusMap(): Record<SpecificationPhase, DocumentStatus> {
+    return {
+      [SpecificationPhase.REQUIREMENTS]: DocumentStatus.DRAFT,
+      [SpecificationPhase.DESIGN]: DocumentStatus.DRAFT,
+      [SpecificationPhase.TASKS]: DocumentStatus.DRAFT,
+      [SpecificationPhase.IMPLEMENTATION]: DocumentStatus.DRAFT,
+    };
+  }
+
+  private createEmptyApprovalMap(): Record<SpecificationPhase, Approval[]> {
+    return {
+      [SpecificationPhase.REQUIREMENTS]: [],
+      [SpecificationPhase.DESIGN]: [],
+      [SpecificationPhase.TASKS]: [],
+      [SpecificationPhase.IMPLEMENTATION]: [],
+    };
   }
 
   private resetMockRedisState(): void {
@@ -470,12 +489,12 @@ export class SpecificationWorkflowService {
 
     // Invalidate cache
     await this.invalidateWorkflowCache(projectId);
+    const overrideStatuses = this.createEmptyDocumentStatusMap();
+    overrideStatuses[fromPhase] = DocumentStatus.APPROVED;
+    overrideStatuses[request.targetPhase] = DocumentStatus.DRAFT;
     __testWorkflowOverride.set(projectId, {
       currentPhase: request.targetPhase,
-      documentStatuses: {
-        [fromPhase]: DocumentStatus.APPROVED,
-        [request.targetPhase]: DocumentStatus.DRAFT,
-      },
+      documentStatuses: overrideStatuses,
     });
 
     // In route test mode, return a lightweight workflow state directly to avoid consuming mocked Prisma findUnique
@@ -483,17 +502,16 @@ export class SpecificationWorkflowService {
       const nextIndex = this.phaseOrder.indexOf(request.targetPhase) + 1;
       const nextPhase = nextIndex < this.phaseOrder.length ? this.phaseOrder[nextIndex] : undefined;
       const override = __testWorkflowOverride.get(projectId);
+      const documentStatuses = {
+        ...this.createEmptyDocumentStatusMap(),
+        ...(override?.documentStatuses ?? {}),
+      };
       return {
         projectId,
         currentPhase: request.targetPhase,
         phaseHistory: [],
-        documentStatuses: (override?.documentStatuses as any) || ({} as any),
-        approvals: {
-          [SpecificationPhase.REQUIREMENTS]: [],
-          [SpecificationPhase.DESIGN]: [],
-          [SpecificationPhase.TASKS]: [],
-          [SpecificationPhase.IMPLEMENTATION]: [],
-        } as any,
+        documentStatuses,
+        approvals: this.createEmptyApprovalMap(),
         canProgress: false,
         nextPhase,
       };
@@ -632,13 +650,13 @@ export class SpecificationWorkflowService {
     const phaseHistory = await this.getPhaseHistory(projectId);
 
     // Get approvals for all phases
-    const approvals: Record<SpecificationPhase, Approval[]> = {} as any;
+    const approvals = this.createEmptyApprovalMap();
     for (const phase of this.phaseOrder) {
       approvals[phase] = await this.getPhaseApprovals(projectId, phase);
     }
 
     // Build document statuses
-    const documentStatuses: Record<SpecificationPhase, DocumentStatus> = {} as any;
+    const documentStatuses = this.createEmptyDocumentStatusMap();
     for (const doc of project.documents || []) {
       documentStatuses[doc.phase] = doc.status;
     }
@@ -682,8 +700,8 @@ export class SpecificationWorkflowService {
       if (override.documentStatuses) {
         workflowState.documentStatuses = {
           ...workflowState.documentStatuses,
-          ...(override.documentStatuses as any),
-        } as any;
+          ...override.documentStatuses,
+        };
       }
     }
 
@@ -1082,9 +1100,9 @@ export class SpecificationWorkflowService {
           id: aiReview.id,
           documentId: specificationDoc.id,
           overallScore: aiReview.overallScore,
-          suggestions: aiReview.suggestions as any,
-          completeness: aiReview.completenessCheck as any,
-          qualityMetrics: aiReview.qualityMetrics as unknown,
+          suggestions: toJsonValue(aiReview.suggestions),
+          completeness: toJsonValue(aiReview.completenessCheck),
+          qualityMetrics: toJsonValue(aiReview.qualityMetrics),
           appliedSuggestions: [],
         },
       });

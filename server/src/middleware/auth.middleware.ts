@@ -1,13 +1,18 @@
-// @ts-nocheck
 import { NextFunction, Request, Response } from 'express';
-import { AuthService } from '../services/auth.service.js';
 import { AuthenticationError } from '../../../shared/types/index.js';
+import { AuthService } from '../services/auth.service.js';
 import {
   ApiError,
   AuthMiddleware as AuthMiddlewareType,
   AuthenticatedRequest,
+  JWTPayload,
   RateLimitConfig,
 } from '../types/express.js';
+
+const mapPayloadToRequestUser = (payload: JWTPayload): AuthenticatedRequest['user'] => ({
+  ...payload,
+  id: payload.userId,
+});
 
 export class AuthMiddleware {
   constructor(private authService: AuthService) {}
@@ -36,7 +41,7 @@ export class AuthMiddleware {
 
       try {
         const payload = await this.authService.verifyToken(token);
-        req.user = payload;
+        req.user = mapPayloadToRequestUser(payload);
         next();
       } catch (error) {
         if (error instanceof AuthenticationError) {
@@ -76,7 +81,7 @@ export class AuthMiddleware {
         const token = authHeader.substring(7);
         try {
           const payload = await this.authService.verifyToken(token);
-          req.user = payload;
+          req.user = mapPayloadToRequestUser(payload);
         } catch (error) {
           // Ignore authentication errors for optional auth
           console.warn('Optional authentication failed:', error);
