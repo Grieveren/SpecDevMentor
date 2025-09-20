@@ -12,8 +12,10 @@
    - Progress: client application now compiles without overrides; introduced typed error-normalisation and notification helpers so lint rules can be re-enabled. Server middleware/routes still need type-safe request handling (auth middleware, specification workflow services).
    - Definition of done: eslint rule `@typescript-eslint/ban-ts-comment` passes without suppressions; type errors resolved or intentionally annotated with `@ts-expect-error` plus rationale.
 2. **Cull duplicate or exploratory entry points and scripts**
-   - Completed: retired the `main-simple`/`App-simple` client boot path and the unaudited root-level auth validation scripts; updated helper scripts to rely on primary entries.
-   - Goal: single authoritative boot path for client/server and reduced cognitive load when onboarding.
+
+- Completed: retired the `main-simple`/`App-simple` client boot path, removed the redundant `start-simple-production.sh` runner, and replaced the unaudited root-level auth validation scripts so helper tooling relies on the primary entries.
+- Goal: single authoritative boot path for client/server and reduced cognitive load when onboarding.
+
 3. **Stabilize integration-test infrastructure**
    - Provide disposable Postgres + Redis (Docker Compose profile or scripts), seed minimal fixtures, and gate heavier suites behind opt-in flag.
    - Ensure `pnpm --filter server test` reports green when backing services are available; document quick-start.

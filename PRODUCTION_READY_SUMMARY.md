@@ -107,7 +107,7 @@ tail -f logs/server.log
 - **Backend**: Node.js + TypeScript + Express + Prisma
 - **Database**: PostgreSQL 15 with comprehensive schema
 - **Cache**: Redis 7 for session management
-- **Frontend**: Static HTML with Tailwind CSS (simplified for UAT)
+- **Frontend**: React + Vite single-page app served from `client/src/main.tsx`
 - **Infrastructure**: Docker containers for database services
 
 ### **Production Features Enabled:**
