@@ -1,56 +1,157 @@
-import { describe, it, expect, beforeEach, afterEach, vi, beforeAll, afterAll } from 'vitest';
-import { PrismaClient, SpecificationPhase, DocumentStatus, ProjectStatus } from '@prisma/client';
+import { describe, it, expect, beforeEach, vi } from 'vitest';
+import {
+  Prisma,
+  PrismaClient,
+  SpecificationDocument,
+  SpecificationProject,
+  User,
+} from '@prisma/client';
+import type {
+  SpecificationPhase as SpecificationPhaseType,
+  DocumentStatus as DocumentStatusType,
+} from '@prisma/client';
 import Redis from 'ioredis';
-import { 
-  SpecificationWorkflowService, 
+import {
+  SpecificationWorkflowService,
   SpecificationWorkflowError,
   PhaseTransitionRequest,
-  DocumentUpdateRequest 
+  DocumentUpdateRequest
 } from '../services/specification-workflow.service.js';
 
-// Mock Redis
-const mockRedis = {
-  get: vi.fn(),
-  set: vi.fn(),
-  setex: vi.fn(),
-  del: vi.fn(),
-  keys: vi.fn(),
-} as any;
+type SpecificationPhase = SpecificationPhaseType;
+const SpecificationPhase: Record<SpecificationPhase, SpecificationPhase> = {
+  REQUIREMENTS: 'REQUIREMENTS',
+  DESIGN: 'DESIGN',
+  TASKS: 'TASKS',
+  IMPLEMENTATION: 'IMPLEMENTATION',
+};
 
-// Mock Prisma
-const mockPrisma = {
-  specificationProject: {
-    findUnique: vi.fn(),
-    update: vi.fn(),
-  },
-  specificationDocument: {
-    findUnique: vi.fn(),
-    update: vi.fn(),
-    updateMany: vi.fn(),
-  },
-  documentVersion: {
-    create: vi.fn(),
-  },
-  auditLog: {
-    create: vi.fn(),
-  },
-  $transaction: vi.fn(),
-} as any;
+type DocumentStatus = DocumentStatusType;
+const DocumentStatus: Record<DocumentStatus, DocumentStatus> = {
+  DRAFT: 'DRAFT',
+  REVIEW: 'REVIEW',
+  APPROVED: 'APPROVED',
+  ARCHIVED: 'ARCHIVED',
+};
+
+type TeamMemberFixture = {
+  userId: string;
+  role: string;
+  status: string;
+  user?: User;
+};
+
+type ProjectFixture = {
+  id: string;
+  ownerId: string;
+  currentPhase: SpecificationPhase;
+  status?: SpecificationProject['status'];
+  team: TeamMemberFixture[];
+  owner?: User;
+  documents?: Array<{ phase: SpecificationPhase; status: DocumentStatus }>;
+};
+
+const createRedisMock = () => {
+  const mocks = {
+    get: vi.fn<[string], Promise<string | null>>(),
+    set: vi.fn<[string, string], Promise<'OK'>>(),
+    setex: vi.fn<[string, number, string], Promise<'OK'>>(),
+    del: vi.fn<[string, ...string[]], Promise<number>>(),
+    keys: vi.fn<[string], Promise<string[]>>(),
+  };
+
+  return {
+    client: mocks as unknown as Redis,
+    mocks,
+  };
+};
+
+const createPrismaMock = () => {
+  const specificationProject = {
+    findUnique: vi.fn<
+      [Prisma.SpecificationProjectFindUniqueArgs],
+      Promise<ProjectFixture | null>
+    >(),
+    findFirst: vi.fn<
+      [Prisma.SpecificationProjectFindFirstArgs],
+      Promise<ProjectFixture | null>
+    >(),
+    update: vi.fn<
+      [Prisma.SpecificationProjectUpdateArgs],
+      Promise<ProjectFixture>
+    >(),
+  };
+
+  const specificationDocument = {
+    findUnique: vi.fn<
+      [Prisma.SpecificationDocumentFindUniqueArgs],
+      Promise<SpecificationDocument | null>
+    >(),
+    update: vi.fn<
+      [Prisma.SpecificationDocumentUpdateArgs],
+      Promise<SpecificationDocument>
+    >(),
+    updateMany: vi.fn<
+      [Prisma.SpecificationDocumentUpdateManyArgs],
+      Promise<Prisma.BatchPayload>
+    >(),
+  };
+
+  const documentVersion = {
+    create: vi.fn<[Prisma.DocumentVersionCreateArgs], Promise<unknown>>(),
+  };
+
+  const auditLog = {
+    create: vi.fn<[Prisma.AuditLogCreateArgs], Promise<unknown>>(),
+  };
+
+  const aIReview = {
+    create: vi.fn<[Prisma.AIReviewCreateArgs], Promise<unknown>>(),
+  };
+
+  const $transaction = vi.fn<
+    [(tx: Prisma.TransactionClient) => Promise<unknown>],
+    Promise<unknown>
+  >();
+
+  return {
+    client: {
+      specificationProject: specificationProject as unknown as PrismaClient['specificationProject'],
+      specificationDocument: specificationDocument as unknown as PrismaClient['specificationDocument'],
+      documentVersion: documentVersion as unknown as PrismaClient['documentVersion'],
+      auditLog: auditLog as unknown as PrismaClient['auditLog'],
+      aIReview: aIReview as unknown as PrismaClient['aIReview'],
+      $transaction: $transaction as PrismaClient['$transaction'],
+    } as unknown as PrismaClient,
+    mocks: {
+      specificationProject,
+      specificationDocument,
+      documentVersion,
+      auditLog,
+      aIReview,
+      $transaction,
+    },
+  };
+};
 
 describe('SpecificationWorkflowService', () => {
   let service: SpecificationWorkflowService;
-  let result: any;
+  let mockPrisma: ReturnType<typeof createPrismaMock>['mocks'];
+  let mockRedis: ReturnType<typeof createRedisMock>['mocks'];
 
   beforeEach(() => {
-    vi.clearAllMocks();
-    service = new SpecificationWorkflowService(mockPrisma, mockRedis);
+    const prismaSetup = createPrismaMock();
+    const redisSetup = createRedisMock();
+    mockPrisma = prismaSetup.mocks;
+    mockRedis = redisSetup.mocks;
+    service = new SpecificationWorkflowService(prismaSetup.client, redisSetup.client);
   });
 
   describe('validatePhaseCompletion', () => {
     it('should return invalid when document not found', async () => {
       mockPrisma.specificationDocument.findUnique.mockResolvedValue(null);
 
-       result = await service.validatePhaseCompletion('project1', SpecificationPhase.REQUIREMENTS);
+      const result = await service.validatePhaseCompletion('project1', SpecificationPhase.REQUIREMENTS);
 
       expect(result.isValid).toBe(false);
       expect(result.errors).toContain('Document not found for phase');
@@ -95,7 +196,7 @@ This document contains comprehensive requirements with proper formatting, user s
 
       mockPrisma.specificationDocument.findUnique.mockResolvedValue(mockDocument);
 
-       result = await service.validatePhaseCompletion('project1', SpecificationPhase.REQUIREMENTS);
+      const result = await service.validatePhaseCompletion('project1', SpecificationPhase.REQUIREMENTS);
 
       expect(result.isValid).toBe(true);
       expect(result.errors).toHaveLength(0);
@@ -112,7 +213,7 @@ This document contains comprehensive requirements with proper formatting, user s
 
       mockPrisma.specificationDocument.findUnique.mockResolvedValue(mockDocument);
 
-       result = await service.validatePhaseCompletion('project1', SpecificationPhase.REQUIREMENTS);
+      const result = await service.validatePhaseCompletion('project1', SpecificationPhase.REQUIREMENTS);
 
       expect(result.isValid).toBe(false);
       expect(result.errors).toContain('Missing required section: Introduction');
@@ -135,7 +236,7 @@ One requirement.`,
 
       mockPrisma.specificationDocument.findUnique.mockResolvedValue(mockDocument);
 
-       result = await service.validatePhaseCompletion('project1', SpecificationPhase.REQUIREMENTS);
+      const result = await service.validatePhaseCompletion('project1', SpecificationPhase.REQUIREMENTS);
 
       expect(result.isValid).toBe(false);
       expect(result.errors.some(error => error.includes('Document too short'))).toBe(true);
@@ -195,7 +296,7 @@ This document contains comprehensive detail and meets all requirements for a com
 
       mockPrisma.specificationDocument.findUnique.mockResolvedValue(mockDocument);
 
-       result = await service.validatePhaseCompletion('project1', SpecificationPhase.DESIGN);
+      const result = await service.validatePhaseCompletion('project1', SpecificationPhase.DESIGN);
 
       expect(result.isValid).toBe(true);
       expect(result.errors).toHaveLength(0);
@@ -259,7 +360,7 @@ This comprehensive implementation plan provides a structured approach to buildin
 
       mockPrisma.specificationDocument.findUnique.mockResolvedValue(mockDocument);
 
-       result = await service.validatePhaseCompletion('project1', SpecificationPhase.TASKS);
+      const result = await service.validatePhaseCompletion('project1', SpecificationPhase.TASKS);
 
       expect(result.isValid).toBe(true);
       expect(result.errors).toHaveLength(0);
@@ -270,7 +371,7 @@ This comprehensive implementation plan provides a structured approach to buildin
     it('should return false when project not found', async () => {
       mockPrisma.specificationProject.findUnique.mockResolvedValue(null);
 
-       result = await service.canTransitionToPhase('project1', SpecificationPhase.DESIGN, 'user1');
+      const result = await service.canTransitionToPhase('project1', SpecificationPhase.DESIGN, 'user1');
 
       expect(result.canTransition).toBe(false);
       expect(result.reason).toBe('Project not found');
@@ -286,7 +387,7 @@ This comprehensive implementation plan provides a structured approach to buildin
 
       mockPrisma.specificationProject.findUnique.mockResolvedValue(mockProject);
 
-       result = await service.canTransitionToPhase('project1', SpecificationPhase.DESIGN, 'user1');
+      const result = await service.canTransitionToPhase('project1', SpecificationPhase.DESIGN, 'user1');
 
       expect(result.canTransition).toBe(false);
       expect(result.reason).toBe('Insufficient permissions');
@@ -302,7 +403,7 @@ This comprehensive implementation plan provides a structured approach to buildin
 
       mockPrisma.specificationProject.findUnique.mockResolvedValue(mockProject);
 
-       result = await service.canTransitionToPhase('project1', SpecificationPhase.TASKS, 'user1');
+      const result = await service.canTransitionToPhase('project1', SpecificationPhase.TASKS, 'user1');
 
       expect(result.canTransition).toBe(false);
       expect(result.reason).toBe('Invalid phase transition. Phases must be sequential');
@@ -360,7 +461,7 @@ This document meets all validation requirements including word count and proper 
         approved: true,
       }));
 
-       result = await service.canTransitionToPhase('project1', SpecificationPhase.DESIGN, 'user1');
+      const result = await service.canTransitionToPhase('project1', SpecificationPhase.DESIGN, 'user1');
 
       expect(result.canTransition).toBe(true);
     });
@@ -421,7 +522,7 @@ This document meets all validation requirements including word count and proper 
         approved: true,
       }));
 
-       result = await service.canTransitionToPhase('project1', SpecificationPhase.DESIGN, 'user1');
+      const result = await service.canTransitionToPhase('project1', SpecificationPhase.DESIGN, 'user1');
 
       expect(result.canTransition).toBe(true);
     });
@@ -511,8 +612,8 @@ This document meets all validation requirements including word count and proper 
         approved: true,
       }));
 
-      mockPrisma.$transaction.mockImplementation(async (callback) => {
-        return await callback({
+      mockPrisma.$transaction.mockImplementation(async callback => {
+        return callback({
           specificationProject: {
             update: vi.fn().mockResolvedValue(mockUpdatedProject),
           },
@@ -522,7 +623,7 @@ This document meets all validation requirements including word count and proper 
           auditLog: {
             create: vi.fn(),
           },
-        });
+        } as unknown as Prisma.TransactionClient);
       });
 
       const request: PhaseTransitionRequest = {
@@ -563,7 +664,7 @@ This document meets all validation requirements including word count and proper 
       mockRedis.keys.mockResolvedValue([]); // No phase history or approvals
       mockRedis.setex.mockResolvedValue('OK'); // Cache set
 
-       result = await service.transitionPhase('project1', request, 'user1');
+      const result = await service.transitionPhase('project1', request, 'user1');
 
       expect(result.currentPhase).toBe(SpecificationPhase.DESIGN);
       expect(mockPrisma.$transaction).toHaveBeenCalled();
@@ -640,7 +741,7 @@ This document meets all validation requirements including word count and proper 
         content: 'Updated content',
       };
 
-       result = await service.updateDocument('project1', SpecificationPhase.REQUIREMENTS, request, 'user1');
+      const result = await service.updateDocument('project1', SpecificationPhase.REQUIREMENTS, request, 'user1');
 
       expect(result.content).toBe('Updated content');
       expect(result.version).toBe(2);
@@ -667,20 +768,54 @@ This document meets all validation requirements including word count and proper 
 
   describe('getWorkflowState', () => {
     it('should return cached workflow state', async () => {
-      const mockWorkflowState = {
+      const transitionTimestamp = '2024-01-01T00:00:00.000Z';
+      const approvalTimestamp = '2024-01-02T00:00:00.000Z';
+      const cachedWorkflowState = {
         projectId: 'project1',
         currentPhase: SpecificationPhase.REQUIREMENTS,
-        phaseHistory: [],
-        documentStatuses: {},
-        approvals: {},
-        canProgress: false,
+        phaseHistory: [
+          {
+            fromPhase: SpecificationPhase.REQUIREMENTS,
+            toPhase: SpecificationPhase.DESIGN,
+            timestamp: transitionTimestamp,
+            userId: 'user1',
+            approvalComment: 'Looks good',
+          },
+        ],
+        documentStatuses: {
+          [SpecificationPhase.REQUIREMENTS]: DocumentStatus.APPROVED,
+        },
+        approvals: {
+          [SpecificationPhase.REQUIREMENTS]: [
+            {
+              userId: 'user1',
+              timestamp: approvalTimestamp,
+              comment: 'Approved',
+              approved: true,
+            },
+          ],
+        },
+        canProgress: true,
+        nextPhase: SpecificationPhase.DESIGN,
       };
 
-      mockRedis.get.mockResolvedValue(JSON.stringify(mockWorkflowState));
+      mockRedis.get.mockResolvedValue(JSON.stringify(cachedWorkflowState));
 
-       result = await service.getWorkflowState('project1');
+      const result = await service.getWorkflowState('project1');
 
-      expect(result).toEqual(mockWorkflowState);
+      expect(result.projectId).toBe('project1');
+      expect(result.currentPhase).toBe(SpecificationPhase.REQUIREMENTS);
+      expect(result.phaseHistory).toHaveLength(1);
+      expect(result.phaseHistory[0].timestamp).toBeInstanceOf(Date);
+      expect(result.phaseHistory[0].timestamp.toISOString()).toBe(transitionTimestamp);
+      expect(result.approvals[SpecificationPhase.REQUIREMENTS]).toHaveLength(1);
+      expect(result.approvals[SpecificationPhase.REQUIREMENTS][0].timestamp).toBeInstanceOf(Date);
+      expect(result.approvals[SpecificationPhase.REQUIREMENTS][0].timestamp.toISOString()).toBe(
+        approvalTimestamp
+      );
+      expect(result.documentStatuses[SpecificationPhase.REQUIREMENTS]).toBe(DocumentStatus.APPROVED);
+      expect(result.documentStatuses[SpecificationPhase.DESIGN]).toBe(DocumentStatus.DRAFT);
+      expect(result.nextPhase).toBe(SpecificationPhase.DESIGN);
       expect(mockRedis.get).toHaveBeenCalledWith('workflow:project1');
       // Should not call database when cache hit
       expect(mockPrisma.specificationProject.findUnique).not.toHaveBeenCalled();
@@ -702,7 +837,7 @@ This document meets all validation requirements including word count and proper 
       mockRedis.keys.mockResolvedValue([]);
       mockRedis.setex.mockResolvedValue('OK');
 
-       result = await service.getWorkflowState('project1');
+      const result = await service.getWorkflowState('project1');
 
       expect(result.projectId).toBe('project1');
       expect(result.currentPhase).toBe(SpecificationPhase.REQUIREMENTS);
@@ -776,7 +911,7 @@ This document meets all validation requirements including word count and proper 
       }));
       mockRedis.setex.mockResolvedValue('OK');
 
-       result = await service.getWorkflowState('project1');
+      const result = await service.getWorkflowState('project1');
 
       expect(result.canProgress).toBe(true);
       expect(result.nextPhase).toBe(SpecificationPhase.DESIGN);
@@ -868,8 +1003,8 @@ This document meets all validation requirements including word count and proper 
         currentPhase: SpecificationPhase.DESIGN,
       };
 
-      mockPrisma.$transaction.mockImplementation(async (callback) => {
-        return await callback({
+      mockPrisma.$transaction.mockImplementation(async callback => {
+        return callback({
           specificationProject: {
             update: vi.fn().mockResolvedValue(updatedProject),
           },
@@ -879,7 +1014,7 @@ This document meets all validation requirements including word count and proper 
           auditLog: {
             create: vi.fn(),
           },
-        });
+        } as unknown as Prisma.TransactionClient);
       });
 
       // Mock getWorkflowState for the final result
@@ -896,7 +1031,7 @@ This document meets all validation requirements including word count and proper 
         approvalComment: 'Requirements approved, moving to design',
       };
 
-       result = await service.transitionPhase(projectId, request, userId);
+      const result = await service.transitionPhase(projectId, request, userId);
 
       expect(result.currentPhase).toBe(SpecificationPhase.DESIGN);
       expect(mockPrisma.$transaction).toHaveBeenCalled();

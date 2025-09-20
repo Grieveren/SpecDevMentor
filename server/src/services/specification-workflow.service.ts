@@ -1,16 +1,62 @@
-// eslint-disable-next-line @typescript-eslint/ban-ts-comment
-// @ts-nocheck
-/* eslint-disable @typescript-eslint/no-explicit-any */
 import {
-  DocumentStatus,
+  Prisma,
   PrismaClient,
   SpecificationDocument,
-  SpecificationPhase,
   SpecificationProject,
   User,
+  DocumentStatus as PrismaDocumentStatusValue,
+  SpecificationPhase as PrismaSpecificationPhaseValue,
+} from '@prisma/client';
+import type {
+  DocumentStatus as DocumentStatusType,
+  SpecificationPhase as SpecificationPhaseType,
 } from '@prisma/client';
 import Redis from 'ioredis';
 import { AIReviewResult, AIService } from './ai.service.js';
+
+type SpecificationPhase = SpecificationPhaseType;
+const SpecificationPhase: Record<SpecificationPhase, SpecificationPhase> = (
+  PrismaSpecificationPhaseValue as Record<SpecificationPhase, SpecificationPhase> | undefined
+) ?? {
+  REQUIREMENTS: 'REQUIREMENTS',
+  DESIGN: 'DESIGN',
+  TASKS: 'TASKS',
+  IMPLEMENTATION: 'IMPLEMENTATION',
+};
+
+type DocumentStatus = DocumentStatusType;
+const DocumentStatus: Record<DocumentStatus, DocumentStatus> = (
+  PrismaDocumentStatusValue as Record<DocumentStatus, DocumentStatus> | undefined
+) ?? {
+  DRAFT: 'DRAFT',
+  REVIEW: 'REVIEW',
+  APPROVED: 'APPROVED',
+  ARCHIVED: 'ARCHIVED',
+};
+
+type RedisMockMethod = 'get' | 'keys' | 'setex' | 'set' | 'del';
+
+interface ResettableMock {
+  mockReset: () => void;
+}
+
+const isResettableMock = (fn: unknown): fn is ResettableMock =>
+  typeof fn === 'function' && typeof (fn as ResettableMock).mockReset === 'function';
+
+interface WorkflowStateOverride {
+  currentPhase?: SpecificationPhase;
+  documentStatuses?: Partial<Record<SpecificationPhase, DocumentStatus>>;
+}
+
+type CachedPhaseTransition = Omit<PhaseTransition, 'timestamp'> & { timestamp: string };
+type CachedApproval = Omit<Approval, 'timestamp'> & { timestamp: string };
+
+interface CachedWorkflowState
+  extends Omit<WorkflowState, 'phaseHistory' | 'approvals' | 'documentStatuses'> {
+  phaseHistory: CachedPhaseTransition[];
+  approvals: Record<string, CachedApproval[]>;
+  documentStatuses: Partial<Record<string, DocumentStatus>>;
+}
 
 export interface PhaseTransitionRequest {
   targetPhase: SpecificationPhase;
@@ -78,7 +124,7 @@ export class SpecificationWorkflowError extends Error {
 }
 
 // Test-only workflow override to stabilize route integration flows without over-constraining Prisma mocks
-const __testWorkflowOverride: Map<string, Partial<WorkflowState>> = new Map();
+const __testWorkflowOverride: Map<string, WorkflowStateOverride> = new Map();
 
 export class SpecificationWorkflowService {
   // Route test mode toggle to scope test-only behavior to route integration tests
@@ -131,24 +177,221 @@ export class SpecificationWorkflowService {
     this.resetMockRedisState();
   }
 
+  private createPhaseRecord<T>(factory: (phase: SpecificationPhase) => T): Record<SpecificationPhase, T> {
+    const record = {} as Record<SpecificationPhase, T>;
+    for (const phase of this.phaseOrder) {
+      record[phase] = factory(phase);
+    }
+    return record;
+  }
+
+  private mergeDocumentStatuses(
+    base: Record<SpecificationPhase, DocumentStatus>,
+    overrides?: Partial<Record<string, DocumentStatus>>
+  ): Record<SpecificationPhase, DocumentStatus> {
+    if (!overrides) {
+      return base;
+    }
+
+    const merged = { ...base };
+    for (const [phaseKey, status] of Object.entries(overrides)) {
+      if (!this.isSpecificationPhaseValue(phaseKey) || !this.isDocumentStatusValue(status)) {
+        continue;
+      }
+      merged[phaseKey] = status;
+    }
+    return merged;
+  }
+
   private resetMockRedisState(): void {
     __testWorkflowOverride.clear();
-    const redisAny = this.redis as any;
-    if (!redisAny) {
+    if (!this.redis) {
       return;
     }
 
-    const maybeReset = (fn: unknown) => {
-      if (fn && typeof (fn as any).mockReset === 'function') {
-        (fn as any).mockReset();
+    const resetMethod = (method: RedisMockMethod) => {
+      const candidate = this.redis?.[method];
+      if (isResettableMock(candidate)) {
+        candidate.mockReset();
       }
     };
 
-    maybeReset(redisAny.get);
-    maybeReset(redisAny.keys);
-    maybeReset(redisAny.setex);
-    maybeReset(redisAny.set);
-    maybeReset(redisAny.del);
+    const methods: RedisMockMethod[] = ['get', 'keys', 'setex', 'set', 'del'];
+    methods.forEach(resetMethod);
+  }
+
+  private isSpecificationPhaseValue(value: unknown): value is SpecificationPhase {
+    return typeof value === 'string' && this.phaseOrder.includes(value as SpecificationPhase);
+  }
+
+  private isDocumentStatusValue(value: unknown): value is DocumentStatus {
+    return (
+      typeof value === 'string' &&
+      (Object.values(DocumentStatus) as string[]).includes(value)
+    );
+  }
+
+  private parseCachedWorkflowState(serialized: string): WorkflowState | null {
+    try {
+      const raw = JSON.parse(serialized) as Partial<CachedWorkflowState>;
+      if (!raw || typeof raw !== 'object') {
+        return null;
+      }
+
+      if (
+        typeof raw.projectId !== 'string' ||
+        !this.isSpecificationPhaseValue(raw.currentPhase) ||
+        typeof raw.canProgress !== 'boolean'
+      ) {
+        return null;
+      }
+
+      const phaseHistory = this.normalizePhaseHistory(raw.phaseHistory);
+      if (!phaseHistory) {
+        return null;
+      }
+
+      const documentStatuses = this.mergeDocumentStatuses(
+        this.createPhaseRecord(() => DocumentStatus.DRAFT),
+        raw.documentStatuses
+      );
+
+      const approvals = this.normalizeApprovalsRecord(raw.approvals);
+      if (!approvals) {
+        return null;
+      }
+
+      let nextPhase: SpecificationPhase | undefined;
+      if (raw.nextPhase !== undefined) {
+        if (raw.nextPhase === null) {
+          nextPhase = undefined;
+        } else if (this.isSpecificationPhaseValue(raw.nextPhase)) {
+          nextPhase = raw.nextPhase;
+        } else {
+          return null;
+        }
+      }
+
+      return {
+        projectId: raw.projectId,
+        currentPhase: raw.currentPhase,
+        phaseHistory,
+        documentStatuses,
+        approvals,
+        canProgress: raw.canProgress,
+        nextPhase,
+      };
+    } catch {
+      return null;
+    }
+  }
+
+  private normalizePhaseHistory(value: unknown): PhaseTransition[] | null {
+    if (!Array.isArray(value)) {
+      return null;
+    }
+
+    const transitions: PhaseTransition[] = [];
+    for (const entry of value) {
+      if (!this.isCachedPhaseTransition(entry)) {
+        return null;
+      }
+
+      const timestamp = new Date(entry.timestamp);
+      if (Number.isNaN(timestamp.getTime())) {
+        return null;
+      }
+
+      transitions.push({
+        fromPhase: entry.fromPhase,
+        toPhase: entry.toPhase,
+        timestamp,
+        userId: entry.userId,
+        approvalComment: entry.approvalComment,
+      });
+    }
+
+    return transitions;
+  }
+
+  private normalizeApprovalsRecord(value: unknown): Record<SpecificationPhase, Approval[]> | null {
+    const base = this.createPhaseRecord<Approval[]>(() => []);
+    if (!value || typeof value !== 'object') {
+      return base;
+    }
+
+    const entries = Object.entries(value as Record<string, unknown>);
+    for (const [phaseKey, approvalsValue] of entries) {
+      if (!this.isSpecificationPhaseValue(phaseKey)) {
+        continue;
+      }
+
+      if (!Array.isArray(approvalsValue)) {
+        return null;
+      }
+
+      const normalized: Approval[] = [];
+      for (const approval of approvalsValue) {
+        if (!this.isCachedApproval(approval)) {
+          return null;
+        }
+        const hydrated = this.hydrateCachedApproval(approval);
+        if (!hydrated) {
+          return null;
+        }
+        normalized.push(hydrated);
+      }
+
+      base[phaseKey] = normalized;
+    }
+
+    return base;
+  }
+
+  private isCachedPhaseTransition(value: unknown): value is CachedPhaseTransition {
+    if (!value || typeof value !== 'object') {
+      return false;
+    }
+
+    const candidate = value as Partial<CachedPhaseTransition>;
+    return (
+      this.isSpecificationPhaseValue(candidate.fromPhase) &&
+      this.isSpecificationPhaseValue(candidate.toPhase) &&
+      typeof candidate.userId === 'string' &&
+      typeof candidate.timestamp === 'string'
+    );
+  }
+
+  private isCachedApproval(value: unknown): value is CachedApproval {
+    if (!value || typeof value !== 'object') {
+      return false;
+    }
+
+    const candidate = value as Partial<CachedApproval>;
+    const timestamp = candidate.timestamp;
+    const isValidTimestamp =
+      typeof timestamp === 'string' || timestamp instanceof Date;
+
+    return (
+      typeof candidate.userId === 'string' &&
+      isValidTimestamp &&
+      typeof candidate.approved === 'boolean' &&
+      (typeof candidate.comment === 'string' || candidate.comment === undefined)
+    );
+  }
+
+  private hydrateCachedApproval(approval: CachedApproval): Approval | null {
+    const timestamp = new Date(approval.timestamp);
+    if (Number.isNaN(timestamp.getTime())) {
+      return null;
+    }
+
+    return {
+      userId: approval.userId,
+      timestamp,
+      comment: approval.comment,
+      approved: approval.approved,
+    };
   }
 
   async validatePhaseCompletion(
@@ -480,20 +723,19 @@ export class SpecificationWorkflowService {
 
     // In route test mode, return a lightweight workflow state directly to avoid consuming mocked Prisma findUnique
     if (SpecificationWorkflowService.routeTestMode) {
-      const nextIndex = this.phaseOrder.indexOf(request.targetPhase) + 1;
-      const nextPhase = nextIndex < this.phaseOrder.length ? this.phaseOrder[nextIndex] : undefined;
       const override = __testWorkflowOverride.get(projectId);
+      const currentPhase = override?.currentPhase ?? request.targetPhase;
+      const nextIndex = this.phaseOrder.indexOf(currentPhase) + 1;
+      const nextPhase = nextIndex < this.phaseOrder.length ? this.phaseOrder[nextIndex] : undefined;
+      const baseDocumentStatuses = this.createPhaseRecord(() => DocumentStatus.DRAFT);
+      const documentStatuses = this.mergeDocumentStatuses(baseDocumentStatuses, override?.documentStatuses);
+      const approvals = this.createPhaseRecord<Approval[]>(() => []);
       return {
         projectId,
-        currentPhase: request.targetPhase,
+        currentPhase,
         phaseHistory: [],
-        documentStatuses: (override?.documentStatuses as any) || ({} as any),
-        approvals: {
-          [SpecificationPhase.REQUIREMENTS]: [],
-          [SpecificationPhase.DESIGN]: [],
-          [SpecificationPhase.TASKS]: [],
-          [SpecificationPhase.IMPLEMENTATION]: [],
-        } as any,
+        documentStatuses,
+        approvals,
         canProgress: false,
         nextPhase,
       };
@@ -582,22 +824,9 @@ export class SpecificationWorkflowService {
     if (this.redis) {
       const cached = await this.redis.get(cacheKey);
       if (cached) {
-        try {
-          const workflowState = JSON.parse(cached);
-          if (!workflowState || typeof workflowState !== 'object' || !workflowState.projectId) {
-            throw new Error('invalid cache shape');
-          }
-
-          if (Array.isArray(workflowState.phaseHistory)) {
-            workflowState.phaseHistory = workflowState.phaseHistory.map((transition: any) => ({
-              ...transition,
-              timestamp: new Date(transition.timestamp),
-            }));
-          }
-
-          return workflowState as WorkflowState;
-        } catch {
-          // Ignore malformed cache entries and fall through to the source of truth
+        const parsed = this.parseCachedWorkflowState(cached);
+        if (parsed) {
+          return parsed;
         }
       }
     }
@@ -615,9 +844,9 @@ export class SpecificationWorkflowService {
     });
     // Tests may only mock findFirst in some cases; fall back if findUnique returns null
     if (!project) {
-      const maybeFindFirst = (this.prisma as any)?.specificationProject?.findFirst;
-      if (typeof maybeFindFirst === 'function') {
-        project = await maybeFindFirst.call((this.prisma as any).specificationProject, {
+      const projectModel = this.prisma.specificationProject;
+      if (projectModel && typeof projectModel.findFirst === 'function') {
+        project = await projectModel.findFirst({
           where: { id: projectId },
           include: { documents: { select: { phase: true, status: true } } },
         });
@@ -632,14 +861,17 @@ export class SpecificationWorkflowService {
     const phaseHistory = await this.getPhaseHistory(projectId);
 
     // Get approvals for all phases
-    const approvals: Record<SpecificationPhase, Approval[]> = {} as any;
+    const approvals = this.createPhaseRecord<Approval[]>(() => []);
     for (const phase of this.phaseOrder) {
       approvals[phase] = await this.getPhaseApprovals(projectId, phase);
     }
 
     // Build document statuses
-    const documentStatuses: Record<SpecificationPhase, DocumentStatus> = {} as any;
+    const documentStatuses = this.createPhaseRecord(() => DocumentStatus.DRAFT);
     for (const doc of project.documents || []) {
+      if (!this.isSpecificationPhaseValue(doc.phase) || !this.isDocumentStatusValue(doc.status)) {
+        continue;
+      }
       documentStatuses[doc.phase] = doc.status;
     }
 
@@ -674,17 +906,15 @@ export class SpecificationWorkflowService {
     const override = __testWorkflowOverride.get(projectId);
     if (override) {
       if (override.currentPhase) {
-        workflowState.currentPhase = override.currentPhase as SpecificationPhase;
+        workflowState.currentPhase = override.currentPhase;
         const idx = this.phaseOrder.indexOf(workflowState.currentPhase);
         workflowState.nextPhase =
           idx >= 0 && idx < this.phaseOrder.length - 1 ? this.phaseOrder[idx + 1] : undefined;
       }
-      if (override.documentStatuses) {
-        workflowState.documentStatuses = {
-          ...workflowState.documentStatuses,
-          ...(override.documentStatuses as any),
-        } as any;
-      }
+      workflowState.documentStatuses = this.mergeDocumentStatuses(
+        workflowState.documentStatuses,
+        override.documentStatuses
+      );
     }
 
     return workflowState;
@@ -905,7 +1135,7 @@ export class SpecificationWorkflowService {
   }
 
   private async recordPhaseTransition(
-    tx: any,
+    _tx: Prisma.TransactionClient,
     projectId: string,
     fromPhase: SpecificationPhase,
     toPhase: SpecificationPhase,
@@ -939,9 +1169,27 @@ export class SpecificationWorkflowService {
     for (const key of keys) {
       const data = await this.redis.get(key);
       if (data) {
-        const transition = JSON.parse(data);
-        transition.timestamp = new Date(transition.timestamp);
-        transitions.push(transition);
+        try {
+          const parsed = JSON.parse(data) as Partial<CachedPhaseTransition>;
+          if (!this.isCachedPhaseTransition(parsed)) {
+            continue;
+          }
+
+          const timestamp = new Date(parsed.timestamp);
+          if (Number.isNaN(timestamp.getTime())) {
+            continue;
+          }
+
+          transitions.push({
+            fromPhase: parsed.fromPhase,
+            toPhase: parsed.toPhase,
+            timestamp,
+            userId: parsed.userId,
+            approvalComment: parsed.approvalComment,
+          });
+        } catch {
+          // Skip malformed entries
+        }
       }
     }
 
@@ -1082,10 +1330,10 @@ export class SpecificationWorkflowService {
           id: aiReview.id,
           documentId: specificationDoc.id,
           overallScore: aiReview.overallScore,
-          suggestions: aiReview.suggestions as any,
-          completeness: aiReview.completenessCheck as any,
-          qualityMetrics: aiReview.qualityMetrics as unknown,
-          appliedSuggestions: [],
+          suggestions: aiReview.suggestions as Prisma.JsonValue,
+          completeness: aiReview.completenessCheck as Prisma.JsonValue,
+          qualityMetrics: aiReview.qualityMetrics as Prisma.JsonValue,
+          appliedSuggestions: [] as Prisma.JsonValue,
         },
       });
 
