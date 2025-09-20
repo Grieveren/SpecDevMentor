@@ -10,7 +10,7 @@ Your CodeMentor AI platform is now running in a production-ready environment and
 
 - **URL**: http://localhost:3000
 - **Status**: ✅ Running and Connected
-- **Features**: User management, Project overview, Test login functionality
+- **Features**: Authentication workflow, Project dashboard, Specification management tools
 
 ### **Backend API**
 
@@ -48,15 +48,15 @@ Your CodeMentor AI platform is now running in a production-ready environment and
 
 1. **User Authentication**
 
-   - Click "Test Login" button on the frontend
-   - Verify login with any test account
-   - Check user role-based access
+   - Sign in from the landing page using any of the seeded credentials above
+   - Exercise the registration and password reset flows as needed
+   - Confirm you can sign out and back in to validate session handling
 
 2. **Data Connectivity**
 
-   - View all seeded users in the Users tab
-   - Browse sample projects in the Projects tab
-   - Verify database relationships
+   - After signing in, load the Projects dashboard to review seeded workspaces
+   - Use the filters and search bar to confirm project querying works end-to-end
+   - Create or archive a project to ensure writes persist in Postgres
 
 3. **API Functionality**
 
