@@ -119,6 +119,253 @@ app.get('/api/users', async (req, res) => {
   }
 });
 
+// Additional production endpoints
+app.get('/api/templates', async (req, res) => {
+  try {
+    // Mock template data for production demo
+    const templates = [
+      {
+        id: '1',
+        name: 'E-commerce Requirements Template',
+        description: 'Comprehensive template for e-commerce platform requirements',
+        category: 'Requirements',
+        tags: ['e-commerce', 'requirements', 'business'],
+        createdAt: new Date().toISOString(),
+      },
+      {
+        id: '2',
+        name: 'API Design Specification',
+        description: 'REST API design and documentation template',
+        category: 'Design',
+        tags: ['api', 'rest', 'design'],
+        createdAt: new Date().toISOString(),
+      },
+      {
+        id: '3',
+        name: 'Testing Strategy Template',
+        description: 'Comprehensive testing strategy and test case templates',
+        category: 'Testing',
+        tags: ['testing', 'quality', 'strategy'],
+        createdAt: new Date().toISOString(),
+      },
+    ];
+
+    res.json({
+      success: true,
+      data: { templates },
+    });
+  } catch (error) {
+    console.error('Error fetching templates:', error);
+    res.status(500).json({
+      success: false,
+      error: 'Failed to fetch templates',
+    });
+  }
+});
+
+app.get('/api/learning/modules', async (req, res) => {
+  try {
+    // Mock learning modules for production demo
+    const modules = [
+      {
+        id: '1',
+        title: 'Requirements Gathering',
+        description: 'Learn how to effectively gather and document requirements',
+        duration: '2 hours',
+        level: 'Beginner',
+        lessons: 8,
+        completed: false,
+      },
+      {
+        id: '2',
+        title: 'Specification Writing',
+        description: 'Master the art of writing clear, comprehensive specifications',
+        duration: '3 hours',
+        level: 'Intermediate',
+        lessons: 12,
+        completed: false,
+      },
+      {
+        id: '3',
+        title: 'AI-Powered Review',
+        description: 'Using AI tools to enhance specification quality',
+        duration: '1.5 hours',
+        level: 'Advanced',
+        lessons: 6,
+        completed: false,
+      },
+    ];
+
+    res.json({
+      success: true,
+      data: { modules },
+    });
+  } catch (error) {
+    console.error('Error fetching learning modules:', error);
+    res.status(500).json({
+      success: false,
+      error: 'Failed to fetch learning modules',
+    });
+  }
+});
+
+// Specification workflow endpoints
+app.get('/api/specification-workflow/projects/:projectId/documents', async (req, res) => {
+  try {
+    const { projectId } = req.params;
+
+    // Get project details
+    const project = await prisma.specificationProject.findUnique({
+      where: { id: projectId },
+      include: {
+        owner: {
+          select: { id: true, name: true, email: true },
+        },
+      },
+    });
+
+    if (!project) {
+      return res.status(404).json({
+        success: false,
+        error: 'Project not found',
+      });
+    }
+
+    // Mock documents for the project
+    const documents = [
+      {
+        id: '1',
+        projectId,
+        title: 'Requirements Specification',
+        content:
+          '## Requirements\n\n1. User authentication\n2. Product catalog\n3. Shopping cart\n4. Payment processing',
+        phase: 'REQUIREMENTS',
+        status: 'COMPLETED',
+        version: 1,
+        createdAt: new Date().toISOString(),
+        updatedAt: new Date().toISOString(),
+      },
+      {
+        id: '2',
+        projectId,
+        title: 'System Design',
+        content:
+          '## Architecture\n\n- Frontend: React\n- Backend: Node.js\n- Database: PostgreSQL\n- Cache: Redis',
+        phase: 'DESIGN',
+        status: 'IN_PROGRESS',
+        version: 1,
+        createdAt: new Date().toISOString(),
+        updatedAt: new Date().toISOString(),
+      },
+    ];
+
+    res.json({
+      success: true,
+      data: { documents, project },
+    });
+  } catch (error) {
+    console.error('Error fetching project documents:', error);
+    res.status(500).json({
+      success: false,
+      error: 'Failed to fetch project documents',
+    });
+  }
+});
+
+// AI Review endpoint
+app.post('/api/ai-review/request', async (req, res) => {
+  try {
+    const { documentId, content, phase } = req.body;
+
+    if (!documentId || !content || !phase) {
+      return res.status(400).json({
+        success: false,
+        error: 'Missing required fields: documentId, content, phase',
+      });
+    }
+
+    // Mock AI review response
+    const review = {
+      id: 'review_' + Date.now(),
+      documentId,
+      phase,
+      score: 85,
+      feedback: [
+        {
+          type: 'suggestion',
+          message: 'Consider adding more detailed acceptance criteria for user stories',
+          lineNumber: 5,
+          severity: 'medium',
+        },
+        {
+          type: 'improvement',
+          message: 'Add non-functional requirements section',
+          lineNumber: null,
+          severity: 'low',
+        },
+      ],
+      suggestions: [
+        'Add performance requirements',
+        'Include security considerations',
+        'Define success metrics',
+      ],
+      createdAt: new Date().toISOString(),
+    };
+
+    res.json({
+      success: true,
+      data: { review },
+    });
+  } catch (error) {
+    console.error('Error processing AI review:', error);
+    res.status(500).json({
+      success: false,
+      error: 'Failed to process AI review',
+    });
+  }
+});
+
+// Analytics endpoint
+app.get('/api/analytics/overview', async (req, res) => {
+  try {
+    const analytics = {
+      totalProjects: 2,
+      activeProjects: 2,
+      completedProjects: 0,
+      totalUsers: 3,
+      activeUsers: 3,
+      totalDocuments: 6,
+      aiReviews: 0,
+      averageProjectCompletion: 75,
+      recentActivity: [
+        {
+          id: '1',
+          type: 'project_created',
+          message: 'New project "Personal Blog Platform" created',
+          timestamp: new Date(Date.now() - 3600000).toISOString(),
+        },
+        {
+          id: '2',
+          type: 'user_registered',
+          message: 'New user registered',
+          timestamp: new Date(Date.now() - 7200000).toISOString(),
+        },
+      ],
+    };
+
+    res.json({
+      success: true,
+      data: analytics,
+    });
+  } catch (error) {
+    console.error('Error fetching analytics:', error);
+    res.status(500).json({
+      success: false,
+      error: 'Failed to fetch analytics',
+    });
+  }
+});
+
 // Validation helper functions
 function validateEmail(email: string): boolean {
   const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;

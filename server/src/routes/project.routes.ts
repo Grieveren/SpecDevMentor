@@ -1,4 +1,3 @@
-// @ts-nocheck
 import { PrismaClient } from '@prisma/client';
 import { NextFunction, Request, Response, Router } from 'express';
 import type { Router as ExpressRouter } from 'express';import { body, param, query, validationResult } from 'express-validator';

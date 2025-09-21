@@ -1,4 +1,3 @@
-// @ts-nocheck
 import axios, { AxiosResponse } from 'axios';
 import {
   AuthError,

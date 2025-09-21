@@ -1,4 +1,3 @@
-// @ts-nocheck
 import { PrismaClient } from '@prisma/client';
 import { Redis } from 'ioredis';
 import { NotificationService } from './notification.service.js';

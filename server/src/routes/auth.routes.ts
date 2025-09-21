@@ -1,4 +1,3 @@
-// @ts-nocheck
 import { Request, Response, Router } from 'express';
 import type { Router as ExpressRouter } from 'express';
 import Joi from 'joi';

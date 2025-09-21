@@ -1,4 +1,3 @@
-// @ts-nocheck
 import React, { useState, useEffect } from 'react';
 import {
   CheckCircleIcon,
@@ -88,8 +87,15 @@ export const WorkflowIntegration: React.FC<WorkflowIntegrationProps> = ({
       setIsLoading(true);
       setError(null);
 
-      // Load AI service status
-      const aiStatus = await workflowService.getAIServiceStatus();
+      // Load AI service status (graceful if unavailable)
+      let aiStatus: any = { available: false };
+      try {
+        if (typeof (workflowService as any).getAIServiceStatus === 'function') {
+          aiStatus = await (workflowService as any).getAIServiceStatus();
+        }
+      } catch (_e) {
+        aiStatus = { available: false };
+      }
       setAiServiceStatus(aiStatus);
 
       // Load workflow state
@@ -108,9 +114,13 @@ export const WorkflowIntegration: React.FC<WorkflowIntegrationProps> = ({
           phaseValidations[phase] = validation;
 
           // Get AI validation if available
-          if (aiStatus.available) {
-            const aiValidation = await workflowService.getAIValidation(projectId, phase);
-            aiValidationResults[phase] = aiValidation;
+          if (aiStatus.available && typeof (workflowService as any).getAIValidation === 'function') {
+            try {
+              const aiValidation = await (workflowService as any).getAIValidation(projectId, phase);
+              aiValidationResults[phase] = aiValidation;
+            } catch (_e) {
+              // ignore AI validation errors for UI rendering
+            }
           }
 
           // Build phase progress data
@@ -169,6 +179,7 @@ export const WorkflowIntegration: React.FC<WorkflowIntegrationProps> = ({
 
     } catch (err) {
       console.error('Failed to load workflow data:', err);
+      // Do not hard fail UI if partial data exists; prefer soft message
       setError('Failed to load workflow information');
     } finally {
       setIsLoading(false);
@@ -236,13 +247,13 @@ export const WorkflowIntegration: React.FC<WorkflowIntegrationProps> = ({
   const handleTriggerAIReview = async (phase: SpecificationPhase) => {
     try {
       setError(null);
-      const _result = await workflowService.triggerAIReview(projectId, phase);
+      const result = await workflowService.triggerAIReview(projectId, phase);
       
-      if (result.success) {
+      if (result?.success) {
         // Reload workflow data to reflect new AI review
         await loadWorkflowData();
       } else {
-        setError(result.error || 'Failed to trigger AI review');
+        setError(result?.error || 'Failed to trigger AI review');
       }
     } catch (err) {
       console.error('Failed to trigger AI review:', err);
@@ -252,7 +263,7 @@ export const WorkflowIntegration: React.FC<WorkflowIntegrationProps> = ({
 
   if (isLoading) {
     return (
-      <div className={cn('space-y-6', className)}>
+      <div className={cn('space-y-6', className)} role="status" aria-label="loading">
         <div className="animate-pulse">
           <div className="h-6 bg-gray-200 rounded mb-4"></div>
           <div className="space-y-4">
@@ -267,8 +278,8 @@ export const WorkflowIntegration: React.FC<WorkflowIntegrationProps> = ({
 
   if (error) {
     return (
-      <div className={cn('bg-white rounded-lg border border-red-200 shadow-sm p-6', className)}>
-        <div className="text-center">
+      <div className={cn('bg-white rounded-lg border border-red-200 shadow-sm p-6', className)} aria-live="polite">
+        <div className="text-center" role="alert">
           <ExclamationTriangleIcon className="h-12 w-12 text-red-500 mx-auto mb-4" />
           <h3 className="text-lg font-medium text-gray-900 mb-2">Workflow Error</h3>
           <p className="text-sm text-gray-500 mb-4">{error}</p>

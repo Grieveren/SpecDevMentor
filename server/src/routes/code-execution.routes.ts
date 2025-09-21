@@ -1,6 +1,5 @@
-// @ts-nocheck
-import type { Router as ExpressRouter } from 'express';
 import { Router } from 'express';
+import type { Router as ExpressRouter } from 'express';
 import { body, validationResult } from 'express-validator';
 import { Redis } from 'ioredis';
 import { authMiddleware } from '../middleware/auth.middleware.js';
@@ -58,7 +57,7 @@ router.post('/execute', authMiddleware, validateExecutionRequest, async (req, re
     const { code, language, input, timeout } = req.body;
 
     // Execute code
-    const _result = await codeExecutionService.executeCode({
+    const result = await codeExecutionService.executeCode({
       code,
       language,
       input,
@@ -69,7 +68,7 @@ router.post('/execute', authMiddleware, validateExecutionRequest, async (req, re
       success: true,
       data: result,
     });
-  } catch (error) {
+  } catch (error: any) {
     console.error('Code execution error:', error);
 
     if (error.name === 'SecurityError') {
@@ -185,7 +184,7 @@ router.post(
       const { code, language, specifications } = req.body;
 
       // Validate compliance
-      const _result = await complianceService.validateCodeCompliance(
+      const result = await complianceService.validateCodeCompliance(
         code,
         language,
         specifications
@@ -195,7 +194,7 @@ router.post(
         success: true,
         data: result,
       });
-    } catch (error) {
+    } catch (error: any) {
       console.error('Compliance validation error:', error);
 
       res.status(500).json({
@@ -216,7 +215,7 @@ router.get('/health', async (req, res) => {
       status: 'healthy',
       timestamp: new Date().toISOString(),
     });
-  } catch (error) {
+  } catch (error: any) {
     res.status(503).json({
       success: false,
       status: 'unhealthy',

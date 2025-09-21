@@ -1,4 +1,3 @@
-// @ts-nocheck
 import {
   CheckCircleIcon,
   ClockIcon,
@@ -582,8 +581,8 @@ export const CollaborativeSpecificationEditor: React.FC<CollaborativeSpecificati
               <span>Live collaboration active</span>
             </span>
           )}
-          <span>{content?.length || 0} characters</span>
-          <span>{content?.split('\n').length || 0} lines</span>
+          <span>{(content || '').length} characters</span>
+          <span>{(content || '').split('\n').length} lines</span>
         </div>
       </div>
     </div>

@@ -1,14 +1,13 @@
-// @ts-nocheck
+import React, { useState, useEffect, useCallback } from 'react';
 import {
-  CheckCircleIcon,
-  ClockIcon,
   DocumentTextIcon,
-  ExclamationTriangleIcon,
   EyeIcon,
   PencilIcon,
+  ClockIcon,
+  CheckCircleIcon,
+  ExclamationTriangleIcon,
 } from '@heroicons/react/24/outline';
-import React, { useCallback, useEffect, useState } from 'react';
-import { DocumentStatus, SpecificationPhase } from '../../types/project';
+import { SpecificationPhase, DocumentStatus } from '../../types/project';
 import { cn } from '../../utils/cn';
 
 export interface SpecificationDocument {
@@ -18,6 +17,12 @@ export interface SpecificationDocument {
   status: DocumentStatus;
   version: number;
   updatedAt: string;
+}
+
+interface ToolbarItem {
+  label: string;
+  action: () => void;
+  shortcut?: string;
 }
 
 export interface SpecificationEditorProps {
@@ -30,14 +35,14 @@ export interface SpecificationEditorProps {
 }
 
 export const SpecificationEditor: React.FC<SpecificationEditorProps> = ({
-  document,
+  document: specDocument,
   mode,
   onSave,
   onRequestReview,
   collaborationEnabled = false,
   className,
 }) => {
-  const [content, setContent] = useState(document.content);
+  const [content, setContent] = useState(specDocument.content);
   const [isEditing, setIsEditing] = useState(mode === 'edit');
   const [isSaving, setIsSaving] = useState(false);
   const [lastSaved, setLastSaved] = useState<Date | null>(null);
@@ -48,7 +53,7 @@ export const SpecificationEditor: React.FC<SpecificationEditorProps> = ({
     if (!hasUnsavedChanges || mode === 'readonly') return;
 
     const timer = setTimeout(async () => {
-      if (content !== document.content) {
+      if (content !== specDocument.content) {
         setIsSaving(true);
         try {
           await onSave(content);
@@ -63,15 +68,12 @@ export const SpecificationEditor: React.FC<SpecificationEditorProps> = ({
     }, 2000);
 
     return () => clearTimeout(timer);
-  }, [content, document.content, hasUnsavedChanges, mode, onSave]);
+  }, [content, specDocument.content, hasUnsavedChanges, mode, onSave]);
 
-  const handleContentChange = useCallback(
-    (newContent: string) => {
-      setContent(newContent);
-      setHasUnsavedChanges(newContent !== document.content);
-    },
-    [document.content]
-  );
+  const handleContentChange = useCallback((newContent: string) => {
+    setContent(newContent);
+    setHasUnsavedChanges(newContent !== specDocument.content);
+  }, [specDocument.content]);
 
   const handleManualSave = async () => {
     if (!hasUnsavedChanges) return;
@@ -123,8 +125,8 @@ export const SpecificationEditor: React.FC<SpecificationEditorProps> = ({
     }
   };
 
-  const getPhaseToolbarItems = (phase: SpecificationPhase) => {
-    const baseItems = [
+  const getPhaseToolbarItems = (phase: SpecificationPhase): ToolbarItem[] => {
+    const baseItems: ToolbarItem[] = [
       { label: 'Bold', shortcut: 'Ctrl+B', action: () => insertMarkdown('**', '**') },
       { label: 'Italic', shortcut: 'Ctrl+I', action: () => insertMarkdown('*', '*') },
       { label: 'Code', shortcut: 'Ctrl+`', action: () => insertMarkdown('`', '`') },
@@ -177,9 +179,16 @@ export const SpecificationEditor: React.FC<SpecificationEditorProps> = ({
     }
   };
 
+  const queryEditorTextarea = (): HTMLTextAreaElement | null => {
+    if (typeof document === 'undefined') {
+      return null;
+    }
+
+    return (document.querySelector('textarea') as HTMLTextAreaElement) || null;
+  };
+
   const insertMarkdown = (before: string, after: string) => {
-    if (typeof document === 'undefined' || !document.querySelector) return; // Handle test environment
-    const textarea = document.querySelector('textarea') as HTMLTextAreaElement;
+    const textarea = queryEditorTextarea();
     if (!textarea) return;
 
     const start = textarea.selectionStart;
@@ -198,7 +207,7 @@ export const SpecificationEditor: React.FC<SpecificationEditorProps> = ({
   };
 
   const insertTemplate = (template: string) => {
-    const textarea = document.querySelector('textarea') as HTMLTextAreaElement;
+    const textarea = queryEditorTextarea();
     if (!textarea) return;
 
     const start = textarea.selectionStart;
@@ -225,12 +234,12 @@ export const SpecificationEditor: React.FC<SpecificationEditorProps> = ({
         <div className="flex items-center space-x-3">
           <DocumentTextIcon className="h-6 w-6 text-gray-400" />
           <div>
-            <h2 className="text-lg font-medium text-gray-900">{getPhaseTitle(document.phase)}</h2>
+            <h2 className="text-lg font-medium text-gray-900">{getPhaseTitle(specDocument.phase)}</h2>
             <div className="flex items-center space-x-2 text-sm text-gray-500">
-              {getStatusIcon(document.status)}
-              <span className="capitalize">{document.status.toLowerCase()}</span>
+              {getStatusIcon(specDocument.status)}
+              <span className="capitalize">{specDocument.status.toLowerCase()}</span>
               <span>•</span>
-              <span>Version {document.version}</span>
+              <span>Version {specDocument.version}</span>
             </div>
           </div>
         </div>
@@ -271,7 +280,7 @@ export const SpecificationEditor: React.FC<SpecificationEditorProps> = ({
                 </button>
               )}
 
-              {onRequestReview && document.status === DocumentStatus.DRAFT && (
+              {onRequestReview && specDocument.status === DocumentStatus.DRAFT && (
                 <button
                   onClick={onRequestReview}
                   className="px-3 py-1 text-sm bg-green-600 text-white rounded hover:bg-green-700"
@@ -299,7 +308,7 @@ export const SpecificationEditor: React.FC<SpecificationEditorProps> = ({
       {/* Toolbar */}
       {isEditing && mode !== 'readonly' && (
         <div className="flex items-center space-x-1 p-2 border-b border-gray-200 bg-gray-50">
-          {getPhaseToolbarItems(document.phase).map((item, index) => (
+          {getPhaseToolbarItems(specDocument.phase).map((item, index) => (
             <button
               key={index}
               onClick={item.action}
@@ -318,7 +327,7 @@ export const SpecificationEditor: React.FC<SpecificationEditorProps> = ({
           <textarea
             value={content}
             onChange={e => handleContentChange(e.target.value)}
-            placeholder={`Enter your ${document.phase.toLowerCase()} content here...`}
+            placeholder={`Enter your ${specDocument.phase.toLowerCase()} content here...`}
             className="flex-1 p-4 border-none resize-none focus:outline-none font-mono text-sm leading-relaxed"
             style={{ minHeight: '400px' }}
           />
@@ -341,7 +350,9 @@ export const SpecificationEditor: React.FC<SpecificationEditorProps> = ({
 
       {/* Footer */}
       <div className="flex items-center justify-between p-2 border-t border-gray-200 bg-gray-50 text-xs text-gray-500">
-        <div>Last updated: {new Date(document.updatedAt).toLocaleString()}</div>
+        <div>
+          Last updated: {new Date(specDocument.updatedAt).toLocaleString()}
+        </div>
         <div className="flex items-center space-x-4">
           {collaborationEnabled && (
             <span className="flex items-center space-x-1">

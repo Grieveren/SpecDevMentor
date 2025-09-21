@@ -1,4 +1,3 @@
-// @ts-nocheck
 import React, { useState, useEffect } from 'react';
 import {
   ClockIcon,
@@ -38,7 +37,7 @@ export const ReviewHistory: React.FC<ReviewHistoryProps> = ({
     setError(null);
 
     try {
-      const _response = await aiReviewService.getDocumentReviews(documentId, {
+      const response = await aiReviewService.getDocumentReviews(documentId, {
         limit: 20,
         offset: 0,
       });

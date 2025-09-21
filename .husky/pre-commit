@@ -62,7 +62,7 @@ else
 fi
 
 # Run a quick test if test files are staged
-STAGED_TEST_FILES=$(git diff --cached --name-only --diff-filter=ACM | grep -E '\.(test|spec)\.(ts|tsx|js|jsx)$' | grep -v node_modules)
+STAGED_TEST_FILES=$(git diff --cached --name-only --diff-filter=ACM | grep -E '\.(test|spec)\.(ts|tsx|js|jsx)$' | grep -v node_modules || true)
 
 if [ -n "$STAGED_TEST_FILES" ]; then
     echo -e "${BLUE}🧪 Running tests for staged test files...${NC}"

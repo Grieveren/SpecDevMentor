@@ -1,4 +1,3 @@
-// @ts-nocheck
 import React from 'react';
 import { ChevronLeftIcon, ChevronRightIcon } from '@heroicons/react/24/outline';
 import { cn } from '../../utils/cn';
@@ -18,8 +17,8 @@ export const Pagination: React.FC<PaginationProps> = ({
 }) => {
   const getVisiblePages = () => {
     const delta = 2;
-    const range = [];
-    const rangeWithDots = [];
+    const range: number[] = [];
+    const rangeWithDots: Array<number | '...'> = [];
 
     for (
       let i = Math.max(2, currentPage - delta);
@@ -48,7 +47,7 @@ export const Pagination: React.FC<PaginationProps> = ({
 
   if (totalPages <= 1) return null;
 
-  const visiblePages = getVisiblePages();
+  const visiblePages: Array<number | '...'> = getVisiblePages();
 
   return (
     <nav className="flex items-center justify-between border-t border-gray-200 px-4 sm:px-0">

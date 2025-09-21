@@ -1,4 +1,3 @@
-// @ts-nocheck
 import {
   ArrowTrendingUpIcon,
   BookOpenIcon,

@@ -1,0 +1,37 @@
+version: '3.9'
+
+services:
+  postgres-test:
+    image: postgres:15-alpine
+    container_name: codementor-postgres-test
+    environment:
+      POSTGRES_DB: ${POSTGRES_DB_TEST:-codementor_ai_test}
+      POSTGRES_USER: ${POSTGRES_USER_TEST:-codementor}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD_TEST:-password}
+    ports:
+      - '${POSTGRES_PORT_TEST:-5433}:5432'
+    tmpfs:
+      - /var/lib/postgresql/data
+    healthcheck:
+      test:
+        - CMD-SHELL
+        - pg_isready -U "$$POSTGRES_USER" -d "$$POSTGRES_DB"
+      interval: 5s
+      timeout: 5s
+      retries: 10
+
+  redis-test:
+    image: redis:7-alpine
+    container_name: codementor-redis-test
+    ports:
+      - '${REDIS_PORT_TEST:-6380}:6379'
+    command: redis-server --save '' --appendonly no
+    healthcheck:
+      test: ['CMD', 'redis-cli', 'ping']
+      interval: 5s
+      timeout: 5s
+      retries: 10
+
+networks:
+  default:
+    name: codementor-test-network

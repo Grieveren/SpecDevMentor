@@ -1,4 +1,3 @@
-// @ts-nocheck
 import React, { useState, useCallback } from 'react';
 import { CodeEditor } from './CodeEditor';
 import { ExecutionResults } from './ExecutionResults';
@@ -62,7 +61,7 @@ export const CodeExecutionInterface: React.FC<CodeExecutionInterfaceProps> = ({
     });
 
     try {
-      const _result = await codeExecutionService.executeCode({
+      const result = await codeExecutionService.executeCode({
         code,
         language,
         input: input || undefined,
@@ -95,7 +94,7 @@ export const CodeExecutionInterface: React.FC<CodeExecutionInterfaceProps> = ({
     });
 
     try {
-      const _result = await codeExecutionService.validateCompliance(
+      const result = await codeExecutionService.validateCompliance(
         code,
         language,
         specifications

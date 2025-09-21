@@ -396,7 +396,7 @@ export enum ErrorSeverity {
 // Utility function to check if error is of specific type
 export const isErrorOfType = <T extends AppError>(
   error: AppError,
-  errorClass: new (...args: unknown[]) => T
+  errorClass: new (...args: any[]) => T
 ): error is T => {
   return error instanceof errorClass;
 };

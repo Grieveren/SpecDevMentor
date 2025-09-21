@@ -1,4 +1,3 @@
-// @ts-nocheck
 import { BaseService, typedApiClient } from './api.service';
 
 export interface ProjectAnalytics {

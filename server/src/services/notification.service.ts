@@ -1,6 +1,12 @@
-// @ts-nocheck
-// Use ESM import for Prisma to maintain compatibility
-import { PrismaClient, NotificationType, EmailStatus, DigestFrequency } from '@prisma/client';
+// Defer Prisma import to be compatible with module mocks in tests
+const { PrismaClient, NotificationType, EmailStatus, DigestFrequency } = require('@prisma/client');
+// Import types separately so generated declarations reference public types
+import type {
+  PrismaClient as PrismaClientType,
+  NotificationType as NotificationTypeEnum,
+  EmailStatus as EmailStatusEnum,
+  DigestFrequency as DigestFrequencyEnum,
+} from '@prisma/client';
 import nodemailer from 'nodemailer';
 import { Redis } from 'ioredis';
 import { Server as SocketIOServer } from 'socket.io';
@@ -14,7 +20,7 @@ import {
 
 interface NotificationData {
   userId: string;
-  type: NotificationType;
+  type: NotificationTypeEnum;
   title: string;
   message: string;
   data?: Record<string, any>;
@@ -42,12 +48,12 @@ interface NotificationPreferences {
 }
 
 export class NotificationService {
-  private prisma: PrismaClient;
+  private prisma: PrismaClientType;
   private redis: Redis;
   private io?: SocketIOServer;
   private emailTransporter: nodemailer.Transporter;
 
-  constructor(prisma: PrismaClient, redis: Redis, io?: SocketIOServer) {
+  constructor(prisma: PrismaClientType, redis: Redis, io?: SocketIOServer) {
     this.prisma = prisma;
     this.redis = redis;
     this.io = io;
@@ -364,7 +370,7 @@ export class NotificationService {
   async updateNotificationSettings(
     userId: string,
     settings: Partial<NotificationPreferences & {
-      digestFrequency: DigestFrequency;
+      digestFrequency: DigestFrequencyEnum;
       quietHoursStart: number;
       quietHoursEnd: number;
       timezone: string;
@@ -383,7 +389,7 @@ export class NotificationService {
   /**
    * Check if notification should be sent based on user preferences
    */
-  private shouldSendNotification(type: NotificationType, settings: NotificationPreferences): boolean {
+  private shouldSendNotification(type: NotificationTypeEnum, settings: NotificationPreferences): boolean {
     switch (type) {
       case NotificationType.WORKFLOW_EVENT:
       case NotificationType.PHASE_TRANSITION:
@@ -505,7 +511,7 @@ This is an automated message from CodeMentor AI.
 
     let title: string;
     let message: string;
-    let notificationType: NotificationType;
+    let notificationType: NotificationTypeEnum;
 
     switch (eventType) {
       case 'phase_transition':

@@ -1,4 +1,3 @@
-// @ts-nocheck
 import React, { useState, useEffect } from 'react';
 import { BellIcon, XMarkIcon, CheckIcon, Cog6ToothIcon } from '@heroicons/react/24/outline';
 import { BellIcon as BellSolidIcon } from '@heroicons/react/24/solid';
@@ -33,7 +32,7 @@ export const NotificationSystem: React.FC<NotificationSystemProps> = ({ classNam
   const loadNotifications = async () => {
     try {
       setIsLoading(true);
-      const _response = await notificationService.getNotifications({ limit: 10 });
+      const response = await notificationService.getNotifications({ limit: 10 });
       setNotifications(response.notifications);
     } catch (error) {
       console.error('Failed to load notifications:', error);

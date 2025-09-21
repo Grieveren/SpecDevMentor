@@ -1,4 +1,3 @@
-// @ts-nocheck
 import { SpecificationPhase, DocumentStatus } from '../types/project';
 
 export interface PhaseValidationResult {

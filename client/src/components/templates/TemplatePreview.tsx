@@ -1,4 +1,3 @@
-// @ts-nocheck
 import React, { useState } from 'react';
 import { XMarkIcon, StarIcon, EyeIcon, UserIcon, CalendarIcon } from '@heroicons/react/24/outline';
 import { StarIcon as StarIconSolid } from '@heroicons/react/24/solid';
@@ -24,7 +23,7 @@ export const TemplatePreview: React.FC<TemplatePreviewProps> = ({
   const [feedback, setFeedback] = useState('');
   const [showRating, setShowRating] = useState(false);
 
-  const handleVariableChange = (name: string, _value: string) => {
+  const handleVariableChange = (name: string, value: string) => {
     setVariables(prev => ({ ...prev, [name]: value }));
   };
 

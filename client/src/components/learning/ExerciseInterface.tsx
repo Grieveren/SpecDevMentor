@@ -1,4 +1,3 @@
-// @ts-nocheck
 import React, { useState, useEffect } from 'react';
 import { 
   CheckCircleIcon, 
@@ -34,9 +33,21 @@ export interface ExerciseResult {
   feedback?: string;
 }
 
+interface ExerciseSubmission {
+  exerciseId: string;
+  response: string;
+  timeSpent: number;
+  attempts: number;
+}
+
+interface MultipleChoiceOption {
+  label: string;
+  value: string;
+}
+
 interface ExerciseInterfaceProps {
   exercise: Exercise;
-  onSubmit: (_response: unknown) => Promise<ExerciseResult>;
+  onSubmit: (submission: ExerciseSubmission) => Promise<ExerciseResult>;
   onComplete: (_result: ExerciseResult) => void;
   previousResult?: ExerciseResult;
 }
@@ -47,7 +58,7 @@ export const ExerciseInterface: React.FC<ExerciseInterfaceProps> = ({
   onComplete,
   previousResult,
 }) => {
-  const [response, setResponse] = useState<any>('');
+  const [response, setResponse] = useState<string>('');
   const [currentHint, setCurrentHint] = useState(0);
   const [showHints, setShowHints] = useState(false);
   const [isSubmitting, setIsSubmitting] = useState(false);
@@ -116,12 +127,19 @@ export const ExerciseInterface: React.FC<ExerciseInterfaceProps> = ({
 
   const renderExerciseContent = () => {
     switch (exercise.type) {
-      case 'multiple_choice':
-        const options = exercise.metadata?.options || [];
+      case 'multiple_choice': {
+        const rawOptions = exercise.metadata?.options;
+        const options: MultipleChoiceOption[] = Array.isArray(rawOptions)
+          ? (rawOptions as MultipleChoiceOption[])
+          : [];
+
         return (
           <div className="space-y-3">
-            {options.map((option: unknown, _index: number) => (
-              <label key={index} className="flex items-center p-3 border rounded-lg hover:bg-gray-50 cursor-pointer">
+            {options.map((option, index) => (
+              <label
+                key={option.value ?? `option-${index}`}
+                className="flex items-center p-3 border rounded-lg hover:bg-gray-50 cursor-pointer"
+              >
                 <input
                   type="radio"
                   name="answer"
@@ -135,6 +153,7 @@ export const ExerciseInterface: React.FC<ExerciseInterfaceProps> = ({
             ))}
           </div>
         );
+      }
 
       case 'code_review':
         return (

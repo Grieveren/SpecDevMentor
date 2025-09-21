@@ -1,4 +1,3 @@
-// @ts-nocheck
 import { Prisma, PrismaClient, ProjectStatus, SpecificationPhase } from '@prisma/client';
 import { Redis } from 'ioredis';
 

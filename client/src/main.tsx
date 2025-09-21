@@ -1,4 +1,3 @@
-// @ts-nocheck
 import React, { useState } from 'react';
 import ReactDOM from 'react-dom/client';
 import { AuthProvider } from './components/auth/AuthProvider';

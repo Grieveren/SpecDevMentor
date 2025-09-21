@@ -23,7 +23,30 @@ Use this as the single hand-off doc to resume work on another laptop or clean en
   pnpm --filter server prisma generate
   ```
 
-### 1a) Local Postgres/Redis (optional, for integration tests)
+### 1a) Automated Postgres/Redis for integration tests (Docker)
+
+Use the lightweight compose profile in `docker/docker-compose.test.yml` when you need ephemeral infra for automated tests:
+
+```bash
+# Boot the stack (Postgres 5433 / Redis 6380 by default)
+pnpm docker:test:up
+
+# Export the connection strings expected by the server package
+export DATABASE_URL="postgresql://codementor:password@localhost:5433/codementor_ai_test"
+export DATABASE_URL_TEST="$DATABASE_URL"
+export REDIS_URL="redis://localhost:6380"
+export REDIS_URL_TEST="$REDIS_URL"
+
+# Apply migrations + seed fixtures against the test database
+pnpm db:test:prepare
+```
+
+- `pnpm docker:test:logs` tails the compose services; `pnpm docker:test:ps` shows status.
+- Override ports/credentials with `POSTGRES_PORT_TEST`, `POSTGRES_DB_TEST`, `POSTGRES_USER_TEST`, `POSTGRES_PASSWORD_TEST`, or `REDIS_PORT_TEST` before calling `pnpm docker:test:up`.
+- Shut everything down with `pnpm docker:test:down` (drops the tmpfs-backed volumes).
+- Skip seeding with `SKIP_TEST_DB_SEED=1 pnpm db:test:prepare`; reuse data without dropping the DB with `RESET_TEST_DB=0`.
+
+### 1b) Local Postgres/Redis (optional, for integration tests)
 
 If you want to run DB-backed integration tests locally without Docker:
 
@@ -66,6 +89,12 @@ If you want to run DB-backed integration tests locally without Docker:
   pnpm --filter server test
   ```
 
+- Reset + seed the Postgres test database (assumes Docker stack running)
+
+  ```bash
+  pnpm db:test:prepare
+  ```
+
 - Run server tests with local infra env vars
   ```bash
   export DATABASE_URL="postgresql://$(whoami)@localhost:5432/codementor_ai?schema=public"
@@ -94,9 +123,10 @@ If you want to run DB-backed integration tests locally without Docker:
   - Accept both `user.id` and `user.userId` shapes in routes.
 - For local runtime (not tests), copy or create `server/.env` and set required secrets (`JWT_SECRET`, `REFRESH_SECRET`, etc.)
 
-  - Integration tests require Postgres/Redis; you can skip those initially or run the services and set `DATABASE_URL` and `REDIS_URL`.
+- Integration tests require Postgres/Redis; you can skip those initially or run the services and set `DATABASE_URL` and `REDIS_URL`.
 
 - Test env var snapshot (copy/paste)
+  - When using the Docker test stack: `postgresql://codementor:password@localhost:5433/codementor_ai_test` and `redis://localhost:6380`
   ```bash
   export DATABASE_URL="postgresql://$(whoami)@localhost:5432/codementor_ai?schema=public"
   export DATABASE_URL_TEST="postgresql://$(whoami)@localhost:5432/codementor_ai_test?schema=public"
@@ -127,6 +157,7 @@ If you want to run DB-backed integration tests locally without Docker:
 - Latest commit pushed to main: `b577d40` (stabilize routes/services for deterministic tests)
 
 Recent changes (high-level)
+
 - notification.routes: deterministic service init under tests, optionalAuth, default settings in test, date normalization
 - project.routes: use `DATABASE_URL_TEST` in tests, stub Redis in tests, normalize BigInt analytics
 - specification-workflow.routes: inject test Prisma/Redis, enable route test mode via constructor option, map domain errors to expected codes
@@ -135,12 +166,14 @@ Recent changes (high-level)
 - health.service: adjust warn aggregation behavior in tests
 
 Next steps (short)
+
 - Finish the remaining specification-workflow.service unit tests per above bullets without changing route behavior
 - Keep cached-state return exact for the “cached workflow state” unit test
 - Ensure DB-built state preserves test-provided `currentPhase` and compute `canProgress` based on validation + approvals
 - Re-run full suite until green, then tighten ESLint/TS settings
 
 Regression controls
+
 - Require PRs to main with CI gates (server tests + lint + type-check); block merges on red
 - Re-enable pre-commit/pre-push hooks locally (no `--no-verify`), run server tests on pre-push
 - Add `server/test-report.json` to `.gitignore` so it’s never committed

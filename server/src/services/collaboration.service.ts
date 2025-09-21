@@ -1,18 +1,17 @@
-// @ts-nocheck
 import { Server as SocketIOServer, Socket } from 'socket.io';
 import { Server as HTTPServer } from 'http';
 import { createAdapter } from '@socket.io/redis-adapter';
-import Redis from 'ioredis';
+import type Redis from 'ioredis';
 import jwt from 'jsonwebtoken';
-// @ts-nocheck
-import { PrismaClient } from '@prisma/client';
+import type { PrismaClient } from '@prisma/client';
+import type { JwtPayload } from 'jsonwebtoken';
 
 // Types for collaboration
 export interface CollaborationUser {
   id: string;
   name: string;
   email: string;
-  avatar?: string;
+  avatar?: string | null;
   color: string;
   joinedAt: Date;
   lastActivity: Date;
@@ -171,18 +170,25 @@ export class ConflictResolver {
 
   private static operationsOverlap(op1: DocumentChange, op2: DocumentChange): boolean {
     const op1Start = op1.position;
-    const op1End = op1.position + (op1.type === 'insert' ? (op1.content?.length || 0) : (op1.length || 0));
+    const op1End =
+      op1.position + (op1.type === 'insert' ? op1.content?.length || 0 : op1.length || 0);
     const op2Start = op2.position;
-    const op2End = op2.position + (op2.type === 'insert' ? (op2.content?.length || 0) : (op2.length || 0));
+    const op2End =
+      op2.position + (op2.type === 'insert' ? op2.content?.length || 0 : op2.length || 0);
 
     // Check if ranges overlap
     return !(op1End <= op2Start || op2End <= op1Start);
   }
 
-  private static getAffectedRange(op1: DocumentChange, op2: DocumentChange): { start: number; end: number } {
+  private static getAffectedRange(
+    op1: DocumentChange,
+    op2: DocumentChange
+  ): { start: number; end: number } {
     const start = Math.min(op1.position, op2.position);
-    const op1End = op1.position + (op1.type === 'insert' ? op1.content?.length || 0 : op1.length || 0);
-    const op2End = op2.position + (op2.type === 'insert' ? op2.content?.length || 0 : op2.length || 0);
+    const op1End =
+      op1.position + (op1.type === 'insert' ? op1.content?.length || 0 : op1.length || 0);
+    const op2End =
+      op2.position + (op2.type === 'insert' ? op2.content?.length || 0 : op2.length || 0);
     const end = Math.max(op1End, op2End);
 
     return { start, end };
@@ -235,20 +241,28 @@ export class ConflictResolver {
 
 // Main collaboration service
 export class CollaborationService {
-  private io: SocketIOServer;
+  public readonly io: SocketIOServer;
   private redis: Redis;
   private prisma: PrismaClient;
   private userSessions: Map<string, UserSession> = new Map();
   private documentRooms: Map<string, Set<string>> = new Map();
   private userColors: string[] = [
-    '#FF6B6B', '#4ECDC4', '#45B7D1', '#96CEB4', '#FFEAA7',
-    '#DDA0DD', '#98D8C8', '#F7DC6F', '#BB8FCE', '#85C1E9'
+    '#FF6B6B',
+    '#4ECDC4',
+    '#45B7D1',
+    '#96CEB4',
+    '#FFEAA7',
+    '#DDA0DD',
+    '#98D8C8',
+    '#F7DC6F',
+    '#BB8FCE',
+    '#85C1E9',
   ];
 
   constructor(server: HTTPServer, redis: Redis, prisma: PrismaClient) {
     this.redis = redis;
     this.prisma = prisma;
-    
+
     this.io = new SocketIOServer(server, {
       cors: {
         origin: process.env.CLIENT_URL || 'http://localhost:3000',
@@ -268,29 +282,38 @@ export class CollaborationService {
     this.io.on('connection', (socket: Socket) => {
       // // console.log(`Socket connected: ${socket.id}`);
 
-      socket.on('join-document', (data: JoinDocumentRequest) => 
+      socket.on('join-document', (data: JoinDocumentRequest) =>
         this.handleJoinDocument(socket, data)
       );
-      
-      socket.on('document-change', (change: DocumentChange) => 
+
+      socket.on('document-change', (change: DocumentChange) =>
         this.handleDocumentChange(socket, change)
       );
-      
-      socket.on('cursor-position', (position: CursorPosition) => 
+
+      socket.on('cursor-position', (position: CursorPosition) =>
         this.handleCursorPosition(socket, position)
       );
-      
-      socket.on('disconnect', () => 
-        this.handleDisconnect(socket)
-      );
+
+      socket.on('disconnect', () => this.handleDisconnect(socket));
     });
   }
 
   private async handleJoinDocument(socket: Socket, data: JoinDocumentRequest): Promise<void> {
     try {
       // Verify JWT token
-      const decoded = jwt.verify(data.token, process.env.JWT_SECRET || 'test-secret') as any;
-      const userId = decoded.userId;
+      const decoded = jwt.verify(data.token, process.env.JWT_SECRET || 'test-secret');
+
+      const payload =
+        typeof decoded === 'object' && decoded !== null && 'userId' in decoded
+          ? (decoded as JwtPayload & { userId: string })
+          : null;
+
+      if (!payload || typeof payload.userId !== 'string') {
+        socket.emit('error', { message: 'Invalid authentication token' });
+        return;
+      }
+
+      const userId = payload.userId;
 
       // Validate document access
       const hasAccess = await this.validateDocumentAccess(userId, data.documentId);
@@ -382,7 +405,6 @@ export class CollaborationService {
 
       // Store change in Redis for conflict resolution
       await this.storeDocumentChange(transformedChange);
-
     } catch (error) {
       console.error('Error handling document change:', error);
       socket.emit('error', { message: 'Failed to apply document change' });
@@ -411,7 +433,7 @@ export class CollaborationService {
 
     // Remove from tracking
     this.userSessions.delete(socket.id);
-    
+
     const documentRoom = this.documentRooms.get(session.documentId);
     if (documentRoom) {
       documentRoom.delete(socket.id);
@@ -433,10 +455,7 @@ export class CollaborationService {
         where: {
           id: documentId,
           project: {
-            OR: [
-              { ownerId: userId },
-              { team: { some: { userId, status: 'ACTIVE' } } },
-            ],
+            OR: [{ ownerId: userId }, { team: { some: { userId, status: 'ACTIVE' } } }],
           },
         },
       });
@@ -470,7 +489,7 @@ export class CollaborationService {
     if (!socketIds) return [];
 
     const users: CollaborationUser[] = [];
-    
+
     for (const socketId of socketIds) {
       const session = this.userSessions.get(socketId);
       if (session) {
@@ -505,9 +524,9 @@ export class CollaborationService {
   private async applyOperationalTransform(change: DocumentChange): Promise<DocumentChange> {
     // Get recent changes from Redis for transformation
     const recentChanges = await this.getRecentDocumentChanges(change.documentId);
-    
+
     let transformedChange = change;
-    
+
     // Apply operational transformation against recent changes
     for (const recentChange of recentChanges) {
       if (recentChange.timestamp > change.timestamp) {
@@ -560,7 +579,7 @@ export class CollaborationService {
     documentUsers: Record<string, number>;
   } {
     const documentUsers: Record<string, number> = {};
-    
+
     for (const [documentId, socketIds] of this.documentRooms.entries()) {
       documentUsers[documentId] = socketIds.size;
     }

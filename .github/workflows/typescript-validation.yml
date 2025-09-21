@@ -81,10 +81,59 @@ jobs:
           echo "- Use \`./scripts/fix-typescript-issues.sh\` for automated fixes" >> $GITHUB_STEP_SUMMARY
           echo "- Check import statements and type definitions" >> $GITHUB_STEP_SUMMARY
 
+  integration-env:
+    name: Test Stack Smoke Check
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    needs: [typescript-check]
+    if: ${{ always() }}
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: ${{ env.NODE_VERSION }}
+          cache: 'npm'
+
+      - name: Install pnpm
+        run: npm install -g pnpm@${{ env.PNPM_VERSION }}
+
+      - name: Get pnpm store directory
+        id: pnpm-cache
+        shell: bash
+        run: |
+          echo "STORE_PATH=$(pnpm store path)" >> $GITHUB_OUTPUT
+
+      - name: Setup pnpm cache
+        uses: actions/cache@v3
+        with:
+          path: ${{ steps.pnpm-cache.outputs.STORE_PATH }}
+          key: ${{ runner.os }}-pnpm-store-${{ hashFiles('**/pnpm-lock.yaml') }}
+          restore-keys: |
+            ${{ runner.os }}-pnpm-store-
+
+      - name: Install dependencies
+        run: pnpm install --frozen-lockfile
+
+      - name: Launch Postgres + Redis test stack
+        run: pnpm docker:test:up
+
+      - name: Prepare database schema + seed data
+        run: pnpm db:test:prepare
+
+      - name: Tear down test stack
+        if: always()
+        run: pnpm docker:test:down
+
   summary:
     name: Validation Summary
     runs-on: ubuntu-latest
-    needs: [typescript-check]
+    needs: [typescript-check, integration-env]
     if: always()
 
     steps:
@@ -97,4 +146,14 @@ jobs:
             echo "✅ TypeScript compilation passed" >> $GITHUB_STEP_SUMMARY
           else
             echo "❌ TypeScript compilation failed" >> $GITHUB_STEP_SUMMARY
+          fi
+
+          echo "" >> $GITHUB_STEP_SUMMARY
+          echo "# Integration Environment Setup" >> $GITHUB_STEP_SUMMARY
+          echo "" >> $GITHUB_STEP_SUMMARY
+
+          if [ "${{ needs.integration-env.result }}" = "success" ]; then
+            echo "✅ Test database/redis stack bootstrapped successfully" >> $GITHUB_STEP_SUMMARY
+          else
+            echo "❌ Test stack preparation encountered issues" >> $GITHUB_STEP_SUMMARY
           fi

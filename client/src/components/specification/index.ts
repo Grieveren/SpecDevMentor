@@ -1,4 +1,3 @@
-// @ts-nocheck
 export { SpecificationEditor } from './SpecificationEditor';
 export { MarkdownPreview } from './MarkdownPreview';
 export { SpecificationLayout } from './SpecificationLayout';

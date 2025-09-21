@@ -1,8 +1,11 @@
-// @ts-nocheck
 import { Redis } from 'ioredis';
-import { ComplianceDetail, ComplianceResult, SupportedLanguage } from '../types/code-execution.js';
-import { AIService, createAIService } from './ai.service.js';
 import { CodeExecutionService } from './code-execution.service.js';
+import { AIService, createAIService } from './ai.service.js';
+import {
+  ComplianceResult,
+  ComplianceDetail,
+  SupportedLanguage,
+} from '../types/code-execution.js';
 
 interface SpecificationDocument {
   id: string;
@@ -33,11 +36,15 @@ export class SpecificationComplianceService {
 
   constructor(redis?: Redis) {
     this.codeExecutionService = new CodeExecutionService();
-    try {
-      this.aiService = redis ? createAIService(redis) : (null as any);
-    } catch (error) {
-      console.warn('AI service initialization failed, continuing without AI features:', error);
-      this.aiService = null as any;
+    if (redis) {
+      try {
+        this.aiService = createAIService(redis);
+      } catch (error) {
+        console.warn('AI service initialization failed, continuing without AI features:', error);
+        this.aiService = new AIService();
+      }
+    } else {
+      this.aiService = new AIService();
     }
   }
 
@@ -68,7 +75,10 @@ export class SpecificationComplianceService {
       const testResults = await this.executeTests(code, language, testCases);
 
       // Calculate compliance score
-      const complianceDetails = this.generateComplianceDetails(requirementMatches, testResults);
+      const complianceDetails = this.generateComplianceDetails(
+        requirementMatches,
+        testResults
+      );
 
       const score = this.calculateComplianceScore(complianceDetails);
 
@@ -121,14 +131,14 @@ export class SpecificationComplianceService {
 
   private parseEARSRequirements(content: string): ExtractedRequirement[] {
     const requirements: ExtractedRequirement[] = [];
-
+    
     // Match EARS patterns: WHEN/IF ... THEN ... SHALL
     const earsPattern = /(?:WHEN|IF)\s+(.+?)\s+THEN\s+(.+?)\s+SHALL\s+(.+?)(?:\n|$)/gi;
     let match;
 
     while ((match = earsPattern.exec(content)) !== null) {
       const [, condition, context, action] = match;
-
+      
       requirements.push({
         id: `ears-${requirements.length + 1}`,
         type: 'functional',
@@ -146,15 +156,14 @@ export class SpecificationComplianceService {
 
   private parseUserStories(content: string): ExtractedRequirement[] {
     const requirements: ExtractedRequirement[] = [];
-
+    
     // Match user story pattern: As a ... I want ... so that ...
-    const userStoryPattern =
-      /As\s+a\s+(.+?),?\s+I\s+want\s+(.+?),?\s+so\s+that\s+(.+?)(?:\n|\.|\*\*|$)/gi;
+    const userStoryPattern = /As\s+a\s+(.+?),?\s+I\s+want\s+(.+?),?\s+so\s+that\s+(.+?)(?:\n|\.|\*\*|$)/gi;
     let match;
 
     while ((match = userStoryPattern.exec(content)) !== null) {
       const [, role, want, benefit] = match;
-
+      
       requirements.push({
         id: `story-${requirements.length + 1}`,
         type: 'user-story',
@@ -172,7 +181,7 @@ export class SpecificationComplianceService {
 
   private parseDesignRequirements(content: string): ExtractedRequirement[] {
     const requirements: ExtractedRequirement[] = [];
-
+    
     // Extract API endpoints, data models, and interfaces
     const apiPattern = /(?:endpoint|route|api):\s*([A-Z]+)\s+([\/\w\-:{}]+)/gi;
     const interfacePattern = /interface\s+(\w+)\s*{([^}]+)}/gi;
@@ -213,14 +222,14 @@ export class SpecificationComplianceService {
 
   private parseTaskRequirements(content: string): ExtractedRequirement[] {
     const requirements: ExtractedRequirement[] = [];
-
+    
     // Extract implementation tasks
     const taskPattern = /[-*]\s*\[\s*[x\s]\s*\]\s*(.+?)(?:\n|$)/gi;
     let match;
 
     while ((match = taskPattern.exec(content)) !== null) {
       const taskDescription = match[1].trim();
-
+      
       if (this.isImplementationTask(taskDescription)) {
         requirements.push({
           id: `task-${requirements.length + 1}`,
@@ -237,26 +246,20 @@ export class SpecificationComplianceService {
 
   private isImplementationTask(description: string): boolean {
     const implementationKeywords = [
-      'implement',
-      'create',
-      'build',
-      'develop',
-      'write',
-      'add',
-      'function',
-      'class',
-      'method',
-      'component',
-      'service',
-      'api',
+      'implement', 'create', 'build', 'develop', 'write', 'add',
+      'function', 'class', 'method', 'component', 'service', 'api'
     ];
-
-    return implementationKeywords.some(keyword => description.toLowerCase().includes(keyword));
+    
+    return implementationKeywords.some(keyword => 
+      description.toLowerCase().includes(keyword)
+    );
   }
 
   private isTestableTask(description: string): boolean {
     const nonTestableKeywords = ['document', 'plan', 'design', 'research'];
-    return !nonTestableKeywords.some(keyword => description.toLowerCase().includes(keyword));
+    return !nonTestableKeywords.some(keyword => 
+      description.toLowerCase().includes(keyword)
+    );
   }
 
   private async analyzeCode(code: string, language: SupportedLanguage): Promise<CodeAnalysis> {
@@ -281,10 +284,6 @@ Provide the analysis in JSON format.
 `;
 
     try {
-      if (!this.aiService) {
-        // Fallback to basic static analysis if AI service is not available
-        return this.performBasicCodeAnalysis(code, language);
-      }
       const analysisResult = await this.aiService.generateCompletion(analysisPrompt);
       return JSON.parse(analysisResult);
     } catch (error) {
@@ -310,12 +309,12 @@ Provide the analysis in JSON format.
         analysis.classes = this.extractJavaScriptClasses(code);
         analysis.apis = this.extractJavaScriptAPIs(code);
         break;
-
+      
       case SupportedLanguage.PYTHON:
         analysis.functions = this.extractPythonFunctions(code);
         analysis.classes = this.extractPythonClasses(code);
         break;
-
+      
       case SupportedLanguage.JAVA:
         analysis.functions = this.extractJavaFunctions(code);
         analysis.classes = this.extractJavaClasses(code);
@@ -323,13 +322,12 @@ Provide the analysis in JSON format.
     }
 
     analysis.errorHandling = this.detectErrorHandling(code, language);
-
+    
     return analysis;
   }
 
   private extractJavaScriptFunctions(code: string): string[] {
-    const functionPattern =
-      /(?:function\s+(\w+)|const\s+(\w+)\s*=\s*(?:async\s+)?\([^)]*\)\s*=>|(\w+)\s*:\s*(?:async\s+)?function)/g;
+    const functionPattern = /(?:function\s+(\w+)|const\s+(\w+)\s*=\s*(?:async\s+)?\([^)]*\)\s*=>|(\w+)\s*:\s*(?:async\s+)?function)/g;
     const functions: string[] = [];
     let match;
 
@@ -438,7 +436,12 @@ Provide the analysis in JSON format.
     const matches: RequirementMatch[] = [];
 
     for (const requirement of requirements) {
-      const match = await this.matchSingleRequirement(code, language, requirement, codeAnalysis);
+      const match = await this.matchSingleRequirement(
+        code,
+        language,
+        requirement,
+        codeAnalysis
+      );
       matches.push(match);
     }
 
@@ -460,19 +463,19 @@ Provide the analysis in JSON format.
       case 'functional':
         matchScore = this.matchFunctionalRequirement(requirement, codeAnalysis, evidence);
         break;
-
+      
       case 'api':
         matchScore = this.matchAPIRequirement(requirement, codeAnalysis, evidence);
         break;
-
+      
       case 'interface':
         matchScore = this.matchInterfaceRequirement(requirement, code, evidence);
         break;
-
+      
       case 'user-story':
         matchScore = this.matchUserStoryRequirement(requirement, codeAnalysis, evidence);
         break;
-
+      
       case 'implementation':
         matchScore = this.matchImplementationRequirement(requirement, codeAnalysis, evidence);
         break;
@@ -502,9 +505,10 @@ Provide the analysis in JSON format.
     // Check if required functionality is implemented
     if (requirement.expectedBehavior) {
       const behaviorKeywords = requirement.expectedBehavior.toLowerCase().split(/\s+/);
-      const codeElements = [...codeAnalysis.functions, ...codeAnalysis.classes].map(el =>
-        el.toLowerCase()
-      );
+      const codeElements = [
+        ...codeAnalysis.functions,
+        ...codeAnalysis.classes,
+      ].map(el => el.toLowerCase());
 
       const matchingElements = behaviorKeywords.filter(keyword =>
         codeElements.some(element => element.includes(keyword))
@@ -527,7 +531,9 @@ Provide the analysis in JSON format.
     let score = 0;
 
     if (requirement.path && requirement.method) {
-      const matchingAPI = codeAnalysis.apis.find(api => api.includes(requirement.path));
+      const matchingAPI = codeAnalysis.apis.find(api => 
+        api.includes(requirement.path)
+      );
 
       if (matchingAPI) {
         score = 100;
@@ -565,10 +571,15 @@ Provide the analysis in JSON format.
 
     if (requirement.functionality) {
       const functionalityKeywords = requirement.functionality.toLowerCase().split(/\s+/);
-      const implementedFeatures = [...codeAnalysis.functions, ...codeAnalysis.classes];
+      const implementedFeatures = [
+        ...codeAnalysis.functions,
+        ...codeAnalysis.classes,
+      ];
 
       const relevantFeatures = implementedFeatures.filter(feature =>
-        functionalityKeywords.some(keyword => feature.toLowerCase().includes(keyword))
+        functionalityKeywords.some(keyword => 
+          feature.toLowerCase().includes(keyword)
+        )
       );
 
       if (relevantFeatures.length > 0) {
@@ -588,10 +599,15 @@ Provide the analysis in JSON format.
     let score = 0;
 
     const descriptionKeywords = requirement.description.toLowerCase().split(/\s+/);
-    const implementedElements = [...codeAnalysis.functions, ...codeAnalysis.classes];
+    const implementedElements = [
+      ...codeAnalysis.functions,
+      ...codeAnalysis.classes,
+    ];
 
     const matchingElements = implementedElements.filter(element =>
-      descriptionKeywords.some(keyword => element.toLowerCase().includes(keyword))
+      descriptionKeywords.some(keyword => 
+        element.toLowerCase().includes(keyword)
+      )
     );
 
     if (matchingElements.length > 0) {
@@ -612,11 +628,8 @@ Provide the analysis in JSON format.
 
     // Extract function definitions that match the requirement
     for (const functionName of codeAnalysis.functions) {
-      const functionPattern = new RegExp(
-        `(?:function\\s+${functionName}|${functionName}\\s*[=:].*function)`,
-        'i'
-      );
-
+      const functionPattern = new RegExp(`(?:function\\s+${functionName}|${functionName}\\s*[=:].*function)`, 'i');
+      
       for (let i = 0; i < lines.length; i++) {
         if (functionPattern.test(lines[i])) {
           // Extract function and a few surrounding lines
@@ -674,10 +687,6 @@ Generate a test case with:
 Return as JSON with fields: description, input, expectedOutput, expectedBehavior, testCode
 `;
 
-      if (!this.aiService) {
-        // Return null if AI service is not available
-        return null;
-      }
       const testResult = await this.aiService.generateCompletion(testPrompt);
       const testData = JSON.parse(testResult);
 
@@ -705,7 +714,7 @@ Return as JSON with fields: description, input, expectedOutput, expectedBehavior
     for (const testCase of testCases) {
       try {
         const testCode = this.generateTestExecutionCode(code, testCase, language);
-
+        
         const executionResult = await this.codeExecutionService.executeCode({
           code: testCode,
           language,
@@ -795,7 +804,9 @@ except Exception as error:
     const details: ComplianceDetail[] = [];
 
     for (const match of requirementMatches) {
-      const relatedTests = testResults.filter(test => test.testId.includes(match.requirementId));
+      const relatedTests = testResults.filter(test => 
+        test.testId.includes(match.requirementId)
+      );
 
       let status: 'passed' | 'failed' | 'partial';
       let message: string;
@@ -815,7 +826,7 @@ except Exception as error:
       if (relatedTests.length > 0) {
         const passedTests = relatedTests.filter(test => test.passed).length;
         const testPassRate = passedTests / relatedTests.length;
-
+        
         if (testPassRate < 0.5 && status === 'passed') {
           status = 'partial';
           message += ` - Tests failing (${passedTests}/${relatedTests.length} passed)`;
@@ -838,14 +849,10 @@ except Exception as error:
 
     const scores = details.map(detail => {
       switch (detail.status) {
-        case 'passed':
-          return 100;
-        case 'partial':
-          return 50;
-        case 'failed':
-          return 0;
-        default:
-          return 0;
+        case 'passed': return 100;
+        case 'partial': return 50;
+        case 'failed': return 0;
+        default: return 0;
       }
     });
 

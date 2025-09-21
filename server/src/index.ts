@@ -1,4 +1,3 @@
-// @ts-nocheck
 import express from 'express';
 import cors from 'cors';
 import helmet from 'helmet';
@@ -17,7 +16,7 @@ import bestPracticesRoutes from './routes/best-practices.routes.js';
 import learningRoutes from './routes/learning.routes.js';
 import analyticsRoutes from './routes/analytics.routes.js';
 import performanceRoutes, { requestMetricsMiddleware } from './routes/performance.routes.js';
-import notificationRoutes, { initializeNotificationRoutes } from './routes/notification.routes.js';
+import { initializeNotificationRoutes } from './routes/notification.routes.js';
 import fileUploadRoutes from './routes/file-upload.routes.js';
 import searchRoutes from './routes/search.routes.js';
 import monitoringRoutes from './routes/monitoring.routes.js';
@@ -59,7 +58,7 @@ app.use(requestLoggingMiddleware);
 // Health check endpoint
 app.get('/health', async (_req, res) => {
   const redisConnected = RedisClient.isRedisConnected();
-  
+
   res.json({
     status: 'ok',
     timestamp: new Date().toISOString(),
@@ -79,62 +78,62 @@ app.get('/api', (_req, res) => {
 async function setupServices() {
   try {
     const redis = await RedisClient.getInstance();
-    
+
     // Initialize collaboration service
     const collaborationService = new CollaborationService(server, redis, prisma);
-    
+
     // Initialize email processor service
     const emailProcessor = new EmailProcessorService(prisma, redis);
     emailProcessor.start(); // Start processing emails every 30 seconds
-    
+
     // Authentication routes
     app.use('/api/auth', createAuthRoutes(redis));
-    
+
     // Project routes
     app.use('/api/projects', projectRoutes);
-    
+
     // Specification workflow routes
     app.use('/api', workflowRoutes);
-    
+
     // AI review routes
     app.use('/api/ai-review', aiReviewRoutes);
-    
+
     // Code execution routes
     app.use('/api/code-execution', codeExecutionRoutes);
-    
+
     // Template routes
     app.use('/api/templates', templateRoutes);
-    
+
     // Best practices routes
     app.use('/api/best-practices', bestPracticesRoutes);
-    
+
     // Learning routes
     app.use('/api/learning', learningRoutes);
-    
+
     // Analytics routes
     app.use('/api/analytics', analyticsRoutes);
-    
+
     // Performance monitoring routes
     app.use('/api/performance', performanceRoutes);
-    
+
     // Notification routes (initialize with Socket.IO server)
     app.use('/api/notifications', initializeNotificationRoutes(collaborationService.io));
-    
+
     // File upload routes
     app.use('/api/files', fileUploadRoutes);
-    
+
     // Search routes
     app.use('/api/search', searchRoutes);
-    
+
     // Monitoring routes
     app.use('/monitoring', monitoringRoutes);
-    
+
     // Collaboration stats endpoint
     app.get('/api/collaboration/stats', (_req, res) => {
       const stats = collaborationService.getCollaborationStats();
       res.json(stats);
     });
-    
+
     // // console.log('✅ Services and routes initialized successfully');
     return { redis, collaborationService, emailProcessor };
   } catch (error) {
@@ -162,8 +161,12 @@ app.use('*', (_req, res) => {
 // Start server
 async function startServer() {
   try {
-    const { redis, collaborationService, emailProcessor } = await setupServices();
-    
+    const {
+      redis,
+      collaborationService: _collaborationService,
+      emailProcessor,
+    } = await setupServices();
+
     server.listen(PORT, () => {
       // // console.log(`🚀 Server running on port ${PORT}`);
       // // console.log(`📊 Health check: http://localhost:${PORT}/health`);

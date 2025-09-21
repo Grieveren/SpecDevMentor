@@ -1,4 +1,3 @@
-// @ts-nocheck
 import {
   EyeIcon,
   FunnelIcon,
@@ -102,7 +101,7 @@ export const TemplateBrowser: React.FC<TemplateBrowserProps> = ({
   };
 
   const handleFilterChange = (key: keyof SearchTemplatesRequest, value: unknown) => {
-    setFilters(prev => ({ ...prev, [key]: value, page: 1 }));
+    setFilters(prev => ({ ...prev, [key]: value as any, page: 1 }));
   };
 
   const handlePageChange = (page: number) => {

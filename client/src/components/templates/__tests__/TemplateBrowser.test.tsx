@@ -1,9 +1,8 @@
-// @ts-nocheck
 import { render, screen, waitFor } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
-import { beforeEach, describe, expect, it, vi } from 'vitest';
-import { templateService } from '../../../services/template.service';
+import { describe, it, expect, vi, beforeEach } from 'vitest';
 import { TemplateBrowser } from '../TemplateBrowser';
+import { templateService } from '../../../services/template.service';
 
 // Mock the template service
 vi.mock('../../../services/template.service', () => ({
@@ -173,7 +172,7 @@ describe('TemplateBrowser', () => {
   it('should call onSelectTemplate when template is clicked', async () => {
     const user = userEvent.setup();
     const onSelectTemplate = vi.fn();
-
+    
     render(<TemplateBrowser onSelectTemplate={onSelectTemplate} />);
 
     await waitFor(() => {
@@ -189,7 +188,7 @@ describe('TemplateBrowser', () => {
   it('should call onApplyTemplate when apply button is clicked', async () => {
     const user = userEvent.setup();
     const onApplyTemplate = vi.fn();
-
+    
     render(<TemplateBrowser onApplyTemplate={onApplyTemplate} />);
 
     await waitFor(() => {

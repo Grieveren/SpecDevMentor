@@ -1,4 +1,6 @@
 import { NextFunction, Request, Response } from 'express';
+import type { ParamsDictionary } from 'express-serve-static-core';
+import type { ParsedQs } from 'qs';
 
 export type UserRole = 'STUDENT' | 'DEVELOPER' | 'TEAM_LEAD' | 'ADMIN';
 
@@ -13,7 +15,26 @@ export interface JWTPayload {
 }
 
 // Extended Request interface for authenticated routes
-export interface AuthenticatedRequest extends Request {
+export type TypedRequest<
+  Params extends ParamsDictionary = ParamsDictionary,
+  ResBody = any,
+  ReqBody = any,
+  ReqQuery = ParsedQs,
+  Locals extends Record<string, any> = Record<string, any>
+> = Request<Params, ResBody, ReqBody, ReqQuery, Locals>;
+
+export type TypedResponse<
+  ResBody = any,
+  Locals extends Record<string, any> = Record<string, any>
+> = Response<ResBody, Locals>;
+
+export interface AuthenticatedRequest<
+  Params extends ParamsDictionary = ParamsDictionary,
+  ResBody = any,
+  ReqBody = any,
+  ReqQuery = ParsedQs,
+  Locals extends Record<string, any> = Record<string, any>
+> extends Request<Params, ResBody, ReqBody, ReqQuery, Locals> {
   user: JWTPayload & { id: string };
 }
 
@@ -29,6 +50,8 @@ export interface ApiError {
   success: false;
   message: string;
   code: string;
+  // Some routes also include a shorthand 'error' field for compatibility with tests/clients
+  error?: string;
   details?: any;
 }
 
@@ -58,14 +81,46 @@ export type AuthenticatedRouteHandler<T = any> = (
   next?: NextFunction
 ) => Promise<void> | void;
 
+export type TypedRouteHandler<
+  ResBody = any,
+  ReqBody = any,
+  Params extends ParamsDictionary = ParamsDictionary,
+  ReqQuery = ParsedQs,
+  Locals extends Record<string, any> = Record<string, any>
+> = (
+  req: TypedRequest<Params, ResBody, ReqBody, ReqQuery, Locals>,
+  res: TypedResponse<ResBody, Locals>,
+  next: NextFunction
+) => Promise<void> | void;
+
+export type TypedAuthenticatedRouteHandler<
+  ResBody = any,
+  ReqBody = any,
+  Params extends ParamsDictionary = ParamsDictionary,
+  ReqQuery = ParsedQs,
+  Locals extends Record<string, any> = Record<string, any>
+> = (
+  req: AuthenticatedRequest<Params, ResBody, ReqBody, ReqQuery, Locals>,
+  res: TypedResponse<ResBody, Locals>,
+  next: NextFunction
+) => Promise<void> | void;
+
 // Middleware types
 export type Middleware = (req: Request, res: Response, next: NextFunction) => Promise<void> | void;
 
-export type AuthMiddleware = (
-  req: Request,
-  res: Response,
+export type TypedMiddleware<
+  Params extends ParamsDictionary = ParamsDictionary,
+  ResBody = any,
+  ReqBody = any,
+  ReqQuery = ParsedQs,
+  Locals extends Record<string, any> = Record<string, any>
+> = (
+  req: TypedRequest<Params, ResBody, ReqBody, ReqQuery, Locals>,
+  res: TypedResponse<ResBody, Locals>,
   next: NextFunction
 ) => Promise<void> | void;
+
+export type AuthMiddleware = (req: Request, res: Response, next: NextFunction) => Promise<void> | void;
 
 export type ErrorMiddleware = (error: any, req: Request, res: Response, next: NextFunction) => void;
 
