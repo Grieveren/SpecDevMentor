@@ -1,0 +1,30 @@
+{
+  "name": "api",
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "dev": "tsx watch --clear-screen=false src/index.ts",
+    "build": "tsup src/index.ts --format esm,cjs --dts --out-dir dist",
+    "lint": "eslint src --ext .ts",
+    "type-check": "tsc --noEmit",
+    "test": "vitest run"
+  },
+  "dependencies": {
+    "@codementor-ai/shared": "workspace:^",
+    "dotenv": "^16.4.5",
+    "express": "^4.19.2",
+    "helmet": "^7.1.0",
+    "zod": "^3.23.8"
+  },
+  "devDependencies": {
+    "@types/express": "^4.17.21",
+    "@types/node": "^22.10.1",
+    "@types/supertest": "^6.0.3",
+    "@vitest/coverage-v8": "^2.1.8",
+    "cross-env": "^7.0.3",
+    "supertest": "^7.0.0",
+    "tsup": "^8.1.0",
+    "tsx": "^4.19.1",
+    "vitest": "^2.1.8"
+  }
+}

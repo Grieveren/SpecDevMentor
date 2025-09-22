@@ -1,0 +1,21 @@
+{
+  "name": "@codementor-ai/shared",
+  "private": true,
+  "type": "module",
+  "exports": {
+    "./project": {
+      "import": "./src/project.ts",
+      "types": "./src/project.ts"
+    }
+  },
+  "scripts": {
+    "build": "tsup src --format esm --dts --out-dir dist",
+    "lint": "eslint src --ext .ts",
+    "type-check": "tsc --noEmit",
+    "test": "vitest run --passWithNoTests"
+  },
+  "devDependencies": {
+    "tsup": "^8.1.0",
+    "vitest": "^2.1.8"
+  }
+}
